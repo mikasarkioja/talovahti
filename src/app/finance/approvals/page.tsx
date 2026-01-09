@@ -129,7 +129,11 @@ export default function InvoiceApprovalPage() {
                                 <div className="flex items-center gap-1">
                                     <Tag size={12} />
                                     <span>{getCategoryLabel(invoice.category)}</span>
-                                    {match.confidence < 100 && <Brain size={12} className="text-purple-500 ml-1" title="Tekoälyehdotus" />}
+                                    {match.confidence < 100 && (
+                                        <span title="Tekoälyehdotus">
+                                            <Brain size={12} className="text-purple-500 ml-1" />
+                                        </span>
+                                    )}
                                 </div>
                                 <span className={clsx("flex items-center gap-1", invoice.dueDate < new Date() ? "text-red-600 font-bold" : "")}>
                                     <Calendar size={12} /> {invoice.dueDate.toLocaleDateString()}
