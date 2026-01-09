@@ -3,7 +3,6 @@ import { BudgetCategory } from '@prisma/client'
 import { calculateBurnRate, getCategoryLabel, BudgetLine } from '@/lib/finance'
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react'
 import { clsx } from 'clsx'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 // Mock Tooltip component since we haven't fully set up shadcn/ui yet
 // Creating a simple hover capable wrapper
