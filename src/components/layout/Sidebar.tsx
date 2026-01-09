@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { Home, PenTool, Gavel, Wallet, Building2, ClipboardList, CheckSquare, TrendingUp, Vote } from 'lucide-react'
+import { Home, PenTool, Gavel, Wallet, Building2, ClipboardList, CheckSquare, TrendingUp, Vote, LucideIcon } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { clsx } from 'clsx'
 import { useStore } from '@/lib/store'
@@ -10,7 +10,7 @@ type MenuGroup = {
   items: {
     href: string
     label: string
-    icon: React.ComponentType<{ size?: number, className?: string }>
+    icon: LucideIcon
   }[]
 }
 
