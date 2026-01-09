@@ -21,8 +21,6 @@ export default function RenovationPage() {
       priority: 'MEDIUM',
       type: 'RENOVATION',
       apartmentId: currentUser?.apartmentId || null,
-      housingCompanyId: currentUser?.housingCompanyId || 'hc-1',
-      createdById: currentUser?.id || 'user-1',
       createdAt: new Date()
     })
     router.push('/maintenance/tickets')
