@@ -46,7 +46,9 @@ export const accountingApi = {
       projectId: null,
       approvedById: null,
       imageUrl: inv.imageUrl,
-      createdAt: new Date()
+      createdAt: new Date(),
+      yTunnus: '1234567-8', 
+      description: `Lasku toimittajalta ${inv.vendorName}`
     }))
   },
 
