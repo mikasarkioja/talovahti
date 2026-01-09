@@ -1,0 +1,644 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- DOMAIN ---
+
+model HousingCompany {
+  id              String      @id @default(cuid())
+  businessId      String      @unique
+  name            String
+  address         String
+  city            String
+  postalCode      String
+  apartments      Apartment[]
+  users           User[]
+  surveys         Survey[]
+  tickets         Ticket[]
+  initiatives     Initiative[]
+  documents       MeetingDocument[]
+  meetings        Meeting[]
+  budgetLines     BudgetLineItem[]
+  renovations     Renovation[]
+  observations    Observation[]
+  investments     InvestmentOption[]
+  projects        Project[]
+  mmlSyncLogs     MMLSyncLog[]
+  documentOrders  DocumentOrder[]
+  invoices        Invoice[]
+  vendorRules     VendorRule[]
+  
+  // RELATIONS
+  subscription    Subscription?
+  features        FeatureAccess[]
+  orders          Order[]
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  @@map("housing_companies")
+}
+
+model Apartment {
+  id               String         @id @default(cuid())
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  apartmentNumber  String         // e.g. "A 1"
+  floor            Int?
+  area             Decimal?
+  sharesStart      Int
+  sharesEnd        Int
+  shareCount       Int            // VOTING POWER
+  users            User[]
+  tickets          Ticket[]
+  surveyResponses  SurveyResponse[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  @@unique([housingCompanyId, apartmentNumber])
+  @@map("apartments")
+}
+
+enum UserRole {
+  RESIDENT
+  BOARD
+  MANAGER
+  ADMIN
+}
+
+model User {
+  id                String         @id @default(cuid())
+  email             String         @unique
+  name              String?
+  housingCompanyId  String
+  housingCompany    HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  apartmentId       String?
+  apartment         Apartment?     @relation(fields: [apartmentId], references: [id])
+  role              UserRole       @default(RESIDENT)
+  canApproveFinance Boolean        @default(false)
+  createdTickets    Ticket[]
+  initiatives       Initiative[]
+  supportedInitiatives InitiativeSupport[]
+  surveyResponses   SurveyResponse[]
+  comments          Comment[]
+  votes             Vote[]
+  observations      Observation[]
+  documentOrders    DocumentOrder[]
+  orders            Order[]
+  approvedInvoices  Invoice[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  @@map("users")
+}
+
+// --- SUBSCRIPTIONS & FEATURES ---
+
+enum SubscriptionPlan {
+  BASIC
+  PRO
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+}
+
+model Subscription {
+  id               String             @id @default(cuid())
+  housingCompanyId String             @unique
+  housingCompany   HousingCompany     @relation(fields: [housingCompanyId], references: [id])
+  plan             SubscriptionPlan   @default(BASIC)
+  monthlyPrice     Float              @default(0) // New field
+  status           SubscriptionStatus @default(ACTIVE)
+  expiresAt        DateTime?
+  nextBillingDate  DateTime?          // New field
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  @@map("subscriptions")
+}
+
+model FeatureAccess {
+  id               String         @id @default(cuid())
+  key              String         // e.g. 'MML_SYNC', 'TENDERING'
+  name             String
+  price            Float
+  isEnabled        Boolean        @default(false)
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  @@unique([housingCompanyId, key])
+  @@map("feature_access")
+}
+
+enum OrderType {
+  CERTIFICATE
+  MODULE_UNLOCK
+  SUBSCRIPTION
+}
+
+model Order {
+  id               String         @id @default(cuid())
+  userId           String
+  user             User           @relation(fields: [userId], references: [id])
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  type             OrderType
+  amount           Float
+  platformRevenue  Float          @default(0) // New field: The portion kept by platform
+  status           OrderStatus    @default(PENDING)
+  metadata         String?        // JSON string
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  @@map("orders")
+}
+
+// --- MAINTENANCE ---
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TicketType {
+  MAINTENANCE
+  RENOVATION
+}
+
+model Ticket {
+  id               String         @id @default(cuid())
+  title            String
+  description      String
+  status           TicketStatus   @default(OPEN)
+  priority         TicketPriority @default(MEDIUM)
+  type             TicketType     @default(MAINTENANCE)
+  category         String?        // Renovation category
+  supervisor       String?        // Renovation supervisor
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  apartmentId      String?
+  apartment        Apartment?     @relation(fields: [apartmentId], references: [id])
+  createdById      String
+  createdBy        User           @relation(fields: [createdById], references: [id])
+  sentToMaintenanceAt DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  @@map("tickets")
+}
+
+enum RenovationStatus {
+  COMPLETED
+  PLANNED
+}
+
+model Renovation {
+  id                String           @id @default(cuid())
+  component         String           // e.g., "Katto", "Putkisto", "Ikkunat"
+  yearDone          Int?             // For COMPLETED
+  plannedYear       Int?             // For PLANNED (replacing yearDone for clarity in planned items)
+  cost              Float
+  expectedLifeSpan  Int              // Years until next major overhaul
+  description       String?
+  status            RenovationStatus @default(COMPLETED)
+  housingCompanyId  String
+  housingCompany    HousingCompany   @relation(fields: [housingCompanyId], references: [id])
+  assessments       ExpertAssessment[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  @@map("renovations")
+}
+
+// --- KUNTOARVIO (CONDITION ASSESSMENT) ---
+
+enum ObservationStatus {
+  OPEN
+  REVIEWED
+}
+
+model Observation {
+  id               String            @id @default(cuid())
+  component        String
+  description      String
+  imageUrl         String?
+  status           ObservationStatus @default(OPEN)
+  location         String?           // For 3D mapping (e.g., coordinates or apartmentId)
+  userId           String
+  user             User              @relation(fields: [userId], references: [id])
+  housingCompanyId String
+  housingCompany   HousingCompany    @relation(fields: [housingCompanyId], references: [id])
+  assessment       ExpertAssessment?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  @@map("observations")
+}
+
+model ExpertAssessment {
+  id               String           @id @default(cuid())
+  observationId    String           @unique
+  observation      Observation      @relation(fields: [observationId], references: [id])
+  renovationId     String?
+  renovation       Renovation?      @relation(fields: [renovationId], references: [id])
+  severityGrade    Int              // 1-4
+  technicalVerdict String
+  recommendedYear  Int?
+  options          SolutionOption[]
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  @@map("expert_assessments")
+}
+
+model SolutionOption {
+  id                String           @id @default(cuid())
+  assessmentId      String
+  assessment        ExpertAssessment @relation(fields: [assessmentId], references: [id])
+  title             String
+  description       String
+  estimatedCost     Float
+  lifeSpanExtension Int
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  @@map("solution_options")
+}
+
+
+// --- FINANCE ---
+
+enum BudgetCategory {
+  HEATING
+  WATER
+  ADMIN
+  MAINTENANCE
+  CLEANING
+}
+
+model BudgetLineItem {
+  id               String         @id @default(cuid())
+  category         BudgetCategory
+  budgetedAmount   Decimal
+  actualSpent      Decimal
+  year             Int
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  @@map("budget_line_items")
+}
+
+enum InvoiceStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
+}
+
+model Invoice {
+  id               String         @id @default(cuid())
+  externalId       String?        // From Netvisor/Procountor
+  yTunnus          String?        // Business ID for matching
+  vendorName       String
+  description      String?
+  amount           Decimal
+  dueDate          DateTime
+  status           InvoiceStatus  @default(PENDING)
+  category         BudgetCategory
+  projectId        String?
+  project          Project?       @relation(fields: [projectId], references: [id])
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  approvedById     String?
+  approvedBy       User?          @relation(fields: [approvedById], references: [id])
+  imageUrl         String?        // Scan of the bill
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  @@map("invoices")
+}
+
+model VendorRule {
+  id               String         @id @default(cuid())
+  yTunnus          String?        
+  vendorName       String?
+  category         BudgetCategory
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  @@unique([housingCompanyId, yTunnus])
+  @@map("vendor_rules")
+}
+
+enum InvestmentType {
+  SOLAR
+  GSHP
+  LTO
+  HYBRID
+}
+
+model InvestmentOption {
+  id               String         @id @default(cuid())
+  title            String
+  type             InvestmentType
+  initialCost      Decimal
+  annualSavings    Decimal
+  lifespan         Int
+  energySavedKwh   Int
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  @@map("investment_options")
+}
+
+// --- PROJECT MANAGEMENT ---
+
+enum ProjectStatus {
+  DIAGNOSIS
+  TECH_LEAD
+  CONSTRUCTION
+  WARRANTY
+}
+
+model Project {
+  id               String         @id @default(cuid())
+  title            String
+  type             String         // e.g. "Putkiremontti"
+  status           ProjectStatus  @default(DIAGNOSIS)
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  tenders          Tender[]
+  siteReports      SiteReport[]
+  changeOrders     ChangeOrder[]
+  invoices         Invoice[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  @@map("projects")
+}
+
+enum TenderType {
+  SUPERVISOR
+  CONSTRUCTION
+}
+
+enum TenderStatus {
+  OPEN
+  REVIEW
+  CLOSED
+}
+
+model Tender {
+  id        String       @id @default(cuid())
+  projectId String
+  project   Project      @relation(fields: [projectId], references: [id])
+  type      TenderType
+  status    TenderStatus @default(OPEN)
+  bids      Bid[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  @@map("tenders")
+}
+
+model Bid {
+  id                String   @id @default(cuid())
+  tenderId          String
+  tender            Tender   @relation(fields: [tenderId], references: [id])
+  companyName       String
+  price             Float
+  startDate         DateTime
+  endDate           DateTime
+  creditRating      String   // e.g. "AAA"
+  residentRating    Float?   // 0-5
+  siteVisitsPerWeek Int?
+  livePhotosEnabled Boolean  @default(false)
+  notes             String?
+  pdfUrl            String?
+  isWinner          Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  @@map("bids")
+}
+
+model SiteReport {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+  authorId  String   // Supervisor ID
+  content   String
+  imageUrl  String?
+  timestamp DateTime @default(now())
+  @@map("site_reports")
+}
+
+enum ChangeOrderStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ChangeOrder {
+  id         String            @id @default(cuid())
+  projectId  String
+  project    Project           @relation(fields: [projectId], references: [id])
+  title      String
+  costImpact Float
+  status     ChangeOrderStatus @default(PENDING)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  @@map("change_orders")
+}
+
+// --- ADMINISTRATION & DOCUMENTS ---
+
+model MMLSyncLog {
+  id               String         @id @default(cuid())
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  status           String         // SUCCESS, FAILED
+  recordCount      Int
+  timestamp        DateTime       @default(now())
+  @@map("mml_sync_logs")
+}
+
+enum DocumentType {
+  CERTIFICATE
+  ARTICLES
+  STATEMENTS
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  DELIVERED
+}
+
+model DocumentOrder {
+  id               String         @id @default(cuid())
+  userId           String
+  user             User           @relation(fields: [userId], references: [id])
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  type             DocumentType
+  amount           Float
+  status           OrderStatus    @default(PENDING)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  @@map("document_orders")
+}
+
+// --- GOVERNANCE & VOTING ---
+
+enum PipelineStage {
+  NEGOTIATION
+  LOCKED
+  VOTING
+  CLOSED
+}
+
+enum ProposalStatus {
+  DRAFT
+  REFINEMENT
+  FINALIZED
+  QUALIFIED
+  PASSED
+  REJECTED
+}
+
+model Initiative {
+  id               String            @id @default(cuid())
+  title            String
+  description      String
+  status           ProposalStatus    @default(DRAFT)
+  pipelineStage    PipelineStage     @default(NEGOTIATION)
+  affectedArea     String?           // For 3D Sync (e.g. 'FACADE')
+  housingCompanyId String
+  housingCompany   HousingCompany    @relation(fields: [housingCompanyId], references: [id])
+  authorId         String
+  author           User              @relation(fields: [authorId], references: [id])
+  supporters       InitiativeSupport[]
+  modifications    Comment[]
+  meetingId        String?
+  meeting          Meeting?          @relation(fields: [meetingId], references: [id])
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  @@map("initiatives")
+}
+
+model InitiativeSupport {
+  id           String     @id @default(cuid())
+  initiativeId String
+  initiative   Initiative @relation(fields: [initiativeId], references: [id])
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  createdAt    DateTime   @default(now())
+  @@unique([initiativeId, userId])
+  @@map("initiative_supports")
+}
+
+model Comment {
+  id           String     @id @default(cuid())
+  text         String
+  initiativeId String
+  initiative   Initiative @relation(fields: [initiativeId], references: [id])
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  createdAt    DateTime   @default(now())
+  @@map("comments")
+}
+
+enum VoteChoice {
+  YES
+  NO
+  ABSTAIN
+}
+
+model Vote {
+  id           String     @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  initiativeId String
+  choice       VoteChoice
+  shares       Int        // Weighted Value
+  timestamp    DateTime   @default(now())
+  @@map("votes")
+}
+
+// --- MEETINGS & LIBRARY ---
+
+enum MeetingType {
+  GENERAL
+  BOARD
+}
+
+enum SignatureStatus {
+  PENDING
+  SIGNED
+}
+
+model Meeting {
+  id               String       @id @default(cuid())
+  title            String
+  type             MeetingType
+  date             DateTime
+  status           PipelineStage @default(NEGOTIATION)
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  initiativeIds    Initiative[]
+  chairmanId       String?
+  secretaryId      String?
+  scrutineerIds    String[] 
+  minutesContent   String?      // Markdown
+  signatureStatus  SignatureStatus @default(PENDING)
+  signedUrl        String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  @@map("meetings")
+}
+
+model MeetingDocument {
+  id               String       @id @default(cuid())
+  title            String
+  type             MeetingType
+  date             DateTime
+  year             Int
+  url              String
+  aiSummary        String?
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  @@map("meeting_documents")
+}
+
+// --- MISSING MODELS BASED ON RELATIONS ---
+model Survey {
+  id               String         @id @default(cuid())
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  responses        SurveyResponse[]
+  @@map("surveys")
+}
+
+model SurveyResponse {
+  id        String    @id @default(cuid())
+  surveyId  String
+  survey    Survey    @relation(fields: [surveyId], references: [id])
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  apartmentId String?
+  apartment Apartment? @relation(fields: [apartmentId], references: [id])
+  createdAt DateTime  @default(now())
+  @@map("survey_responses")
+}

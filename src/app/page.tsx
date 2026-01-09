@@ -1,65 +1,125 @@
-import Image from "next/image";
+'use client'
+import { useStore } from "@/lib/store";
+import Link from "next/link";
+import { AlertCircle, Vote, CheckCircle2, ArrowRight } from "lucide-react";
+import { EconomicOverview } from "@/components/finance/EconomicOverview";
+import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { BuildingHealth } from "@/components/dashboard/BuildingHealth";
 
 export default function Home() {
+  const { currentUser, tickets, initiatives } = useStore()
+  
+  const isBoard = currentUser?.role === 'BOARD' || currentUser?.role === 'MANAGER'
+
+  // Sidebar Data Logic
+  const activePolls = initiatives.filter(i => i.pipelineStage === 'VOTING' && !i.votes.some(v => v.userId === currentUser?.id))
+  const approvalQueue = tickets.filter(t => (t.type === 'RENOVATION' && t.status === 'OPEN') || (t.priority === 'HIGH' && t.status === 'OPEN'))
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+      {/* 1. Header & Role Context */}
+      <header className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
+            Tervetuloa kotiin, {currentUser?.name}
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-slate-500 mt-1 flex items-center gap-2 text-sm md:text-base">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            As Oy Esimerkkikatu 123 • {isBoard ? 'Hallitusnäkymä' : 'Asukasliittymä'}
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="flex gap-3">
+          {/* Mobile responsive action buttons could go here */}
         </div>
-      </main>
+      </header>
+
+      {/* 2. Hero Metric Zone */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+         {/* Left: Building Health (Common) */}
+         <div className="md:col-span-1">
+            <BuildingHealth />
+         </div>
+         {/* Center/Right: Economic Overview (Context Aware) */}
+         <div className="md:col-span-2">
+            <EconomicOverview />
+         </div>
+      </div>
+
+      {/* 3. Main Operational Zone */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Main Column: Activity Feed (Takes 2/3 on desktop, full on mobile) */}
+        <div className="lg:col-span-2">
+           <ActivityFeed />
+        </div>
+
+        {/* Right Sidebar: Actionable Items */}
+        <div className="space-y-6">
+           
+           {/* Context Aware Action Card */}
+           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+             <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+               {isBoard ? <CheckCircle2 className="text-blue-600" size={20} /> : <Vote className="text-purple-600" size={20} />}
+               {isBoard ? 'Hyväksyntäjono' : 'Avoimet äänestykset'}
+             </h3>
+
+             <div className="space-y-3">
+               {isBoard ? (
+                 approvalQueue.length > 0 ? (
+                   approvalQueue.map(item => (
+                     <div key={item.id} className="p-3 bg-slate-50 rounded-lg border border-slate-100 hover:border-blue-200 transition-colors cursor-pointer">
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">{item.type}</span>
+                          {item.priority === 'HIGH' && <span className="w-2 h-2 bg-red-500 rounded-full"></span>}
+                        </div>
+                        <div className="text-sm font-medium text-slate-900 line-clamp-1">{item.title}</div>
+                        <div className="text-xs text-slate-500 mt-1">{item.apartmentId ? `Asunto ${item.apartmentId}` : 'Yleiset tilat'}</div>
+                     </div>
+                   ))
+                 ) : (
+                   <div className="text-sm text-slate-500 italic">Ei hyväksyttäviä kohteita.</div>
+                 )
+               ) : (
+                 activePolls.length > 0 ? (
+                   activePolls.map(poll => (
+                     <div key={poll.id} className="p-3 bg-purple-50 rounded-lg border border-purple-100 hover:bg-purple-100 transition-colors">
+                        <div className="text-sm font-medium text-slate-900 mb-1">{poll.title}</div>
+                        <Link href="/governance/voting" className="text-xs text-purple-700 font-bold flex items-center gap-1 hover:underline">
+                          Äänestä nyt <ArrowRight size={12} />
+                        </Link>
+                     </div>
+                   ))
+                 ) : (
+                   <div className="text-sm text-slate-500 italic">Olet äänestänyt kaikissa kohteissa.</div>
+                 )
+               )}
+             </div>
+             
+             {isBoard && approvalQueue.length > 0 && (
+               <Link href="/maintenance/tickets" className="block mt-4 text-center text-sm font-medium text-blue-600 hover:text-blue-800">
+                 Siirry käsittelemään &rarr;
+               </Link>
+             )}
+           </div>
+
+           {/* Personal Status (Resident) or Quick Stats (Board) */}
+           {!isBoard && (
+             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                  <AlertCircle className="text-orange-500" size={20} />
+                  Omat ilmoitukset
+                </h3>
+                <div className="text-sm text-slate-600">
+                  Sinulla on {tickets.filter(t => t.apartmentId === currentUser?.apartmentId && t.status !== 'CLOSED').length} avointa vikailmoitusta.
+                </div>
+                <Link href="/maintenance/tickets" className="block mt-3 text-sm font-medium text-blue-600 hover:underline">
+                  Tee uusi ilmoitus
+                </Link>
+             </div>
+           )}
+
+        </div>
+      </div>
     </div>
   );
 }

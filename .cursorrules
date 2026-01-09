@@ -1,0 +1,36 @@
+# Cursor AI Rules - OpenTaloyhtiö OS
+
+This project is a Finnish Housing Company Governance Platform. When generating code or logic, you MUST adhere to the following context and constraints.
+
+## 1. Domain Context: Finnish Housing Market
+-   **Legal Framework**: All governance logic must align with *Asunto-osakeyhtiölaki* (Housing Companies Act).
+    -   *Example*: Decisions require a majority vote based on SHARES, not "one person one vote" (unless specified).
+    -   *Example*: Renovations (Kunnossapito) fall under either "Yhtiön vastuu" (Company) or "Osakkaan vastuu" (Shareholder).
+-   **Construction Standards**: Use **YSE 1998** terms for contracts and supervision.
+-   **Financials**:
+    -   **Hoitovastike**: Monthly maintenance fee.
+    -   **Rahoitusvastike**: Capital/Finance fee for loans.
+    -   **Lainaosuus**: Share of company debt.
+
+## 2. Technical Stack Constraints
+-   **Next.js 16**: Use App Router (`src/app`). Prefer Server Components.
+-   **Tailwind CSS v4**: Use CSS variables for theming (`--primary: #002f6c`).
+-   **Zustand**: Use `src/lib/store.ts` for all client-side state. Do not use Context API for global state.
+-   **Prisma**: Always update `schema.prisma` before writing business logic code.
+
+## 3. Language & Localization
+-   **UI / User Facing**: Finnish (Professional, Formal).
+    -   *Good*: "Kunnossapitotarveselvitys"
+    -   *Bad*: "Repair Plan" or "Korjauslista"
+-   **Code / Comments**: English.
+    -   Variable names: `renovationCost`, `shareCount`
+    -   NOT `remonttiHinta`, `osakeMaara`
+
+## 4. Business Logic (Revenue)
+-   The platform takes **100%** of document sales revenue.
+-   Subscription checks must gate features strictly (`src/lib/subscriptions.ts`).
+
+## 5. Coding Patterns
+-   **Feature Gating**: Wrap premium features with `<FeatureGate featureKey="...">`.
+-   **Mock Data**: When implementing new features, add realistic mock data to `src/lib/store.ts` immediately to allow UI testing.
+-   **Mobile First**: All dashboards must be responsive.
