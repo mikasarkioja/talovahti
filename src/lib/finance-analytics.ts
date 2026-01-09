@@ -40,7 +40,7 @@ export function analyzeBudgetAccuracy(lines: MockBudgetLine[]): BudgetVariance[]
       absoluteVariance: variance,
       relativeVariance: relVariance,
       impactScore: Math.abs(variance), // Prioritize big misses regardless of direction
-      status: variance > 500 ? 'OVER' : variance < -500 ? 'UNDER' : 'ON_TRACK'
+      status: (variance > 500 ? 'OVER' : variance < -500 ? 'UNDER' : 'ON_TRACK') as 'OVER' | 'UNDER' | 'ON_TRACK'
     }
   }).sort((a, b) => b.impactScore - a.impactScore)
 }
