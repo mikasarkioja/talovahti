@@ -2,11 +2,10 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { InvestmentScenario, calculateInvestmentPath } from '@/lib/energy-logic'
 import { useState, useMemo } from 'react'
-import { Switch } from "@/components/ui/switch" // Mock switch if not available
 import { Zap, Sun, Wind, Leaf } from 'lucide-react'
 
 // Mock Switch if shadcn not installed
-const MockSwitch = ({ checked, onCheckedChange }: { checked: boolean, onCheckedChange: (c: boolean) => void }) => (
+const Switch = ({ checked, onCheckedChange }: { checked: boolean, onCheckedChange: (c: boolean) => void }) => (
   <button 
     onClick={() => onCheckedChange(!checked)}
     className={`w-10 h-6 rounded-full transition-colors relative ${checked ? 'bg-green-600' : 'bg-slate-300'}`}

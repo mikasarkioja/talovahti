@@ -1,11 +1,10 @@
 'use client'
 import { useState } from 'react'
 import { calculateVastikeImpact } from '@/lib/pts-logic'
-import { Switch } from '@/components/ui/switch' // Using mock switch
 import { Coins, Banknote } from 'lucide-react'
 
 // Mock Switch inline if needed
-const SimpleSwitch = ({ checked, onCheckedChange }: { checked: boolean, onCheckedChange: (c: boolean) => void }) => (
+const Switch = ({ checked, onCheckedChange }: { checked: boolean, onCheckedChange: (c: boolean) => void }) => (
   <button 
     onClick={() => onCheckedChange(!checked)}
     className={`w-10 h-6 rounded-full transition-colors relative ${checked ? 'bg-blue-600' : 'bg-slate-300'}`}
@@ -32,7 +31,7 @@ export function VastikeImpact({ cost, shares = 1000, userShares = 80 }: { cost: 
         </h4>
         <div className="flex items-center gap-2 text-xs">
           <span className={!isLoan ? 'font-bold' : 'text-slate-500'}>Käteinen</span>
-          <SimpleSwitch checked={isLoan} onCheckedChange={setIsLoan} />
+          <Switch checked={isLoan} onCheckedChange={setIsLoan} />
           <span className={isLoan ? 'font-bold' : 'text-slate-500'}>Laina (20v)</span>
         </div>
       </div>
