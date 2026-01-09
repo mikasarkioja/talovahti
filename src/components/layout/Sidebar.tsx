@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { Home, PenTool, Gavel, Wallet, Building2, ClipboardList, CheckSquare, TrendingUp, Vote, LucideIcon } from 'lucide-react'
+import { Home, PenTool, Gavel, Wallet, Building2, ClipboardList, CheckSquare, TrendingUp, Vote, FileText, Lock, LayoutDashboard, Database, HardHat, LucideIcon } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { clsx } from 'clsx'
 import { useStore } from '@/lib/store'
@@ -11,14 +11,18 @@ type MenuGroup = {
     href: string
     label: string
     icon: LucideIcon
+    locked?: boolean
+    description?: string // Tooltip text
   }[]
 }
 
 export function Sidebar() {
   const pathname = usePathname()
-  const { currentUser } = useStore()
+  const { currentUser, subscription } = useStore()
   
   const isBoard = currentUser?.role === 'BOARD' || currentUser?.role === 'MANAGER'
+  const plan = subscription?.plan || 'BASIC'
+  const isBasic = plan === 'BASIC'
 
   const menuGroups: MenuGroup[] = [
     {
@@ -30,9 +34,9 @@ export function Sidebar() {
       title: 'Kunnossapito',
       items: [
         { href: '/maintenance/tickets', label: 'Vikailmoitukset', icon: PenTool },
-        { href: '/maintenance/history', label: 'Historia & PTS', icon: ClipboardList },
+        { href: '/maintenance/history', label: 'PTS & Historia', icon: ClipboardList },
         isBoard 
-          ? { href: '/admin/assessment', label: 'Kuntoarvio', icon: CheckSquare }
+          ? { href: '/admin/assessment', label: 'Kuntoarvio (Hallitus)', icon: CheckSquare }
           : { href: '/maintenance/observe', label: 'Ilmoita havainto', icon: CheckSquare }
       ]
     },
@@ -41,6 +45,11 @@ export function Sidebar() {
       items: [
         { href: '/finance', label: 'Yleisnäkymä', icon: Wallet },
         { href: '/finance/scenarios', label: 'Skenaariot', icon: TrendingUp },
+        // Board Only Items
+        ...(isBoard ? [
+          { href: '/finance/approvals', label: 'Laskujen hyväksyntä', icon: CheckSquare }, // Using CheckSquare as approval icon or maybe FileText? Let's use CheckSquare or specialized.
+          { href: '/finance/summary', label: 'Talousanalyysi', icon: LayoutDashboard }
+        ] : [])
       ]
     },
     {
@@ -48,6 +57,21 @@ export function Sidebar() {
       items: [
         { href: '/governance/pipeline', label: 'Päätösputki', icon: Gavel },
         { href: '/governance/voting', label: 'Äänestykset', icon: Vote },
+        { 
+            href: '/governance/projects', 
+            label: 'Urakat (Kilpailutus)', 
+            icon: HardHat, 
+            locked: isBasic,
+            description: 'Vaatii Pro- tai Premium-tilauksen.' 
+        },
+        { 
+            href: '/admin/mml-sync', 
+            label: 'MML Integraatio', 
+            icon: Database, 
+            locked: isBasic,
+            description: 'Vaatii Pro-tilauksen.'
+        },
+        { href: '/documents/marketplace', label: 'Asiakirjat', icon: FileText }
       ]
     }
   ]
@@ -99,19 +123,30 @@ export function Sidebar() {
                 {group.items.map(link => {
                   const Icon = link.icon
                   const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href))
+                  const isLocked = link.locked
+                  
                   return (
                     <Link 
                       key={link.href} 
-                      href={link.href}
+                      href={isLocked ? '#' : link.href}
+                      title={link.description}
                       className={clsx(
-                        "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group text-sm",
+                        "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group text-sm relative",
                         isActive 
                           ? "bg-white text-[#002f6c] font-medium shadow-sm" 
-                          : "text-blue-100 hover:bg-white/10 hover:text-white"
+                          : "text-blue-100 hover:bg-white/10 hover:text-white",
+                        isLocked && "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-blue-100"
                       )}
+                      onClick={(e) => {
+                          if (isLocked) {
+                              e.preventDefault()
+                              alert(link.description || "Tämä ominaisuus ei kuulu tilaukseesi.")
+                          }
+                      }}
                     >
                       <Icon size={18} className={clsx("transition-colors", isActive ? "text-[#002f6c]" : "text-blue-300 group-hover:text-white")} />
-                      {link.label}
+                      <span className="flex-1 truncate">{link.label}</span>
+                      {isLocked && <Lock size={14} className="text-blue-400" />}
                     </Link>
                   )
                 })}

@@ -4,6 +4,7 @@ import { PRICING_TIERS } from '@/lib/subscriptions'
 import { CreditCard, Calendar, BarChart, Users, DollarSign, Activity } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useState } from 'react'
+import Link from 'next/link'
 
 export default function BillingPage() {
   const { subscription, orders, systemStats, currentUser } = useStore()
@@ -130,9 +131,12 @@ export default function BillingPage() {
 
                   <div className="bg-blue-50 p-4 rounded-lg text-sm text-blue-800 flex justify-between items-center">
                       <span>Haluatko päivittää tilauksen?</span>
-                      <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded transition-colors">
+                      <Link 
+                          href="/admin/marketplace"
+                          className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded transition-colors inline-block text-center"
+                      >
                           Siirry Kauppaan
-                      </button>
+                      </Link>
                   </div>
               </div>
           </div>
