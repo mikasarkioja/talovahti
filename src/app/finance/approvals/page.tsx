@@ -205,7 +205,7 @@ export default function InvoiceApprovalPage() {
                             {/* Budget Check */}
                             {(() => {
                                 const check = getBudgetStatus(selectedInvoice)
-                                if (check.status === 'UNKNOWN') return <div className="text-slate-400">Kategoriaa ei löydy.</div>
+                                if (check.status === 'UNKNOWN' || check.used === undefined || check.totalBudget === undefined) return <div className="text-slate-400">Kategoriaa ei löydy.</div>
                                 const percentUsed = (check.used / check.totalBudget) * 100
                                 const percentAfter = ((check.used + selectedInvoice.amount) / check.totalBudget) * 100
                                 
