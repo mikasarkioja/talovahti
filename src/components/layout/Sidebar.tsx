@@ -10,7 +10,7 @@ type MenuGroup = {
   items: {
     href: string
     label: string
-    icon: React.ElementType
+    icon: React.ComponentType<{ size?: number, className?: string }>
   }[]
 }
 
