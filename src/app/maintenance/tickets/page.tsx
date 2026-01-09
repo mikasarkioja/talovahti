@@ -22,7 +22,10 @@ export default function TicketsPage() {
       status: 'OPEN',
       priority: 'MEDIUM',
       type: 'MAINTENANCE',
-      apartmentId: currentUser?.apartmentId || null
+      apartmentId: currentUser?.apartmentId || null,
+      housingCompanyId: currentUser?.housingCompanyId || 'hc-1',
+      createdById: currentUser?.id || 'user-1',
+      createdAt: new Date()
     })
     setIsCreating(false)
     setTitle('')
