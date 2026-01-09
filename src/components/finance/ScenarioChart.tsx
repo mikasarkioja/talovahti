@@ -14,7 +14,7 @@ export function ScenarioChart({ data }: { data: YearlyScenarioData[] }) {
             <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val} €`} />
             <Tooltip 
               contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-              formatter={(val: number) => [`${val.toLocaleString()} €/m²`, 'Kumul. Kustannus']}
+              formatter={(val: any) => [`${Number(val).toLocaleString()} €/m²`, 'Kumul. Kustannus']}
             />
             <Legend />
             <Line 
