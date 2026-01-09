@@ -19,7 +19,8 @@ export default function PipelinePage() {
       status: 'DRAFT',
       pipelineStage: 'NEGOTIATION',
       authorId: currentUser?.id || 'anon',
-      votes: []
+      votes: [],
+      createdAt: new Date()
     })
   }
 
