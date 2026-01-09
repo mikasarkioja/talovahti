@@ -60,7 +60,7 @@ export function InvestmentROIChart({ scenario }: { scenario: InvestmentScenario 
             <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val / 1000}k€`} />
             <Tooltip 
               contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-              formatter={(val: number) => [`${val.toLocaleString()} €`, 'Kassavirta']}
+              formatter={(val: any) => [`${Number(val).toLocaleString()} €`, 'Kassavirta']}
               labelFormatter={(label) => `Vuosi ${label}`}
             />
             <ReferenceLine y={0} stroke="#64748b" strokeDasharray="3 3" />
