@@ -1,8 +1,8 @@
 'use client'
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls, Text, Billboard } from '@react-three/drei'
+import { OrbitControls, Text, Billboard, Loader } from '@react-three/drei'
 import { useStore } from '@/lib/store'
-import { useMemo } from 'react'
+import { useMemo, Suspense } from 'react'
 
 function ApartmentBox({ position, label, id, color }: { position: [number, number, number], label: string, id: string, color: string }) {
   return (
@@ -39,7 +39,7 @@ function ObservationMarker({ position, count, onClick }: { position: [number, nu
   )
 }
 
-export function BuildingModel() {
+export function BuildingModel({ onApartmentClick, highlightId }: { onApartmentClick?: (id: string) => void, highlightId?: string }) {
   const { tickets, initiatives, observations } = useStore()
 
   // Generate a grid of apartments
@@ -63,8 +63,8 @@ export function BuildingModel() {
   }, [])
 
   return (
-    <div className="h-[500px] w-full bg-slate-100 rounded-lg overflow-hidden border border-slate-200 relative shadow-inner">
-      <div className="absolute top-4 left-4 z-10 bg-white/80 p-2 rounded text-xs backdrop-blur-sm shadow-sm">
+    <div className="h-[500px] w-full bg-slate-100 rounded-lg overflow-hidden border border-slate-200 relative shadow-inner touch-none">
+      <div className="absolute top-4 left-4 z-10 bg-white/80 p-2 rounded text-xs backdrop-blur-sm shadow-sm pointer-events-none select-none">
         <div className="flex items-center gap-2 mb-1">
           <div className="w-3 h-3 bg-red-500 rounded-full"></div>
           <span>Avoin vikailmoitus</span>
@@ -79,31 +79,49 @@ export function BuildingModel() {
         </div>
       </div>
       
-      <Canvas camera={{ position: [6, 4, 8], fov: 45 }}>
-        <ambientLight intensity={0.6} />
-        <pointLight position={[10, 10, 10]} intensity={0.8} />
-        <directionalLight position={[-5, 5, 5]} intensity={0.5} />
-        <OrbitControls enablePan={false} maxPolarAngle={Math.PI / 2} minDistance={5} maxDistance={20} />
-        
-        <group position={[0, -1.5, 0]}>
-          {apartments.map(apt => {
-            // Check status
-            const hasTicket = tickets.some(t => t.apartmentId === apt.id && t.status !== 'CLOSED')
-            const activeVote = initiatives.some(i => 
-              i.pipelineStage === 'VOTING' && 
-              (i.affectedArea === apt.id || !i.affectedArea)
-            )
-            
+      <Canvas 
+        frameloop="demand"
+        camera={{ position: [6, 4, 8], fov: 45 }}
+        className="touch-none"
+      >
+        <Suspense fallback={null}>
+          <ambientLight intensity={0.6} />
+          <pointLight position={[10, 10, 10]} intensity={0.8} />
+          <directionalLight position={[-5, 5, 5]} intensity={0.5} />
+          <OrbitControls 
+            enablePan={false} 
+            maxPolarAngle={Math.PI / 2} 
+            minDistance={5} 
+            maxDistance={20} 
+            makeDefault
+          />
+          
+          <group position={[0, -1.5, 0]}>
+            {apartments.map(apt => {
+              // Check status
+              const hasTicket = tickets.some(t => t.apartmentId === apt.id && t.status !== 'CLOSED')
+              const activeVote = initiatives.some(i => 
+                i.pipelineStage === 'VOTING' && 
+                (i.affectedArea === apt.id || !i.affectedArea)
+              )
+              
             // Map observations loosely to apartments if location string matches ID
             // In a real app, this would use precise coordinates
             const obsCount = observations.filter(o => o.location && o.location.includes(apt.id) && o.status === 'OPEN').length
 
             let color = '#f1f5f9' // slate-100
-            if (hasTicket) color = '#ef4444' // red-500
+            if (highlightId === apt.id) color = '#fbbf24' // amber-400 (Highlight)
+            else if (hasTicket) color = '#ef4444' // red-500
             else if (activeVote) color = '#3b82f6' // blue-500
             
             return (
-              <group key={apt.id}>
+              <group 
+                key={apt.id}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (onApartmentClick) onApartmentClick(apt.id)
+                }}
+              >
                 <ApartmentBox 
                   {...apt} 
                   color={color}
@@ -115,10 +133,12 @@ export function BuildingModel() {
                 />
               </group>
             )
-          })}
-        </group>
-        <gridHelper args={[20, 20]} position={[0, -2.5, 0]} />
+            })}
+          </group>
+          <gridHelper args={[20, 20]} position={[0, -2.5, 0]} />
+        </Suspense>
       </Canvas>
+      <Loader />
     </div>
   )
 }

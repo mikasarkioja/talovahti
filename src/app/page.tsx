@@ -5,18 +5,42 @@ import { AlertCircle, Vote, CheckCircle2, ArrowRight } from "lucide-react";
 import { EconomicOverview } from "@/components/finance/EconomicOverview";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { BuildingHealth } from "@/components/dashboard/BuildingHealth";
+import { BuildingModel } from "@/components/BuildingModel";
+import { TourOverlay } from "@/components/onboarding/TourOverlay";
+import { useState } from "react";
 
 export default function Home() {
   const { currentUser, tickets, initiatives } = useStore()
   
+  // Tour State
+  const [tourStep, setTourStep] = useState(1)
+  const [tourRole, setTourRole] = useState<'RESIDENT' | 'BOARD' | null>(null)
+  const [highlightId, setHighlightId] = useState<string | undefined>(undefined)
+
   const isBoard = currentUser?.role === 'BOARD' || currentUser?.role === 'MANAGER'
 
   // Sidebar Data Logic
   const activePolls = initiatives.filter(i => i.pipelineStage === 'VOTING' && !i.votes.some(v => v.userId === currentUser?.id))
   const approvalQueue = tickets.filter(t => (t.type === 'RENOVATION' && t.status === 'OPEN') || (t.priority === 'HIGH' && t.status === 'OPEN'))
 
+  const handleApartmentClick = (id: string) => {
+    if (tourStep === 3) {
+        setHighlightId(id)
+        setTourStep(4)
+    }
+  }
+
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+      {tourStep > 0 && (
+        <TourOverlay 
+            step={tourStep} 
+            onNext={() => setTourStep(p => p + 1)}
+            onRoleSelect={setTourRole}
+            onComplete={() => { setTourStep(0); setHighlightId(undefined) }}
+        />
+      )}
+
       {/* 1. Header & Role Context */}
       <header className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
         <div>
@@ -35,9 +59,9 @@ export default function Home() {
 
       {/* 2. Hero Metric Zone */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-         {/* Left: Building Health (Common) */}
+         {/* Left: Building Twin (Replaces Health for Tour visibility) */}
          <div className="md:col-span-1">
-            <BuildingHealth />
+            <BuildingModel onApartmentClick={handleApartmentClick} highlightId={highlightId} />
          </div>
          {/* Center/Right: Economic Overview (Context Aware) */}
          <div className="md:col-span-2">
