@@ -17,6 +17,7 @@ model HousingCompany {
   address         String
   city            String
   postalCode      String
+  constructionYear Int?
   apartments      Apartment[]
   users           User[]
   surveys         Survey[]
@@ -38,6 +39,11 @@ model HousingCompany {
   residentTasks   ResidentTask[]
   resources       Resource[]
   thermalLeaks    ThermalLeak[]
+  
+  // LOAN BROKERAGE
+  financialStatements FinancialStatement[]
+  shareholders        Shareholder[]
+  loanApplications    LoanApplication[]
   
   // RELATIONS
   subscription    Subscription?
@@ -1063,4 +1069,55 @@ model Milestone {
   updatedAt   DateTime      @updatedAt
   @@map("milestones")
   @@index([contractId])
+}
+
+// --- LOAN BROKERAGE SYSTEM ---
+
+model FinancialStatement {
+  id               String         @id @default(cuid())
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  year             Int
+  revenue          Float
+  maintenanceFees  Float
+  loansTotal       Float
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt // Added updatedAt
+  @@map("financial_statements")
+  @@index([housingCompanyId])
+}
+
+model Shareholder {
+  id               String         @id @default(cuid())
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  name             String
+  businessId       String?        // or encrypted Hetu
+  shareCount       Int
+  isInstitutional  Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt // Added updatedAt
+  @@map("shareholders")
+  @@index([housingCompanyId])
+}
+
+enum LoanStatus {
+  DRAFT
+  ANALYSIS
+  APPROVED
+  REJECTED
+}
+
+model LoanApplication {
+  id               String         @id @default(cuid())
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  amount           Float
+  purpose          String
+  status           LoanStatus     @default(DRAFT)
+  riskAnalysis     String?        // JSON string (Prisma doesn't support JSON type on SQLite/all, but Postgres does. Using String for broad compat or Json if Postgres guaranteed)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  @@map("loan_applications")
+  @@index([housingCompanyId])
 }
