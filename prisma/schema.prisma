@@ -47,6 +47,7 @@ model HousingCompany {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   @@map("housing_companies")
+  @@index([businessId]) // Frequent lookup
 }
 
 model Apartment {
@@ -70,6 +71,7 @@ model Apartment {
   updatedAt        DateTime       @updatedAt
   @@unique([housingCompanyId, apartmentNumber])
   @@map("apartments")
+  @@index([housingCompanyId])
 }
 
 enum UserRole {
@@ -105,9 +107,12 @@ model User {
   bookings          Booking[]
   wallet            Wallet?
   reportedLeaks     ThermalLeak[]
+  pollVotes         PollVote[]
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
   @@map("users")
+  @@index([housingCompanyId])
+  @@index([apartmentId])
 }
 
 // --- SUBSCRIPTIONS & FEATURES ---
@@ -170,6 +175,8 @@ model Order {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   @@map("orders")
+  @@index([userId])
+  @@index([housingCompanyId])
 }
 
 // --- MAINTENANCE ---
@@ -212,6 +219,8 @@ model Ticket {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   @@map("tickets")
+  @@index([housingCompanyId, status]) // Filter by status
+  @@index([createdById])
 }
 
 enum RenovationStatus {
@@ -234,6 +243,7 @@ model Renovation {
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   @@map("renovations")
+  @@index([housingCompanyId])
 }
 
 // --- KUNTOARVIO (CONDITION ASSESSMENT) ---
@@ -258,6 +268,8 @@ model Observation {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   @@map("observations")
+  @@index([housingCompanyId])
+  @@index([userId])
 }
 
 model ExpertAssessment {
@@ -310,6 +322,7 @@ model BudgetLineItem {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   @@map("budget_line_items")
+  @@index([housingCompanyId, year])
 }
 
 enum InvoiceStatus {
@@ -339,6 +352,8 @@ model Invoice {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   @@map("invoices")
+  @@index([housingCompanyId, status])
+  @@index([projectId])
 }
 
 model VendorRule {
@@ -374,6 +389,7 @@ model InvestmentOption {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   @@map("investment_options")
+  @@index([housingCompanyId])
 }
 
 // --- PROJECT MANAGEMENT ---
@@ -412,9 +428,78 @@ model Project {
   changeOrders     ChangeOrder[]
   invoices         Invoice[]
   contract         LegalContract?
+  updates          BuildingUpdate[]
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   @@map("projects")
+  @@index([housingCompanyId, status])
+}
+
+enum UpdateType {
+  INFO
+  ALERT
+  PHOTO
+}
+
+model BuildingUpdate {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+  title     String
+  content   String
+  type      UpdateType
+  createdAt DateTime @default(now())
+  @@map("building_updates")
+  @@index([projectId, createdAt]) // Feed query
+}
+
+// --- DEMOCRACY & POLLING ---
+
+enum PollType {
+  VOTE
+  FEEDBACK
+}
+
+model Poll {
+  id             String       @id @default(cuid())
+  title          String
+  description    String
+  type           PollType
+  expiresAt      DateTime
+  resultsVisible Boolean      @default(true)
+  options        PollOption[]
+  votes          PollVote[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  @@map("polls")
+  @@index([expiresAt])
+}
+
+model PollOption {
+  id            String     @id @default(cuid())
+  pollId        String
+  poll          Poll       @relation(fields: [pollId], references: [id])
+  label         String
+  vastikeImpact Float
+  votes         PollVote[]
+  @@map("poll_options")
+  @@index([pollId])
+}
+
+model PollVote {
+  id       String     @id @default(cuid())
+  pollId   String
+  poll     Poll       @relation(fields: [pollId], references: [id])
+  userId   String
+  user     User       @relation(fields: [userId], references: [id])
+  optionId String
+  option   PollOption @relation(fields: [optionId], references: [id])
+  weight   Float
+  createdAt DateTime  @default(now())
+  @@unique([pollId, userId])
+  @@map("poll_votes")
+  @@index([pollId])
+  @@index([userId])
 }
 
 enum TenderType {
@@ -438,6 +523,7 @@ model Tender {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
   @@map("tenders")
+  @@index([projectId])
 }
 
 model Bid {
@@ -462,6 +548,7 @@ model Bid {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   @@map("bids")
+  @@index([tenderId])
 }
 
 model SiteReport {
@@ -473,6 +560,7 @@ model SiteReport {
   imageUrl  String?
   timestamp DateTime @default(now())
   @@map("site_reports")
+  @@index([projectId])
 }
 
 enum ChangeOrderStatus {
@@ -491,6 +579,7 @@ model ChangeOrder {
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
   @@map("change_orders")
+  @@index([projectId])
 }
 
 // --- ADMINISTRATION & DOCUMENTS ---
@@ -529,6 +618,7 @@ model DocumentOrder {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   @@map("document_orders")
+  @@index([userId])
 }
 
 // --- GOVERNANCE & VOTING ---
@@ -562,12 +652,14 @@ model Initiative {
   author           User              @relation(fields: [authorId], references: [id])
   supporters       InitiativeSupport[]
   modifications    Comment[]
-  votes            Vote[]            // Added missing relation
+  votes            Vote[]
   meetingId        String?
   meeting          Meeting?          @relation(fields: [meetingId], references: [id])
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   @@map("initiatives")
+  @@index([housingCompanyId, status])
+  @@index([meetingId])
 }
 
 model InitiativeSupport {
@@ -590,6 +682,7 @@ model Comment {
   user         User       @relation(fields: [userId], references: [id])
   createdAt    DateTime   @default(now())
   @@map("comments")
+  @@index([initiativeId])
 }
 
 enum VoteChoice {
@@ -608,6 +701,7 @@ model Vote {
   shares       Int
   timestamp    DateTime   @default(now())
   @@map("votes")
+  @@index([initiativeId])
 }
 
 // --- MEETINGS & LIBRARY ---
@@ -640,6 +734,7 @@ model Meeting {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
   @@map("meetings")
+  @@index([housingCompanyId, date])
 }
 
 model MeetingDocument {
@@ -655,6 +750,7 @@ model MeetingDocument {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
   @@map("meeting_documents")
+  @@index([housingCompanyId, year])
 }
 
 model Survey {
@@ -665,6 +761,7 @@ model Survey {
   updatedAt        DateTime       @updatedAt
   responses        SurveyResponse[]
   @@map("surveys")
+  @@index([housingCompanyId])
 }
 
 model SurveyResponse {
@@ -677,6 +774,7 @@ model SurveyResponse {
   apartment Apartment? @relation(fields: [apartmentId], references: [id])
   createdAt DateTime  @default(now())
   @@map("survey_responses")
+  @@index([surveyId])
 }
 
 // --- METER BILLING & LEAK DETECTION ---
@@ -699,6 +797,7 @@ model Meter {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   @@map("meters")
+  @@index([apartmentId])
 }
 
 model Reading {
@@ -711,6 +810,7 @@ model Reading {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@map("readings")
+  @@index([meterId, date]) // Range queries
 }
 
 model UtilityPrice {
@@ -724,6 +824,7 @@ model UtilityPrice {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   @@map("utility_prices")
+  @@index([housingCompanyId])
 }
 
 enum LeakSeverity {
@@ -755,6 +856,8 @@ model LeakAlert {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
   @@map("leak_alerts")
+  @@index([apartmentId, status])
+  @@index([createdAt])
 }
 
 // --- PARTNER CRM & RESIDENT LABOR ---
@@ -780,6 +883,7 @@ model ServicePartner {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   @@map("service_partners")
+  @@index([housingCompanyId, category])
 }
 
 enum ResidentTaskStatus {
@@ -809,6 +913,7 @@ model ResidentTask {
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
   @@map("resident_tasks")
+  @@index([housingCompanyId, status])
 }
 
 // --- SHARED RESOURCE BOOKING ---
@@ -837,6 +942,7 @@ model Resource {
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
   @@map("resources")
+  @@index([housingCompanyId])
 }
 
 enum PaymentType {
@@ -866,6 +972,8 @@ model Booking {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   @@map("bookings")
+  @@index([resourceId, startTime]) // Collision check
+  @@index([userId])
 }
 
 model PowerEvent {
@@ -880,6 +988,7 @@ model PowerEvent {
   kwhEstimated  Float?
   costEstimated Float?
   @@map("power_events")
+  @@index([resourceId, timestamp])
 }
 
 model Wallet {
@@ -909,6 +1018,7 @@ model ThermalLeak {
   housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
   createdAt        DateTime       @default(now())
   @@map("thermal_leaks")
+  @@index([housingCompanyId])
 }
 
 // --- LEGAL CONTRACTS & MILESTONES ---
@@ -952,4 +1062,5 @@ model Milestone {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   @@map("milestones")
+  @@index([contractId])
 }

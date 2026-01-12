@@ -1,6 +1,11 @@
 'use client'
 import Link from 'next/link'
-import { Home, PenTool, Gavel, Wallet, Building2, ClipboardList, CheckSquare, TrendingUp, Vote, FileText, Lock, LayoutDashboard, Database, HardHat, LucideIcon } from 'lucide-react'
+import { 
+  Home, PenTool, Gavel, Wallet, Building2, ClipboardList, CheckSquare, 
+  TrendingUp, Vote, FileText, Lock, LayoutDashboard, Database, HardHat, 
+  LucideIcon, Activity, CalendarClock, Hammer, Users, ScanLine, Gauge, 
+  Thermometer, LineChart, Megaphone
+} from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { clsx } from 'clsx'
 import { useStore } from '@/lib/store'
@@ -20,7 +25,7 @@ export function Sidebar() {
   const pathname = usePathname()
   const { currentUser, subscription } = useStore()
   
-  const isBoard = currentUser?.role === 'BOARD' || currentUser?.role === 'MANAGER'
+  const isBoard = currentUser?.role === 'BOARD' || currentUser?.role === 'MANAGER' || currentUser?.role === 'ADMIN'
   const plan = subscription?.plan || 'BASIC'
   const isBasic = plan === 'BASIC'
 
@@ -31,23 +36,36 @@ export function Sidebar() {
       ]
     },
     {
+      title: 'Asuminen',
+      items: [
+        { href: '/dashboard/feed', label: 'Työmaapäiväkirja', icon: Activity },
+        { href: '/booking', label: 'Varaukset', icon: CalendarClock },
+        { href: '/tasks', label: 'Talkoot & Tehtävät', icon: Hammer },
+        { href: '/partners', label: 'Palvelutori', icon: Users },
+        { href: '/scanner', label: 'AR-Skanneri (Beta)', icon: ScanLine },
+      ]
+    },
+    {
       title: 'Kunnossapito',
       items: [
         { href: '/maintenance/tickets', label: 'Vikailmoitukset', icon: PenTool },
         { href: '/maintenance/history', label: 'PTS & Historia', icon: ClipboardList },
         isBoard 
-          ? { href: '/admin/assessment', label: 'Kuntoarvio (Hallitus)', icon: CheckSquare }
-          : { href: '/maintenance/observe', label: 'Ilmoita havainto', icon: CheckSquare }
+          ? { href: '/admin/assessment', label: 'Kuntoarvio', icon: CheckSquare }
+          : { href: '/maintenance/observe', label: 'Ilmoita havainto', icon: CheckSquare },
+        { href: '/admin/sauna-safety', label: 'Saunavahti', icon: Thermometer },
       ]
     },
     {
       title: 'Talous',
       items: [
         { href: '/finance', label: 'Yleisnäkymä', icon: Wallet },
+        { href: '/finance/meter-billing', label: 'Mittarit & Laskutus', icon: Gauge },
         { href: '/finance/scenarios', label: 'Skenaariot', icon: TrendingUp },
         // Board Only Items
         ...(isBoard ? [
-          { href: '/finance/approvals', label: 'Laskujen hyväksyntä', icon: CheckSquare }, // Using CheckSquare as approval icon or maybe FileText? Let's use CheckSquare or specialized.
+          { href: '/finance/approvals', label: 'Laskujen hyväksyntä', icon: CheckSquare },
+          { href: '/board/roi', label: 'Energia ROI', icon: LineChart },
           { href: '/finance/summary', label: 'Talousanalyysi', icon: LayoutDashboard }
         ] : [])
       ]
@@ -56,6 +74,7 @@ export function Sidebar() {
       title: 'Hallinto',
       items: [
         { href: '/governance/pipeline', label: 'Päätösputki', icon: Gavel },
+        { href: '/admin/democracy', label: 'Demokratia', icon: Megaphone },
         { href: '/governance/voting', label: 'Äänestykset', icon: Vote },
         { 
             href: '/governance/projects', 
@@ -80,7 +99,8 @@ export function Sidebar() {
     RESIDENT: 'Asukas',
     BOARD: 'Hallitus',
     MANAGER: 'Isännöitsijä',
-    ADMIN: 'Ylläpitäjä'
+    ADMIN: 'Ylläpitäjä',
+    SUPERVISOR: 'Valvoja'
   }
 
   return (
