@@ -62,7 +62,7 @@ export default function DemocracyAdminPage() {
                                 formatter={(value: number, name: string, props: any) => [
                                     `${value} ääntä`, 
                                     `Vastikevaikutus: ${props.payload.impact} €/m²`
-                                ]}
+                                ] as [string, string]}
                             />
                             <Bar dataKey="votes" radius={[0, 4, 4, 0]}>
                                 {POLL_RESULTS.map((entry, index) => (
