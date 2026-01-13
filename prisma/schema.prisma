@@ -44,6 +44,8 @@ model HousingCompany {
   financialStatements FinancialStatement[]
   shareholders        Shareholder[]
   loanApplications    LoanApplication[]
+  scenarios           FinancialScenario[]
+  investmentGrades    InvestmentGrade[] // Added relation
   
   // RELATIONS
   subscription    Subscription?
@@ -435,6 +437,7 @@ model Project {
   invoices         Invoice[]
   contract         LegalContract?
   updates          BuildingUpdate[]
+  loanApplications LoanApplication[]
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   @@map("projects")
@@ -1104,20 +1107,74 @@ model Shareholder {
 enum LoanStatus {
   DRAFT
   ANALYSIS
+  SUBMITTED
+  OFFER_RECEIVED
   APPROVED
   REJECTED
+  ACTIVE
 }
 
 model LoanApplication {
   id               String         @id @default(cuid())
   housingCompanyId String
   housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  projectId        String?
+  project          Project?       @relation(fields: [projectId], references: [id])
+  bankName         String?
   amount           Float
   purpose          String
   status           LoanStatus     @default(DRAFT)
-  riskAnalysis     String?        // JSON string (Prisma doesn't support JSON type on SQLite/all, but Postgres does. Using String for broad compat or Json if Postgres guaranteed)
+  riskAnalysis     String?
+  offerMargin      Float?
+  repaymentTerm    Int?
+  collateralType   String?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   @@map("loan_applications")
+  @@index([housingCompanyId])
+  @@index([projectId])
+}
+
+// --- SCENARIO PLANNING ---
+
+model CostBenchmark {
+  id                      String   @id @default(cuid())
+  category                String   // e.g. "Windows", "Roof", "Pipe"
+  unitPriceM2             Float    // Current market price
+  expectedLifeYears       Int      // Technical lifespan
+  technicalDepreciationRate Float  // Annual degradation %
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  @@map("cost_benchmarks")
+  @@unique([category])
+}
+
+model FinancialScenario {
+  id                 String   @id @default(cuid())
+  housingCompanyId   String
+  housingCompany     HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  title              String
+  totalLoanAmount    Float
+  interestRate       Float
+  termYears          Int
+  monthlyImpactPerM2 Float
+  isBaseline         Boolean  @default(false) // Scenario A?
+  metadata           String?  // JSON for extra params
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  @@map("financial_scenarios")
+  @@index([housingCompanyId])
+}
+
+model InvestmentGrade {
+  id               String         @id @default(cuid())
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  score            Float          // 0-100
+  grade            String         // A-E
+  pillarScores     String         // JSON: { repairs, finance, energy, governance }
+  updatedAt        DateTime       @updatedAt
+  createdAt        DateTime       @default(now())
+  @@map("investment_grades")
   @@index([housingCompanyId])
 }
