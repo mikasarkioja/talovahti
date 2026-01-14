@@ -127,7 +127,7 @@ export default async function AdminDashboardPage() {
                             {onboardingScore < 100 ? 'Data Ingestion Active' : 'Fully Calibrated'}
                         </div>
                     </div>
-                    <StatusGauge value={onboardingScore} />
+                    <StatusGauge value={onboardingScore} label="Valmius" />
                 </Card>
                 
                 {onboardingScore < 100 && (
