@@ -2,16 +2,20 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, CheckSquare, Wallet, User, Plus, Droplets, CalendarClock, Megaphone, X } from 'lucide-react'
+import { Home, CheckSquare, Wallet, User, Plus, Droplets, CalendarClock, Megaphone, X, type LucideIcon } from 'lucide-react'
 import { clsx } from 'clsx'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
+
+type TabItem = 
+  | { id: string; isFab: true; href?: undefined; icon?: undefined; label?: undefined }
+  | { id: string; isFab?: undefined; href: string; icon: LucideIcon; label: string }
 
 export function BottomNav() {
   const pathname = usePathname()
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
-  const tabs = [
+  const tabs: TabItem[] = [
     { id: 'home', href: '/', icon: Home, label: 'Koti' },
     { id: 'tasks', href: '/tasks', icon: CheckSquare, label: 'Tehtävät' },
     { id: 'fab', isFab: true }, // Spacer for FAB
