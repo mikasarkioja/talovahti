@@ -51,8 +51,9 @@ export default function InvoiceApprovalPage() {
                     <ActionCard 
                         key={inv.id}
                         title={inv.vendor}
-                        icon={<FileText className="text-brand-navy" />}
-                        badge={<Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200">Erääntyy {inv.dueDate}</Badge>}
+                        icon={FileText}
+                        badgeText={`Erääntyy ${inv.dueDate}`}
+                        badgeColor="amber"
                     >
                         <div className="flex flex-col md:flex-row justify-between gap-4 mt-2">
                             <div>
