@@ -75,3 +75,7 @@ Talovahti is built with **Privacy by Design**:
 ## 🤝 Contributing
 
 Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
+## 📝 Changelog
+
+See [CHANGELOG.md](docs/CHANGELOG.md) for a detailed history of changes.
