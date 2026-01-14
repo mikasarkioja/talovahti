@@ -1,4 +1,4 @@
-import pdf from 'pdf-parse'
+const pdf = require('pdf-parse')
 
 export type FinancialData = {
     hoitovastike: number | null
