@@ -1,20 +1,22 @@
 'use client'
 import { useStore } from '@/lib/store'
-import { PipelineStage } from '@prisma/client'
+import { GovernanceStatus } from '@prisma/client'
 import { clsx } from 'clsx'
 import { MessageSquare } from 'lucide-react'
 
-const STAGES: PipelineStage[] = ['NEGOTIATION', 'LOCKED', 'VOTING', 'CLOSED']
+const STAGES: GovernanceStatus[] = ['OPEN_FOR_SUPPORT', 'QUALIFIED', 'VOTING', 'APPROVED']
 
-const LABELS: Record<PipelineStage, string> = {
-  NEGOTIATION: 'Neuvottelu',
-  LOCKED: 'Lukittu / Esityslista',
+const LABELS: Partial<Record<GovernanceStatus, string>> = {
+  OPEN_FOR_SUPPORT: 'Neuvottelu (Kannatus)',
+  QUALIFIED: 'Esityslistalla',
   VOTING: 'Äänestys',
-  CLOSED: 'Päätetty'
+  APPROVED: 'Päätetty (Hyväksytty)',
+  REJECTED: 'Hylätty',
+  DRAFT: 'Luonnos'
 }
 
 export function KanbanBoard() {
-  const { initiatives, currentUser, updateInitiativeStage } = useStore()
+  const { initiatives, currentUser, updateInitiativeStatus } = useStore()
   
   const canMove = currentUser?.role === 'BOARD' || currentUser?.role === 'MANAGER'
 
@@ -23,11 +25,11 @@ export function KanbanBoard() {
      e.dataTransfer.setData('initiativeId', id)
   }
 
-  const handleDrop = (e: React.DragEvent, stage: PipelineStage) => {
+  const handleDrop = (e: React.DragEvent, status: GovernanceStatus) => {
     e.preventDefault()
     if (!canMove) return
     const id = e.dataTransfer.getData('initiativeId')
-    if (id) updateInitiativeStage(id, stage)
+    if (id) updateInitiativeStatus(id, status)
   }
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -51,15 +53,15 @@ export function KanbanBoard() {
         >
            {/* Header */}
            <div className="p-4 border-b border-slate-200 bg-white rounded-t-xl flex justify-between items-center">
-             <h3 className="font-semibold text-slate-700">{LABELS[stage]}</h3>
+             <h3 className="font-semibold text-slate-700">{LABELS[stage] || stage}</h3>
              <span className="text-xs px-2 py-0.5 bg-slate-100 rounded-full text-slate-500">
-               {initiatives.filter(i => i.pipelineStage === stage).length}
+               {initiatives.filter(i => i.status === stage).length}
              </span>
            </div>
            
            {/* Items */}
            <div className="p-3 flex-1 space-y-3 overflow-y-auto">
-             {initiatives.filter(i => i.pipelineStage === stage).map(init => (
+             {initiatives.filter(i => i.status === stage).map(init => (
                <div 
                  key={init.id}
                  draggable={canMove}

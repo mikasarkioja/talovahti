@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { PipelineStage, ProposalStatus, TicketStatus, TicketPriority, VoteChoice, UserRole, TicketType, RenovationStatus, ObservationStatus, ProjectStatus, TenderType, TenderStatus, ChangeOrderStatus, DocumentType, OrderStatus, SubscriptionPlan, SubscriptionStatus, OrderType, InvoiceStatus, BudgetCategory } from '@prisma/client'
+import { GovernanceStatus, TicketStatus, TicketPriority, VoteChoice, UserRole, TicketType, RenovationStatus, ObservationStatus, ProjectStatus, TenderType, TenderStatus, ChangeOrderStatus, DocumentType, OrderStatus, SubscriptionPlan, SubscriptionStatus, OrderType, InvoiceStatus, BudgetCategory } from '@prisma/client'
 
 // ... (Existing Type Definitions)
 
@@ -18,8 +18,7 @@ export type MockInitiative = {
   id: string
   title: string
   description: string
-  status: ProposalStatus
-  pipelineStage: PipelineStage
+  status: GovernanceStatus
   affectedArea?: string | null
   authorId: string
   votes: Array<{ userId: string; choice: VoteChoice; shares: number }>
@@ -257,7 +256,7 @@ interface AppState {
   // Actions
   setCurrentUser: (user: MockUser | null) => void
   addInitiative: (initiative: MockInitiative) => void
-  updateInitiativeStage: (id: string, stage: PipelineStage) => void
+  updateInitiativeStatus: (id: string, status: GovernanceStatus) => void
   castVote: (initiativeId: string, userId: string, choice: VoteChoice, shares: number) => void
   addTicket: (ticket: MockTicket) => void
   updateTicketStatus: (id: string, status: TicketStatus) => void
@@ -298,8 +297,7 @@ export const useStore = create<AppState>((set) => ({
       id: 'init-1',
       title: 'Julkisivuremontti 2026',
       description: 'Ehdotetaan julkisivun maalausta ja parvekkeiden kunnostusta.',
-      status: 'DRAFT',
-      pipelineStage: 'NEGOTIATION',
+      status: 'OPEN_FOR_SUPPORT',
       authorId: 'user-resident-1',
       votes: [],
       createdAt: new Date(2025, 9, 10)
@@ -386,7 +384,7 @@ export const useStore = create<AppState>((set) => ({
   
   setCurrentUser: (user) => set({ currentUser: user }),
   addInitiative: (initiative) => set((state) => ({ initiatives: [...state.initiatives, initiative] })),
-  updateInitiativeStage: (id, stage) => set((state) => ({ initiatives: state.initiatives.map(i => i.id === id ? { ...i, pipelineStage: stage } : i) })),
+  updateInitiativeStatus: (id, status) => set((state) => ({ initiatives: state.initiatives.map(i => i.id === id ? { ...i, status } : i) })),
   castVote: (initiativeId, userId, choice, shares) => set((state) => ({ initiatives: state.initiatives.map(i => i.id === initiativeId ? { ...i, votes: [...i.votes.filter(v => v.userId !== userId), { userId, choice, shares }] } : i) })),
   addTicket: (ticket) => set((state) => ({ tickets: [...state.tickets, ticket] })),
   updateTicketStatus: (id, status) => set((state) => ({ tickets: state.tickets.map(t => t.id === id ? { ...t, status } : t) })),
