@@ -37,20 +37,25 @@ export const bookingEngine = {
     if (!resource) throw new Error('Resource not found')
 
     // 1. Payment Processing
+    const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60)
+    
     if (paymentType === 'KARMA') {
       const wallet = await prisma.wallet.findUnique({ where: { userId } })
-      if (!wallet || wallet.karmaBalance < resource.priceKarma) {
-        throw new Error('Insufficient Karma balance.')
+      const totalCostKarma = Math.ceil(resource.priceKarma * durationHours)
+
+      if (!wallet || wallet.karmaBalance < totalCostKarma) {
+        throw new Error(`Insufficient Karma balance. Required: ${totalCostKarma}, Available: ${wallet?.karmaBalance || 0}`)
       }
       // Deduct Karma
       await prisma.wallet.update({
         where: { userId },
-        data: { karmaBalance: { decrement: resource.priceKarma } }
+        data: { karmaBalance: { decrement: totalCostKarma } }
       })
     } else {
       // EURO payment logic (Stripe Intent)
+      const totalCostEuro = resource.priceEuro * durationHours
       // Mock: Assume successful payment for now
-      console.log(`[PAYMENT] Processing ${resource.priceEuro} EUR payment for user ${userId}`)
+      console.log(`[PAYMENT] Processing ${totalCostEuro} EUR payment for user ${userId} (${durationHours}h)`)
     }
 
     // 2. Create Booking
