@@ -8,7 +8,14 @@ export async function syncBuildingIdentity(housingCompanyId: string, yTunnus: st
   await new Promise(resolve => setTimeout(resolve, 1500))
 
   // Mock Data: 12 Apartments, 3 Staircases
-  const mockApartments = []
+  const mockApartments: {
+    apartmentNumber: string;
+    floor: number;
+    area: number;
+    sharesStart: number;
+    sharesEnd: number;
+    shareCount: number;
+  }[] = []
   const staircases = ['A', 'B', 'C']
   const floors = 4
   
