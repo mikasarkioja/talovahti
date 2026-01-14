@@ -431,6 +431,7 @@ enum ProjectType {
 model Project {
   id               String         @id @default(cuid())
   title            String
+  description      String?
   type             String
   projectType      ProjectType?
   status           ProjectStatus  @default(DIAGNOSIS)
