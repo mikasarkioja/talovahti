@@ -12,7 +12,7 @@ export default function LibraryPage() {
   const handleGenerate = () => {
     // Mock: Use initiatives in VOTING or CLOSED as "Decisions" for this meeting
     // In real app, we would select a specific meeting context
-    const decisionItems = initiatives.filter(i => i.pipelineStage === 'VOTING' || i.pipelineStage === 'CLOSED')
+    const decisionItems = initiatives.filter(i => i.status === 'VOTING' || i.status === 'APPROVED' || i.status === 'REJECTED')
     
     const data: MeetingMinutesData = {
       title: 'Ylimääräinen yhtiökokous',
