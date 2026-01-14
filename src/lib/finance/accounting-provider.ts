@@ -42,10 +42,11 @@ export const AccountingProvider = {
         // Find user's housing company to log correctly
         const user = await prisma.user.findUnique({ where: { id: userId }, include: { housingCompany: true } })
         if (user) {
-            await prisma.auditLog.create({
+            await prisma.gDPRLog.create({
                 data: {
                     action: 'APPROVE_INVOICE',
-                    userId: userId,
+                    actorId: userId,
+                    targetEntity: `Invoice:${invoiceId}`,
                     housingCompanyId: user.housingCompanyId,
                     details: `Approved external invoice ${invoiceId}`
                 }
