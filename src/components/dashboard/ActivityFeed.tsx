@@ -17,7 +17,12 @@ type ActivityItem = {
   initiativeId?: string
 }
 
-export function ActivityFeed() {
+interface ActivityFeedProps {
+  limit?: number
+  compact?: boolean
+}
+
+export function ActivityFeed({ limit, compact }: ActivityFeedProps) {
   const { tickets, initiatives, currentUser } = useStore()
   const isBoard = currentUser?.role === 'BOARD' || currentUser?.role === 'MANAGER'
 
@@ -49,7 +54,7 @@ export function ActivityFeed() {
       date: new Date(), // Mock date, normally from vote timestamp
       initiativeId: i.id
     })))
-  ].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 10)
+  ].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, limit || 10)
 
   const handleJoinDiscussion = (id: string) => {
     // In a real app, this would route to the discussion view or open a modal
@@ -58,13 +63,15 @@ export function ActivityFeed() {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden h-full">
-      <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-        <h3 className="font-semibold text-slate-900">Tapahtumavirta</h3>
-        <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">Reaaliaikainen</span>
-      </div>
+    <div className={clsx("bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden h-full", compact && "border-0 shadow-none rounded-none bg-transparent")}>
+      {!compact && (
+        <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+          <h3 className="font-semibold text-slate-900">Tapahtumavirta</h3>
+          <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">Reaaliaikainen</span>
+        </div>
+      )}
       
-      <div className="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
+      <div className={clsx("divide-y divide-slate-100 overflow-y-auto", !compact && "max-h-[600px]")}>
         {activities.map((item) => {
           const isTicket = item.type === 'MAINTENANCE_TICKET'
           const isInitiative = item.type === 'NEW_INITIATIVE'
@@ -73,8 +80,9 @@ export function ActivityFeed() {
           return (
             <div key={item.id} className={clsx(
               "p-4 hover:bg-slate-50 transition-colors flex gap-4",
-              isInitiative && "bg-blue-50/30 hover:bg-blue-50/50",
-              isTicket && "bg-amber-50/30 hover:bg-amber-50/50"
+              compact && "p-3 bg-transparent",
+              !compact && isInitiative && "bg-blue-50/30 hover:bg-blue-50/50",
+              !compact && isTicket && "bg-amber-50/30 hover:bg-amber-50/50"
             )}>
               {/* Icon Column */}
               <div className="flex-shrink-0 mt-1">
@@ -114,7 +122,7 @@ export function ActivityFeed() {
                 </p>
 
                 {/* Actions */}
-                {isInitiative && (
+                {!compact && isInitiative && (
                    <div className="mt-3 flex gap-2">
                      <button 
                        onClick={() => item.initiativeId && handleJoinDiscussion(item.initiativeId)}
