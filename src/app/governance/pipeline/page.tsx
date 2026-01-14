@@ -16,8 +16,7 @@ export default function PipelinePage() {
       id: `init-${Date.now()}`,
       title,
       description: desc,
-      status: 'DRAFT',
-      pipelineStage: 'NEGOTIATION',
+      status: 'OPEN_FOR_SUPPORT',
       authorId: currentUser?.id || 'anon',
       votes: [],
       createdAt: new Date()
