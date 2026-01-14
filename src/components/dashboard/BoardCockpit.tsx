@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { WorkflowState, WorkflowAction } from '@/components/orchestrator/WorkflowEngine'
-import { ArrowRight, CheckCircle2, AlertTriangle, PlayCircle, ShieldCheck } from 'lucide-react'
+import { ArrowRight, CheckCircle2, AlertTriangle, PlayCircle, ShieldCheck, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { CommunityPulse } from './CommunityPulse'
 
