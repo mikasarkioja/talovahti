@@ -58,7 +58,7 @@ export default function BookingCalendar() {
   const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i))
   
   // Time Slots (10:00 - 22:00)
-  const timeSlots = []
+  const timeSlots: Date[] = []
   for (let i = 0; i < 24; i++) { // 12 hours * 2 slots
     const d = new Date()
     d.setHours(10, 0, 0, 0)
