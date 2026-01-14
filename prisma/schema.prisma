@@ -445,6 +445,7 @@ model Project {
   invoices         Invoice[]
   contract         LegalContract?
   updates          BuildingUpdate[]
+  scenarios        FinancialScenario[]
   loanApplications LoanApplication[]
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
@@ -1139,6 +1140,8 @@ model FinancialScenario {
   interestRate       Float
   termYears          Int
   monthlyImpactPerM2 Float
+  projectId          String?
+  project            Project?       @relation(fields: [projectId], references: [id])
   isBaseline         Boolean  @default(false)
   metadata           String?  
   createdAt          DateTime @default(now())
