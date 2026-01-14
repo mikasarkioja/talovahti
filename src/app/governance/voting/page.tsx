@@ -8,7 +8,7 @@ import { Scale } from "lucide-react"
 export default function VotingPage() {
   const { initiatives, currentUser, castVote } = useStore()
   
-  const activeVotes = initiatives.filter(i => i.pipelineStage === 'VOTING')
+  const activeVotes = initiatives.filter(i => i.status === 'VOTING')
   
   // Mock total shares possible (e.g., 1000 for this housing company)
   const TOTAL_SHARES = 1000
