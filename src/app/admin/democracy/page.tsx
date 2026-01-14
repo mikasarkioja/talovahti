@@ -59,7 +59,7 @@ export default function DemocracyAdminPage() {
                             <XAxis type="number" />
                             <YAxis dataKey="name" type="category" width={100} tick={{fontSize: 12}} />
                             <Tooltip 
-                                formatter={(value: number, name: string, props: any) => [
+                                formatter={(value: any, name: string, props: any) => [
                                     `${value} ääntä`, 
                                     `Vastikevaikutus: ${props.payload.impact} €/m²`
                                 ] as [string, string]}
