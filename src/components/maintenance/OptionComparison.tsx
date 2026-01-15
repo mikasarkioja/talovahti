@@ -1,8 +1,13 @@
 'use client'
 import { MockSolutionOption } from '@/lib/store'
-import { BarChart, TrendingUp } from 'lucide-react'
+import { BarChart, TrendingUp, ArrowRight } from 'lucide-react'
 
-export function OptionComparison({ options }: { options: MockSolutionOption[] }) {
+interface OptionComparisonProps {
+  options: MockSolutionOption[]
+  onSelect?: (option: MockSolutionOption) => void
+}
+
+export function OptionComparison({ options, onSelect }: OptionComparisonProps) {
   if (!options || options.length === 0) return null
 
   // Find max values for visualization scaling
@@ -51,6 +56,18 @@ export function OptionComparison({ options }: { options: MockSolutionOption[] })
                   <div className="text-[10px] text-slate-400">Elinkaari: +{opt.lifeSpanExtension} v</div>
                 </div>
               </div>
+
+              {/* Action Button */}
+              {onSelect && (
+                <div className="flex justify-end pt-1">
+                  <button 
+                    onClick={() => onSelect(opt)}
+                    className="text-xs bg-purple-50 hover:bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg font-medium flex items-center gap-1 transition-colors"
+                  >
+                    Vie Palvelutorille <ArrowRight size={12} />
+                  </button>
+                </div>
+              )}
             </div>
           )
         })}

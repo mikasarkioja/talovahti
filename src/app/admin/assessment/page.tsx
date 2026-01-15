@@ -1,13 +1,15 @@
 'use client'
 import { useState } from 'react'
-import { useStore, MockObservation } from '@/lib/store'
+import { useRouter } from 'next/navigation'
+import { useStore, MockObservation, MockSolutionOption } from '@/lib/store'
 import { CheckCircle, AlertTriangle, Clock, MapPin, ChevronRight } from 'lucide-react'
 import { clsx } from 'clsx'
 import { SolutionDesigner } from '@/components/maintenance/SolutionDesigner'
 import { OptionComparison } from '@/components/maintenance/OptionComparison'
 
 export default function AssessmentPage() {
-  const { observations, addAssessment } = useStore()
+  const router = useRouter()
+  const { observations, addAssessment, addProject } = useStore()
   const [selectedObs, setSelectedObs] = useState<MockObservation | null>(null)
   
   // Form State
@@ -33,6 +35,24 @@ export default function AssessmentPage() {
     // But since `observations` comes from store, it will update.
     // However, `selectedObs` is a copy. We should re-select it after update.
     // Ideally we track by ID.
+  }
+
+  const handleSelectOption = (option: MockSolutionOption) => {
+    if (!selectedObs) return
+
+    addProject({
+      id: `proj-${Date.now()}`,
+      title: `${selectedObs.component} - ${option.title}`,
+      description: option.description,
+      type: 'RENOVATION',
+      status: 'TENDERING', // ProjectStatus
+      tenders: [],
+      siteReports: [],
+      changeOrders: [],
+      createdAt: new Date()
+    })
+
+    router.push('/governance/projects')
   }
 
   // Effect to keep selectedObs in sync with store would be better, 
@@ -215,7 +235,10 @@ export default function AssessmentPage() {
                        <SolutionDesigner observation={activeObs} />
                        
                        {activeObs.assessment?.options && activeObs.assessment.options.length > 0 && (
-                         <OptionComparison options={activeObs.assessment.options} />
+                         <OptionComparison 
+                           options={activeObs.assessment.options} 
+                           onSelect={handleSelectOption}
+                         />
                        )}
                      </div>
                    </div>

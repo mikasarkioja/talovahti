@@ -34,6 +34,7 @@ export type MockTicket = {
   type: TicketType
   apartmentId: string | null
   createdAt: Date
+  observationId?: string
 }
 
 export type MockFeedItem = {

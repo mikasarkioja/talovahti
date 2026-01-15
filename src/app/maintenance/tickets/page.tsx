@@ -5,7 +5,7 @@ import { Plus, PenTool } from 'lucide-react'
 import { clsx } from 'clsx'
 
 export default function TicketsPage() {
-  const { tickets, currentUser, addTicket } = useStore()
+  const { tickets, currentUser, addTicket, addObservation } = useStore()
   const [isCreating, setIsCreating] = useState(false)
   
   const [title, setTitle] = useState('')
@@ -15,16 +15,35 @@ export default function TicketsPage() {
     e.preventDefault()
     if (!title) return
     
+    const timestamp = Date.now()
+    const obsId = `obs-${timestamp}`
+    const ticketId = `ticket-${timestamp}`
+
+    // 1. Create Observation for Expert View (Tehtäväjono)
+    // This ensures the issue appears in the property manager's assessment queue
+    addObservation({
+      id: obsId,
+      component: title, // Use title as the component/subject
+      description: description,
+      status: 'OPEN',
+      location: currentUser?.apartmentId || 'Yleiset tilat',
+      userId: currentUser?.id || 'unknown',
+      createdAt: new Date()
+    })
+
+    // 2. Create Ticket for Resident View
     addTicket({
-      id: `ticket-${Date.now()}`,
+      id: ticketId,
       title,
       description,
       status: 'OPEN',
       priority: 'MEDIUM',
       type: 'MAINTENANCE',
       apartmentId: currentUser?.apartmentId || null,
-      createdAt: new Date()
+      createdAt: new Date(),
+      observationId: obsId // Link to observation
     })
+
     setIsCreating(false)
     setTitle('')
     setDescription('')
