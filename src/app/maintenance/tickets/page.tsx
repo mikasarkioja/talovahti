@@ -1,8 +1,9 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useStore } from '@/lib/store'
-import { Plus, PenTool } from 'lucide-react'
+import { Plus, PenTool, Camera, X, ImageIcon } from 'lucide-react'
 import { clsx } from 'clsx'
+import Image from 'next/image'
 
 export default function TicketsPage() {
   const { tickets, currentUser, addTicket, addObservation } = useStore()
@@ -10,6 +11,29 @@ export default function TicketsPage() {
   
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [image, setImage] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setImage(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleRemoveImage = () => {
+    setImage(null)
+    setImagePreview(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -28,7 +52,8 @@ export default function TicketsPage() {
       status: 'OPEN',
       location: currentUser?.apartmentId || 'Yleiset tilat',
       userId: currentUser?.id || 'unknown',
-      createdAt: new Date()
+      createdAt: new Date(),
+      imageUrl: imagePreview // Store the base64 preview as the image URL for now
     })
 
     // 2. Create Ticket for Resident View
@@ -47,6 +72,8 @@ export default function TicketsPage() {
     setIsCreating(false)
     setTitle('')
     setDescription('')
+    setImage(null)
+    setImagePreview(null)
   }
 
   // Filter tickets: Board sees all, Resident sees own
@@ -96,7 +123,53 @@ export default function TicketsPage() {
                 placeholder="Tarkempi kuvaus ongelmasta..."
               />
             </div>
-            <div className="flex gap-2 justify-end">
+
+            {/* Image Upload Section */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Liitteet</label>
+              
+              {!imagePreview ? (
+                <div className="flex flex-col gap-2">
+                   <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleImageChange}
+                    className="hidden"
+                    id="image-upload"
+                  />
+                  <label 
+                    htmlFor="image-upload"
+                    className="flex items-center justify-center gap-3 w-full p-4 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 hover:bg-slate-100 cursor-pointer transition-colors active:scale-[0.98]"
+                  >
+                    <div className="bg-blue-100 p-2 rounded-full text-blue-600">
+                      <Camera size={24} />
+                    </div>
+                    <span className="font-semibold text-slate-700">Lisää kuva ongelmasta</span>
+                  </label>
+                </div>
+              ) : (
+                <div className="relative inline-block">
+                  <div className="relative w-full max-w-sm aspect-video rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
+                    <img 
+                      src={imagePreview} 
+                      alt="Preview" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-md hover:bg-red-600 transition-colors"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2 justify-end pt-2">
               <button 
                 type="button" 
                 onClick={() => setIsCreating(false)}

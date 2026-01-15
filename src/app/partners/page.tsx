@@ -1,21 +1,15 @@
 "use client"
 
 import React, { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Search, MapPin, Star, Phone, CheckCircle } from 'lucide-react'
-
-// Mock Data
-const MOCK_PARTNERS = [
-  { id: '1', name: 'Putki-Pekka Oy', category: 'PLUMBER', rating: 4.8, verified: true, phone: '040-1234567' },
-  { id: '2', name: 'Sähkö-Simo Tmi', category: 'ELECTRICIAN', rating: 4.5, verified: true, phone: '050-9876543' },
-  { id: '3', name: 'Piha & Puutarha', category: 'LANDSCAPER', rating: 4.2, verified: false, phone: '044-5555555' },
-  { id: '4', name: 'Lukko-Lasse', category: 'LOCKSMITH', rating: 4.9, verified: true, phone: '040-9998877' },
-]
+import { useStore } from '@/lib/store'
 
 export default function PartnersPage() {
+  const { servicePartners } = useStore()
   const [searchTerm, setSearchTerm] = useState('')
 
   const handleRequestQuote = (partnerName: string) => {
@@ -23,7 +17,7 @@ export default function PartnersPage() {
     alert(`Tarjouspyyntö lähetetty yritykselle ${partnerName}.\n\nLiitetty sijaintitieto: "Keittiö / Vesipiste (3D-malli)"`)
   }
 
-  const filteredPartners = MOCK_PARTNERS.filter(p => 
+  const filteredPartners = servicePartners.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     p.category.toLowerCase().includes(searchTerm.toLowerCase())
   )
