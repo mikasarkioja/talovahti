@@ -145,6 +145,7 @@ export type MockProject = {
   siteReports: MockSiteReport[]
   changeOrders: MockChangeOrder[]
   createdAt: Date
+  description: string | null
 }
 
 export type MockMMLSyncLog = {
