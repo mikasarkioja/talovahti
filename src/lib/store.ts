@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { GovernanceStatus, TicketStatus, TicketPriority, VoteChoice, UserRole, TicketType, RenovationStatus, ObservationStatus, ProjectStatus, TenderType, TenderStatus, ChangeOrderStatus, DocumentType, OrderStatus, SubscriptionPlan, SubscriptionStatus, OrderType, InvoiceStatus, BudgetCategory, AnnualTask, FiscalConfiguration, TaskCategory, AnnualQuarter } from '@prisma/client'
+import { GovernanceStatus, TicketStatus, TicketPriority, VoteChoice, UserRole, TicketType, RenovationStatus, ObservationStatus, ProjectStatus, TenderType, TenderStatus, ChangeOrderStatus, DocumentType, OrderStatus, SubscriptionPlan, SubscriptionStatus, OrderType, InvoiceStatus, BudgetCategory, AnnualTask, FiscalConfiguration, TaskCategory, AnnualQuarter, StrategicGoal, GoalStatus } from '@prisma/client'
 
 // ... (Existing Type Definitions)
 
@@ -263,6 +263,7 @@ interface AppState {
   
   // New State
   annualTasks: AnnualTask[]
+  strategicGoals: StrategicGoal[]
   fiscalConfig: FiscalConfiguration | null
   apartmentCount: number
   systemStats: MockSystemAdminStats
@@ -398,6 +399,32 @@ export const useStore = create<AppState>((set) => ({
 
   // New Data
   annualTasks: [],
+  strategicGoals: [
+    {
+      id: 'goal-1',
+      title: 'Energiatehokkuus 2030',
+      targetValue: 85,
+      currentValue: 120,
+      unit: 'kWh/m²',
+      status: 'IN_PROGRESS' as GoalStatus,
+      targetDate: new Date(2030, 0, 1),
+      companyId: 'company-1',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      id: 'goal-2',
+      title: 'Hoitovastikkeen vakautus',
+      targetValue: 4.50,
+      currentValue: 4.50,
+      unit: '€/m²',
+      status: 'ACHIEVED' as GoalStatus,
+      targetDate: new Date(2027, 0, 1),
+      companyId: 'company-1',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+  ],
   fiscalConfig: {
       id: 'fiscal-1',
       housingCompanyId: 'company-1',
