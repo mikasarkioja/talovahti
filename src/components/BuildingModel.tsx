@@ -3,121 +3,14 @@ import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, Text, Billboard, Html, useCursor } from '@react-three/drei'
 import { useStore } from '@/lib/store'
 import { useTemporalStore } from '@/lib/useTemporalStore'
-import { useMemo, Suspense, useRef, useState, useEffect } from 'react'
+import { useMemo, Suspense, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { RefreshCw, RotateCcw, Layers, Thermometer, Droplets } from 'lucide-react'
-import { BuildingGenerator, ApartmentLayout, POI } from '@/lib/three/BuildingGenerator'
-import { ExtruderEngine } from '@/lib/three/ExtruderEngine'
+import { RefreshCw, RotateCcw, Thermometer, Droplets, Calendar, Hammer } from 'lucide-react'
+import { BuildingGenerator, POI } from '@/lib/three/BuildingGenerator'
 import { HudCard } from '@/components/ui/hud-card'
-import * as THREE from 'three'
-
-function ExtrudedApartmentMesh({ 
-    data, 
-    color, 
-    pulseColor,
-    isHovered, 
-    onClick,
-    opacity = 1,
-    transparent = false
-}: { 
-    data: ApartmentLayout, 
-    color: string, 
-    pulseColor?: string,
-    isHovered: boolean, 
-    onClick: (e: any) => void,
-    opacity?: number,
-    transparent?: boolean
-}) {
-  const mesh = useRef<THREE.Mesh>(null)
-  const [hovered, setHover] = useState(false)
-  useCursor(hovered)
-
-  // Create Geometry from ExtruderEngine
-  const { shape, extrudeSettings } = useMemo(() => {
-    // Extrude with height=3 (from generator)
-    const result = ExtruderEngine.extrudeApartment(data.polygonPoints, data.floor, data.dimensions[1])
-    return result || { shape: new THREE.Shape(), extrudeSettings: {} }
-  }, [data])
-
-  useFrame((state) => {
-    if (mesh.current && pulseColor) {
-        const t = state.clock.getElapsedTime()
-        const intensity = (Math.sin(t * 3) + 1) / 2 * 0.5 + 0.2
-        if (!Array.isArray(mesh.current.material)) {
-            (mesh.current.material as THREE.MeshStandardMaterial).emissive.set(pulseColor);
-            (mesh.current.material as THREE.MeshStandardMaterial).emissiveIntensity = intensity;
-        }
-    }
-  })
-
-  // Center vertical adjustment: Extrusion starts at Z=0. We rotate -90 X -> Y=0.
-  // Group is at Center Y. Mesh goes 0..3. So shift mesh Y by -1.5.
-  const verticalOffset = -data.dimensions[1] / 2
-
-  return (
-    <group position={data.position} onClick={(e) => { e.stopPropagation(); onClick(e) }} onPointerOver={() => setHover(true)} onPointerOut={() => setHover(false)}>
-      <mesh ref={mesh} rotation={[-Math.PI / 2, 0, 0]} position={[0, verticalOffset, 0]}>
-        <extrudeGeometry args={[shape, extrudeSettings]} />
-        <meshStandardMaterial 
-            color={isHovered ? '#fbbf24' : color} 
-            roughness={0.8} // Nordic Concrete
-            transparent={transparent || opacity < 1}
-            opacity={opacity} 
-        />
-      </mesh>
-      
-      {/* Wireframe edges for style */}
-      <lineSegments rotation={[-Math.PI / 2, 0, 0]} position={[0, verticalOffset, 0]}>
-         <edgesGeometry args={[new THREE.ExtrudeGeometry(shape, extrudeSettings)]} />
-         <lineBasicMaterial color="#94a3b8" transparent opacity={0.3 * opacity} />
-      </lineSegments>
-
-      {/* Label */}
-      <Text 
-        position={[0, 0, data.dimensions[2] / 2 + 0.2]} 
-        fontSize={0.4} 
-        color="#1e293b" 
-        anchorX="center" 
-        anchorY="middle"
-        fillOpacity={opacity}
-      >
-        {data.id}
-      </Text>
-    </group>
-  )
-}
-
-function Balconies({ apartments }: { apartments: ApartmentLayout[] }) {
-    const meshRef = useRef<THREE.InstancedMesh>(null)
-    const balconyApts = useMemo(() => apartments.filter(a => a.balcony), [apartments])
-
-    useEffect(() => {
-        if (!meshRef.current) return
-        const tempObj = new THREE.Object3D()
-        
-        balconyApts.forEach((apt, i) => {
-            // Position: Center of apt + Offset to front (+Z)
-            // Front face is at apt.dimensions[2]/2
-            // Height: Lower 1m of the 3m floor. Relative to apt center Y (-1.5 to +1.5), it should be at bottom edge (-1.5) + 0.5 (half height of railing)
-            
-            const zOffset = apt.dimensions[2] / 2 + 0.5 // 0.5m sticking out
-            const yOffset = -apt.dimensions[1] / 2 + 0.5 // Bottom aligned
-            
-            tempObj.position.set(apt.position[0], apt.position[1] + yOffset, apt.position[2] + zOffset)
-            tempObj.updateMatrix()
-            meshRef.current!.setMatrixAt(i, tempObj.matrix)
-        })
-        meshRef.current.instanceMatrix.needsUpdate = true
-    }, [balconyApts])
-
-    return (
-        <instancedMesh ref={meshRef} args={[undefined, undefined, balconyApts.length]}>
-            <boxGeometry args={[3, 1, 1]} /> {/* 3m wide, 1m high, 1m deep */}
-            <meshStandardMaterial color="#64748b" />
-        </instancedMesh>
-    )
-}
+import { ApartmentMesh } from './three/ApartmentMesh'
+import { InfrastructureMesh } from './three/InfrastructureMesh'
 
 function PoiMarker({ data }: { data: POI }) {
     return (
@@ -138,8 +31,41 @@ function PoiMarker({ data }: { data: POI }) {
     )
 }
 
+function TemporalHUD({ hoveredTask }: { hoveredTask: any }) {
+    if (!hoveredTask) return null
+    
+    // Position HUD roughly based on context, or fixed top-center of canvas?
+    // "Floating <Html> tooltip over the 3D model"
+    // If we can map task to a position, great. If not, maybe just a general overlay.
+    // For now, let's put it in a fixed position inside the canvas area but "floating".
+    // Or better, if the task has a `meshId`, attach it there!
+    
+    // Since we don't have mesh positions easily accessible here without state, 
+    // let's display it as a high-level overlay or attach to center.
+    
+    return (
+        <Html position={[0, 10, 0]} center style={{ pointerEvents: 'none' }}>
+            <div className="flex flex-col items-center gap-2 transition-all duration-300 transform translate-y-0 opacity-100">
+                <div className="bg-white/95 backdrop-blur shadow-xl rounded-xl border-2 border-blue-500 p-4 w-64 text-center">
+                    <div className="flex items-center justify-center gap-2 text-blue-600 font-bold mb-1">
+                        <Calendar size={16} />
+                        <span>{hoveredTask.quarter} Milestone</span>
+                    </div>
+                    <h3 className="font-bold text-slate-800 text-sm mb-1">{hoveredTask.title}</h3>
+                    <p className="text-xs text-slate-500 mb-2">{hoveredTask.description}</p>
+                    {hoveredTask.statutory && <Badge variant="secondary" className="text-[10px]">Lakisääteinen</Badge>}
+                </div>
+                {/* Connecting Line (fake) */}
+                <div className="w-0.5 h-8 bg-blue-500/50"></div>
+                <div className="w-3 h-3 rounded-full bg-blue-500 animate-ping"></div>
+            </div>
+        </Html>
+    )
+}
+
 export function BuildingModel({ onApartmentClick, highlightId }: { onApartmentClick?: (id: string) => void, highlightId?: string }) {
   const { tickets, initiatives } = useStore()
+  const { currentActiveQuarter, hoveredTask } = useTemporalStore()
   const controlsRef = useRef<any>(null)
   const [selectedFloor, setSelectedFloor] = useState<number | null>(null) 
   const [selectedAptId, setSelectedAptId] = useState<string | null>(null)
@@ -169,7 +95,9 @@ export function BuildingModel({ onApartmentClick, highlightId }: { onApartmentCl
             <div className="flex flex-col gap-1.5 text-xs">
                 <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> <span>Hälytys (Vuoto)</span></div>
                 <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-blue-500" /> <span>Päätöksenteko</span></div>
-                <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-slate-400" /> <span>Normaali</span></div>
+                {currentActiveQuarter && (
+                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" /> <span>{currentActiveQuarter} Huolto</span></div>
+                )}
             </div>
         </HudCard>
       </div>
@@ -227,20 +155,13 @@ export function BuildingModel({ onApartmentClick, highlightId }: { onApartmentCl
             minDistance={10} 
             maxDistance={60} 
             makeDefault
-            autoRotate={!selectedAptId}
+            autoRotate={!selectedAptId && !hoveredTask} // Pause rotation when hovering a task to focus
             autoRotateSpeed={0.5}
           />
           
           <group position={[0, -2, 0]}>
-            {/* Ground Plane */}
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]} receiveShadow>
-                <planeGeometry args={[100, 100]} />
-                <meshStandardMaterial color="#f1f5f9" />
-            </mesh>
-            <gridHelper args={[100, 50, "#cbd5e1", "#e2e8f0"]} position={[0, -0.05, 0]} />
-
-            {/* Balconies (Instanced) */}
-            <Balconies apartments={apartments} />
+            
+            <InfrastructureMesh apartments={apartments} />
 
             {/* Apartments */}
             {apartments.map(apt => {
@@ -278,22 +199,37 @@ export function BuildingModel({ onApartmentClick, highlightId }: { onApartmentCl
               if (hasTicket) pulseColor = '#ef4444' // Red Pulse
               else if (activeVote) pulseColor = '#3b82f6' // Blue Pulse
 
-              // TEMPORAL SYNC
+              // TEMPORAL SYNC (Quarterly Phases)
               if (currentActiveQuarter) {
                   if (currentActiveQuarter === 'Q1' && apt.floor === 4) {
                       pulseColor = '#60a5fa' // Winter: Roof Focus
                   } else if (currentActiveQuarter === 'Q2') {
-                      pulseColor = '#4ade80' // Spring: Facade
+                      pulseColor = '#4ade80' // Spring: Facade (All)
                   } else if (currentActiveQuarter === 'Q3' && apt.floor === 1) {
                       pulseColor = '#facc15' // Summer: Grounds
                   } else if (currentActiveQuarter === 'Q4') {
-                      pulseColor = '#f87171' // Autumn: Systems
+                      pulseColor = '#f87171' // Autumn: Systems (All)
+                  }
+              }
+              
+              // TASK SYNC (Hovered Task)
+              // If a specific task is hovered in the Annual Clock, we want to highlight relevant components.
+              if (hoveredTask) {
+                  // Simple heuristic mapping
+                  if (hoveredTask.title.toLowerCase().includes('katto') && apt.floor === 4) {
+                       pulseColor = '#ef4444' // Red alert for Roof
+                  }
+                  if (hoveredTask.title.toLowerCase().includes('julkisivu')) {
+                       pulseColor = '#fbbf24' // Orange for Facade
+                  }
+                  if (hoveredTask.title.toLowerCase().includes('piha') && apt.floor === 1) {
+                       pulseColor = '#10b981' // Green for Grounds
                   }
               }
 
               return (
                 <group key={apt.id}>
-                    <ExtrudedApartmentMesh 
+                    <ApartmentMesh 
                         data={apt}
                         color={baseColor}
                         pulseColor={pulseColor}
@@ -335,6 +271,9 @@ export function BuildingModel({ onApartmentClick, highlightId }: { onApartmentCl
             {pois.map(poi => (
                 <PoiMarker key={poi.id} data={poi} />
             ))}
+            
+            {/* Temporal HUD (Global for Milestone) */}
+            <TemporalHUD hoveredTask={hoveredTask} />
 
           </group>
         </Suspense>
