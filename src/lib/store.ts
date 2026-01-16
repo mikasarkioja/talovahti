@@ -225,6 +225,15 @@ export type MockVendorRule = {
   createdAt: Date
 }
 
+export type MockServicePartner = {
+  id: string
+  name: string
+  category: string // PartnerCategory
+  rating: number
+  verified: boolean
+  phone: string
+}
+
 // New Types
 export type MockSystemAdminStats = {
     mrr: number
@@ -250,6 +259,7 @@ interface AppState {
   invoices: MockInvoice[]
   budgetLines: MockBudgetLine[]
   vendorRules: MockVendorRule[]
+  servicePartners: MockServicePartner[]
   
   // New State
   apartmentCount: number
@@ -267,6 +277,8 @@ interface AppState {
   addSolutionOption: (observationId: string, option: MockSolutionOption) => void
   addProject: (project: MockProject) => void
   updateProjectStatus: (id: string, status: ProjectStatus) => void
+  addTender: (projectId: string, tender: MockTender) => void
+  addBid: (tenderId: string, bid: MockBid) => void
   selectWinnerBid: (projectId: string, tenderId: string, bidId: string) => void
   addSiteReport: (report: MockSiteReport) => void
   updateChangeOrder: (id: string, status: ChangeOrderStatus) => void
@@ -375,6 +387,13 @@ export const useStore = create<AppState>((set) => ({
     { id: 'rule-1', yTunnus: '1234567-8', vendorName: null, category: 'HEATING', createdAt: new Date() }
   ],
 
+  servicePartners: [
+    { id: '1', name: 'Putki-Pekka Oy', category: 'PLUMBER', rating: 4.8, verified: true, phone: '040-1234567' },
+    { id: '2', name: 'Sähkö-Simo Tmi', category: 'ELECTRICIAN', rating: 4.5, verified: true, phone: '050-9876543' },
+    { id: '3', name: 'Piha & Puutarha', category: 'LANDSCAPER', rating: 4.2, verified: false, phone: '044-5555555' },
+    { id: '4', name: 'Lukko-Lasse', category: 'LOCKSMITH', rating: 4.9, verified: true, phone: '040-9998877' },
+  ],
+
   // New Data
   apartmentCount: 15, // Mock value
   systemStats: {
@@ -395,6 +414,15 @@ export const useStore = create<AppState>((set) => ({
   addSolutionOption: (observationId, option) => set((state) => ({ observations: state.observations.map(o => o.id === observationId && o.assessment ? { ...o, assessment: { ...o.assessment, options: [...(o.assessment.options || []), option] } } : o) })),
   addProject: (project) => set((state) => ({ projects: [...state.projects, project] })),
   updateProjectStatus: (id, status) => set((state) => ({ projects: state.projects.map(p => p.id === id ? { ...p, status } : p) })),
+  addTender: (projectId, tender) => set((state) => ({
+    projects: state.projects.map(p => p.id === projectId ? { ...p, tenders: [...p.tenders, tender] } : p)
+  })),
+  addBid: (tenderId, bid) => set((state) => ({
+    projects: state.projects.map(p => ({
+        ...p,
+        tenders: p.tenders.map(t => t.id === tenderId ? { ...t, bids: [...t.bids, bid] } : t)
+    }))
+  })),
   selectWinnerBid: (projectId, tenderId, bidId) => set((state) => {
     const updatedProjects = state.projects.map(p => {
       if (p.id !== projectId) return p
