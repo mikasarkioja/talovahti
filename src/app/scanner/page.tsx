@@ -13,7 +13,7 @@ import { redirect } from "next/navigation";
 const INITIAL_LEAKS = [{ x: 1, y: 2, z: 1.5, severity: 0.8 }];
 
 export default function ScannerPage() {
-  if (!FEATURES.SCANNER) redirect("/dashboard");
+  if (!FEATURES.AR_SCANNER_PRO) redirect("/dashboard");
 
   const [leaks, setLeaks] = useState(INITIAL_LEAKS);
   const [health, setHealth] = useState(85);

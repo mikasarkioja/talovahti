@@ -6,9 +6,10 @@ export const FEATURES = {
   FINANCE: true, // Basic view
 
   // Phase 2 - Disabled (Feature Flagged)
-  MARKETPLACE: false, // /partners
-  SCANNER: false, // /scanner
-  DOCUMENTS: false, // /documents/marketplace
+  SERVICE_MARKETPLACE: false, // /partners
+  AR_SCANNER_PRO: false, // /scanner
+  DOCUMENT_VAULT: false, // /documents/marketplace
+  STRATEGY_INSIGHTS: false, // Strategy Dashboard charts
 
   // Phase 3 - Disabled
   LOAN_BROKERAGE: false,

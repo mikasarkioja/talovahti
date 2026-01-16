@@ -17,7 +17,7 @@ import { FEATURES } from "@/config/features";
 import { redirect } from "next/navigation";
 
 export default function DocumentOrderPage() {
-  if (!FEATURES.DOCUMENTS) redirect("/dashboard");
+  if (!FEATURES.DOCUMENT_VAULT) redirect("/dashboard");
 
   const {
     currentUser,

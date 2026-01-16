@@ -20,7 +20,10 @@ import {
 } from "@/components/dashboard/AnnualClock";
 import { StrategyDashboard } from "@/components/dashboard/StrategyDashboard";
 import { TourOverlay } from "@/components/onboarding/TourOverlay";
-import { useState, Suspense } from "react";
+import { FEATURES } from "@/config/features";
+import { useState, Suspense, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -41,6 +44,19 @@ interface HomeClientProps {
 
 export function HomeClient({ annualClockData }: HomeClientProps) {
   const { currentUser, tickets, initiatives } = useStore();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (searchParams.get("error") === "feature_disabled") {
+      toast.info("Ominaisuus ei ole vielä saatavilla", {
+        description:
+          "Tämä toiminnallisuus julkaistaan myöhemmässä päivityksessä.",
+      });
+      // Clean up URL
+      router.replace("/");
+    }
+  }, [searchParams, router]);
 
   // Tour State
   const [tourStep, setTourStep] = useState(1);
@@ -123,7 +139,29 @@ export function HomeClient({ annualClockData }: HomeClientProps) {
           {/* Strategy Dashboard (Board Only) */}
           {isBoard && (
             <section>
-              <StrategyDashboard />
+              {FEATURES.STRATEGY_INSIGHTS ? (
+                <StrategyDashboard />
+              ) : (
+                <Card className="border-dashed border-2 border-slate-200 bg-slate-50/50 shadow-none">
+                  <CardContent className="p-8 flex flex-col items-center justify-center text-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
+                      <Zap size={24} className="text-slate-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-700">
+                        Strategianäkymä
+                      </h3>
+                      <p className="text-sm text-slate-500 mt-1 max-w-md">
+                        Taloyhtiön strateginen tilannekuva ja PTS-työkalut
+                        avautuvat Phase 2 -päivityksessä.
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="mt-2 text-slate-500">
+                      Tulossa pian
+                    </Badge>
+                  </CardContent>
+                </Card>
+              )}
             </section>
           )}
 

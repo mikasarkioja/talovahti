@@ -227,14 +227,6 @@ export function BuildingModel({
           size="sm"
           variant="secondary"
           className="bg-white/90 backdrop-blur shadow-sm h-9 text-xs"
-          onClick={() => alert("Mock: Kalibrointi...")}
-        >
-          <RefreshCw size={14} className="mr-2" /> Kalibroi
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          className="bg-white/90 backdrop-blur shadow-sm h-9 text-xs"
           onClick={handleResetView}
         >
           <RotateCcw size={14} className="mr-2" /> Palauta

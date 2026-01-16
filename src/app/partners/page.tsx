@@ -17,7 +17,7 @@ import { FEATURES } from "@/config/features";
 import { redirect } from "next/navigation";
 
 export default function PartnersPage() {
-  if (!FEATURES.MARKETPLACE) redirect("/dashboard");
+  if (!FEATURES.SERVICE_MARKETPLACE) redirect("/dashboard");
 
   const { servicePartners } = useStore();
   const [searchTerm, setSearchTerm] = useState("");

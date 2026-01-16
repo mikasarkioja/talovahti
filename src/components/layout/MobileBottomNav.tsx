@@ -16,7 +16,7 @@ export function MobileBottomNav() {
           <Plus size={28} className="text-white" />
         </Button>
       </div>
-      {FEATURES.DOCUMENTS && (
+      {FEATURES.DOCUMENT_VAULT && (
         <NavItem icon={<Archive size={24} />} label="Arkisto" />
       )}
       <NavItem icon={<Settings size={24} />} label="Asetukset" />

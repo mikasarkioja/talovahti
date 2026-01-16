@@ -72,10 +72,10 @@ export function Sidebar() {
       title: "Asuminen & Palvelut",
       items: [
         { href: "/tasks", label: "Talkoot & Tehtävät", icon: Hammer },
-        ...(FEATURES.MARKETPLACE
+        ...(FEATURES.SERVICE_MARKETPLACE
           ? [{ href: "/partners", label: "Palvelutori", icon: Users }]
           : []),
-        ...(FEATURES.SCANNER
+        ...(FEATURES.AR_SCANNER_PRO
           ? [{ href: "/scanner", label: "Energia-Skanneri", icon: ScanLine }]
           : []),
       ],
@@ -149,7 +149,7 @@ export function Sidebar() {
           locked: isBasic,
           description: "Vaatii Pro-tilauksen.",
         },
-        ...(FEATURES.DOCUMENTS
+        ...(FEATURES.DOCUMENT_VAULT
           ? [
               {
                 href: "/documents/marketplace",
