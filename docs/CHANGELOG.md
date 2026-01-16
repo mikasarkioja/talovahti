@@ -1,5 +1,37 @@
 # Changelog
 
+## [2026-01-16] - Temporal Engine & Strategic Intelligence
+
+### ⏳ The Temporal Engine
+- **Fiscal Year Logic**: Implemented `FiscalConfiguration` and `AnnualTask` models to support non-calendar fiscal years.
+- **Annual Clock UI**: Created `AnnualClock.tsx`, an interactive circular visualization of the fiscal year divided into quarters (Q1-Q4).
+- **3D Integration**: Tasks in the Annual Clock now visually highlight relevant building components (e.g., Roof, HVAC) in the 3D Digital Twin using the `useTemporalStore`.
+- **Statutory Deadlines**: Added logic to automatically calculate deadlines for General Meetings and Financial Statements based on the Housing Companies Act.
+
+### 🧠 Strategic Intelligence
+- **Board Dashboard**: Implemented `StrategyDashboard.tsx` specifically for the Board of Directors.
+- **Strategy Engine**: Created `StrategyEngine.ts` to calculate:
+  - **Financial Health Score (A-E)**: Based on liquidity and loan-to-value ratios.
+  - **Maintenance Backlog Index**: Quantifies deferred maintenance risk.
+  - **Energy Intensity**: Tracks kWh/m² against 2030 targets.
+- **PDF Reporting**: Added a Server Action `generateBoardReport` to generate strategic summary PDFs.
+
+### 🌡️ Pulse & Building Physics
+- **Pulse Hero**: A new daily context header component displaying real-time weather and energy impact alerts.
+- **Building Physics Engine**: Implemented `BuildingPhysicsEngine.ts` to translate weather data into actionable alerts (e.g., "Critical Energy Impact" at <-15°C, "Snow Removal" at >5cm accumulation).
+- **FMI Integration**: Created a Node-safe `FmiService` using `fast-xml-parser` to fetch open data from the Finnish Meteorological Institute.
+- **Node-Safe Parsing**: Replaced browser-only `DOMParser` with `XMLParser` to ensure compatibility with Next.js Server Components.
+
+### 📱 Mobile & Web UX
+- **Mobile Dashboard**: Launched a dedicated mobile view (`/mobile`) with `ActivityStream`, `SpatialDrawer` (3D mini-map), and `MobileBottomNav`.
+- **Web Dashboard**: Integrated `PulseHero`, `AnnualClock`, and `StrategyDashboard` into the main landing page (`src/app/page.tsx`) for a unified experience.
+- **Renovation Workflow**: Added `useRenovationStore` and form logic for Shareholder Renovation Notifications ("Osakasmuutostyö"), including 3D location pinning.
+
+### 🛡️ Local Defense & DevOps
+- **Husky & Lint-Staged**: Configured pre-commit hooks to enforce ESLint, Prettier, and TypeScript checks (`tsc --noEmit`) on staged files.
+- **Next.js 15+ Compatibility**: Fixed dynamic route params handling (awaiting `params`) in `contract` and `tendering` pages.
+- **Type Safety**: Ran `prisma generate` and fixed type mismatches in the store and components.
+
 ## [2026-01-12] - Deployment & Core Feature Stabilization
 
 ### 🏗️ Infrastructure & Build System

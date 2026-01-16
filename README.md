@@ -6,37 +6,37 @@
 
 ### 1. 3D Digital Twin & Operations
 *   **Architectural Extruder**: Generates a 3D building model from 2D floor plans using `ExtruderEngine`.
-*   **X-Ray Mode**: Visualize internal infrastructure, pipe networks, and apartment stacks.
-*   **Energy Heatmap**: Real-time shader visualization of thermal leaks and energy efficiency.
+*   **Building Physics & Pulse**: Real-time integration with FMI weather data to predict energy impact and maintenance needs (Snow Removal, Heating Alerts).
 *   **Mobile Scanner (AR)**: A mobile-first "Heads-Up Display" for residents to report observations and leaks by pointing their phone.
-*   **IoT Integration**: Smart control for Sauna relays (preheating), water meters, and leak detection sensors (Sentinel/Guardian logic).
+*   **Renovation Pinning**: Shareholders can pin renovation notifications ("Osakasmuutostyö") directly onto the 3D model.
 
-### 2. Finance & Automation
+### 2. Strategic Intelligence & Time
+*   **Temporal Engine**: An "Annual Clock" that visualizes the fiscal year, mapping statutory tasks (General Meetings, Financial Statements) to quarterly goals.
+*   **Strategy Dashboard**: A board-level view of the company's "Health Score" (A-E), derived from financial liquidity, maintenance backlog, and energy intensity.
+*   **Financial Health Score (BIG)**: Algorithmic grading of the company's investability and risk profile.
+
+### 3. Finance & Automation
 *   **Automated Billing Engine**: Calculates and generates monthly maintenance fee invoices (*Hoitovastike*) based on share counts and water advance settings.
 *   **Accounting Bridge**: Two-way sync with financial software (mocked Fennoa/Netvisor) to automate accounts receivable and payable.
-*   **Bank Bridge**: A "Loan Brokerage" system that bundles Investment Grade data to request competitive loan offers from Finnish banks.
-*   **Investment Grade (BIG)**: An algorithm that calculates the "Financial Health Score" (A-E) of the building based on repair debt, savings, and energy efficiency.
-*   **Revenue Dashboard**: Real-time gauges for liquidity, collection rates, and budget variance.
+*   **Loan Brokerage**: Bundles Investment Grade data to request competitive loan offers from Finnish banks.
 
-### 3. Governance & Democracy
+### 4. Governance & Democracy
 *   **Päätösputki (Decision Pipeline)**: A transparent workflow for moving initiatives from "Proposal" to "Board Vote" to "General Meeting Decision".
 *   **Digital Voting**: Weighted voting system based on share counts, supporting strict legal compliance.
-*   **Meeting Management**: Automated minutes generation and signature workflows.
-*   **Service Marketplace**: A Kanban-style board for hiring pre-vetted service providers (plumbers, cleaners) with "Resident Tasks" (work-for-credit).
+*   **Service Marketplace**: A Kanban-style board for hiring pre-vetted service providers.
 
-### 4. Onboarding & Compliance
+### 5. Onboarding & Compliance
 *   **Activation Wizard**: A seamless onboarding flow integrated with **Maanmittauslaitos (MML)** to fetch official shareholder and apartment data.
-*   **GDPR & Privacy Center**: Built-in "Right to Data Portability" and "Right to Erasure" tools, with strict Audit Logging for board access to sensitive data.
-*   **Role-Based Access (RBAC)**: Granular permissions ensuring residents only see their own data while the Board has oversight.
+*   **GDPR & Privacy Center**: Built-in "Right to Data Portability" and "Right to Erasure" tools, with strict Audit Logging for board access.
 
 ## 🛠️ Tech Stack
 
 *   **Frontend**: Next.js 16 (App Router), React, Tailwind CSS v4 (Nordic Design Tokens), Shadcn UI.
 *   **3D Graphics**: Three.js, React Three Fiber, Drei (InstancedMesh, Custom Shaders).
-*   **Backend**: Next.js API Routes (Server Actions).
+*   **Backend**: Next.js API Routes & Server Actions.
 *   **Database**: PostgreSQL (via Supabase), Prisma ORM.
 *   **State Management**: Zustand.
-*   **Security**: RBAC Middleware, GDPR Logging.
+*   **Security**: RBAC Middleware, GDPR Logging, Husky/Lint-Staged "Local Defense".
 
 ## 📦 Installation
 
