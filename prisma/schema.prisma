@@ -1204,3 +1204,69 @@ model MonthlyFee {
   @@index([housingCompanyId, period])
   @@index([apartmentId])
 }
+// --- Temporal Engine Models ---
+
+enum FiscalQuarter {
+  Q1
+  Q2
+  Q3
+  Q4
+}
+
+enum TaskCategory {
+  GOVERNANCE    // Meetings, NLS filings, voting
+  MAINTENANCE   // Inspections, snow removal, HVAC
+  FINANCE       // Budgeting, tax, audit
+  LEGAL         // Insurance, contracts
+}
+
+enum GoalStatus {
+  IN_PROGRESS
+  ACHIEVED
+  DELAYED
+  CRITICAL
+}
+
+model FiscalConfiguration {
+  id              String         @id @default(cuid())
+  companyId       String         @unique
+  company         HousingCompany @relation(fields: [companyId], references: [id])
+  startMonth      Int            @default(1) // 1 = January, 7 = July (Finnish: Tilikauden alkamiskuukausi)
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model AnnualTask {
+  id              String         @id @default(cuid())
+  companyId       String
+  company         HousingCompany @relation(fields: [companyId], references: [id])
+  
+  title           String         // e.g., "Yhtiökokous" (General Meeting)
+  category        TaskCategory
+  quarter         FiscalQuarter
+  isStatutory     Boolean        @default(false)
+  description     String?
+  
+  // Link to 3D Space
+  meshId          String?        // ID of the 3D mesh in the digital twin (e.g., "Roof_01")
+  
+  completedAt     DateTime?
+  deadline        DateTime?
+}
+
+model StrategicGoal {
+  id              String         @id @default(cuid())
+  companyId       String
+  company         HousingCompany @relation(fields: [companyId], references: [id])
+  
+  title           String         // e.g., "Energy Efficiency 2030"
+  targetValue     Float?
+  currentValue    Float?
+  unit            String?        // e.g., "kWh/m2"
+  status          GoalStatus     @default(IN_PROGRESS)
+  targetDate      DateTime?
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
