@@ -347,9 +347,11 @@ export function StrategyDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-[300px] flex items-center justify-center text-slate-400">
-                Roadmap Gantt Chart Placeholder (Requires additional library or
-                custom SVG)
+              <div className="h-[200px] flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                <span className="font-semibold text-sm mb-1">Tulossa Pian</span>
+                <span className="text-xs">
+                  Roadmap-työkalu on kehityksessä.
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -362,10 +364,17 @@ export function StrategyDashboard() {
                 <CardTitle>Lainasalkun Rakenne</CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Placeholder for Loan structure */}
-                <div className="text-sm text-slate-500">
-                  Yhtiölainat yhteensä:{" "}
-                  {finance.companyLoansTotal.toLocaleString()} €
+                <div className="h-[200px] flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                  <span className="font-semibold text-sm mb-1">
+                    Tulossa Pian
+                  </span>
+                  <span className="text-xs">
+                    Lainasalkun visualisointi on kehityksessä.
+                  </span>
+                  <div className="mt-4 text-xs font-mono text-slate-500">
+                    Nykyinen kanta: {finance.companyLoansTotal.toLocaleString()}{" "}
+                    €
+                  </div>
                 </div>
               </CardContent>
             </Card>

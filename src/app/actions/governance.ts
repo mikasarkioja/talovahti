@@ -38,14 +38,28 @@ export async function castVote(
 
     if (!userApartment) throw new Error("Only verified owners can vote.");
 
+    // Check for existing vote
+    const existingVote = await prisma.vote.findUnique({
+      where: {
+        initiativeId_apartmentId: {
+          initiativeId,
+          apartmentId: userApartment.id,
+        },
+      },
+    });
+
+    if (existingVote) {
+      throw new Error("Tämä huoneisto on jo äänestänyt.");
+    }
+
     // 3. Persist the weighted vote
     await prisma.vote.create({
       data: {
         initiativeId,
         userId: session.user.id,
-        // apartmentId: userApartment.id, // Removed as per primary schema
+        apartmentId: userApartment.id,
         choice: choice as VoteChoice,
-        shares: userApartment.shareCount, // Mapped to 'shares' field
+        shares: userApartment.shareCount,
       },
     });
 
@@ -75,25 +89,27 @@ export async function getAnnualClockData(companyId: string, year: number) {
 
     const tasks = await prisma.annualTask.findMany({
       where: {
-        companyId: companyId,
+        housingCompanyId: companyId,
+        // Fetch tasks for this year (via deadline) OR all recurring tasks (via month)
+        // If we treat AnnualTask as recurring template defined by month:
+        // We just fetch all.
+        // But schema has `deadline`.
+        // If we want specific instances for `year`:
         deadline: {
           gte: new Date(`${year}-01-01`),
           lte: new Date(`${year}-12-31`),
         },
       },
-      orderBy: { deadline: "asc" },
+      orderBy: { month: "asc" },
     });
 
-    // Mocking monthly groups logic
+    // Group by month (1-12)
     const monthlyGroups = Array.from({ length: 12 }, (_, i) => {
       const monthIndex = i + 1;
       return {
         month: monthIndex,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        tasks: tasks.filter(
-          (t: any) =>
-            t.deadline && new Date(t.deadline).getMonth() + 1 === monthIndex,
-        ),
+        tasks: tasks.filter((t: any) => t.month === monthIndex),
       };
     });
 
@@ -116,11 +132,17 @@ export async function getAnnualClockData(companyId: string, year: number) {
 /**
  * Marks a task in the Annual Clock as done/not done
  */
-export async function toggleAnnualTask(taskId: string, isCompleted: boolean) {
+export async function toggleTaskCompletion(
+  taskId: string,
+  isCompleted: boolean,
+) {
   try {
     const updated = await prisma.annualTask.update({
       where: { id: taskId },
-      data: { completedAt: isCompleted ? new Date() : null },
+      data: {
+        isCompleted,
+        completedAt: isCompleted ? new Date() : null,
+      },
     });
 
     revalidatePath("/dashboard/governance");

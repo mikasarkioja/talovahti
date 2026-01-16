@@ -39,6 +39,7 @@ model HousingCompany {
   residentTasks   ResidentTask[]
   resources       Resource[]
   thermalLeaks    ThermalLeak[]
+  buildingComponents BuildingComponent[]
   
   // LOAN BROKERAGE
   financialStatements FinancialStatement[]
@@ -93,6 +94,7 @@ model Apartment {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   fees             MonthlyFee[]
+  votes            Vote[]
   @@unique([housingCompanyId, apartmentNumber])
   @@map("apartments")
   @@index([housingCompanyId])
@@ -712,9 +714,14 @@ model Vote {
   choice       VoteChoice
   shares       Int        
   timestamp    DateTime   @default(now())
-  @@unique([initiativeId, userId])
+  
+  apartmentId  String
+  apartment    Apartment  @relation(fields: [apartmentId], references: [id])
+
+  @@unique([initiativeId, apartmentId])
   @@map("votes")
   @@index([initiativeId])
+  @@index([apartmentId])
 }
 
 enum MeetingType {
@@ -1229,8 +1236,8 @@ enum GoalStatus {
 
 model FiscalConfiguration {
   id              String         @id @default(cuid())
-  companyId       String         @unique
-  company         HousingCompany @relation(fields: [companyId], references: [id])
+  housingCompanyId String        @unique
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
   startMonth      Int            @default(1) // 1 = January, 7 = July (Finnish: Tilikauden alkamiskuukausi)
   
   createdAt       DateTime       @default(now())
@@ -1239,13 +1246,15 @@ model FiscalConfiguration {
 
 model AnnualTask {
   id              String         @id @default(cuid())
-  companyId       String
-  company         HousingCompany @relation(fields: [companyId], references: [id])
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
   
   title           String         // e.g., "Yhtiökokous" (General Meeting)
   category        TaskCategory
   quarter         FiscalQuarter
+  month           Int            @default(1)
   isStatutory     Boolean        @default(false)
+  isCompleted     Boolean        @default(false)
   description     String?
   
   // Link to 3D Space
@@ -1257,8 +1266,8 @@ model AnnualTask {
 
 model StrategicGoal {
   id              String         @id @default(cuid())
-  companyId       String
-  company         HousingCompany @relation(fields: [companyId], references: [id])
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
   
   title           String         // e.g., "Energy Efficiency 2030"
   targetValue     Float?
@@ -1269,4 +1278,25 @@ model StrategicGoal {
   
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
+}
+
+enum ResponsibilityType {
+  COMPANY
+  SHAREHOLDER
+  HYBRID
+}
+
+model BuildingComponent {
+  id              String             @id @default(cuid())
+  meshId          String             @unique
+  name            String
+  type            String             // e.g. "WALL", "PIPE", "FLOOR"
+  responsibility  ResponsibilityType
+  housingCompanyId String
+  housingCompany   HousingCompany    @relation(fields: [housingCompanyId], references: [id])
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  
+  @@map("building_components")
+  @@index([housingCompanyId])
 }

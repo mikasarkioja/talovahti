@@ -31,7 +31,7 @@ export async function generateBoardReport(companyId: string) {
     // If not in schema, this query might fail type check, but we proceed as instructed.
     const annualTasks = await prisma.annualTask.findMany({
       where: {
-        companyId: companyId,
+        housingCompanyId: companyId,
         deadline: {
           gte: startOfWindow,
           lte: endOfWindow,

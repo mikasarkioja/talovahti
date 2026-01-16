@@ -1,22 +1,31 @@
-import { VoteResult } from "@/lib/voting-logic"
+import { VoteResult } from "@/lib/voting-logic";
 
-export function WeightedVoteBar({ result }: { result: VoteResult }) {
+export function VoteResults({ result }: { result: VoteResult }) {
   return (
     <div className="w-full space-y-3">
       <div className="flex h-6 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shadow-inner">
         {result.yesPercentage > 0 && (
-          <div style={{ width: `${result.yesPercentage}%` }} className="bg-green-500 h-full flex items-center justify-center text-[10px] text-white font-bold">
-            {result.yesPercentage > 10 && 'JAA'}
+          <div
+            style={{ width: `${result.yesPercentage}%` }}
+            className="bg-green-500 h-full flex items-center justify-center text-[10px] text-white font-bold"
+          >
+            {result.yesPercentage > 10 && "JAA"}
           </div>
         )}
         {result.noPercentage > 0 && (
-          <div style={{ width: `${result.noPercentage}%` }} className="bg-red-500 h-full flex items-center justify-center text-[10px] text-white font-bold">
-            {result.noPercentage > 10 && 'EI'}
+          <div
+            style={{ width: `${result.noPercentage}%` }}
+            className="bg-red-500 h-full flex items-center justify-center text-[10px] text-white font-bold"
+          >
+            {result.noPercentage > 10 && "EI"}
           </div>
         )}
         {result.abstainPercentage > 0 && (
-          <div style={{ width: `${result.abstainPercentage}%` }} className="bg-slate-400 h-full flex items-center justify-center text-[10px] text-white font-bold">
-             {result.abstainPercentage > 10 && 'TYHJÄ'}
+          <div
+            style={{ width: `${result.abstainPercentage}%` }}
+            className="bg-slate-400 h-full flex items-center justify-center text-[10px] text-white font-bold"
+          >
+            {result.abstainPercentage > 10 && "TYHJÄ"}
           </div>
         )}
       </div>
@@ -36,9 +45,10 @@ export function WeightedVoteBar({ result }: { result: VoteResult }) {
       </div>
       {result.turnoutPercentage !== undefined && (
         <div className="text-xs text-right text-slate-400">
-          Äänestysaktiivisuus: {result.turnoutPercentage.toFixed(1)}% (Edustetut osakkeet)
+          Äänestysaktiivisuus: {result.turnoutPercentage.toFixed(1)}% (Edustetut
+          osakkeet)
         </div>
       )}
     </div>
-  )
+  );
 }

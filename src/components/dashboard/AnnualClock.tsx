@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
-import { useStore } from "@/lib/store";
+import React, { useState, useTransition } from "react";
 import { useTemporalStore } from "@/lib/useTemporalStore";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
@@ -12,13 +11,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { AnnualTask, FiscalQuarter } from "@prisma/client";
-import {
-  Calendar,
-  Briefcase,
-  FileText,
-  CheckCircle2,
-  AlertCircle,
-} from "lucide-react";
+import { Briefcase, Calendar, CheckCircle2, Circle } from "lucide-react";
+import { toggleTaskCompletion } from "@/app/actions/governance";
+import { toast } from "sonner";
 
 const QUARTERS: FiscalQuarter[] = ["Q1", "Q2", "Q3", "Q4"];
 
@@ -41,6 +36,7 @@ const QuarterSegment = ({
 }) => {
   const { setHoveredTask } = useTemporalStore();
   const [isOpen, setIsOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   // Convert angles to radians (subtract 90 deg to start from top)
   const startRad = (startAngle - 90) * (Math.PI / 180);
@@ -62,6 +58,15 @@ const QuarterSegment = ({
   const midRad = (midAngle - 90) * (Math.PI / 180);
   const labelX = 50 + 35 * Math.cos(midRad);
   const labelY = 50 + 35 * Math.sin(midRad);
+
+  const handleToggle = async (task: AnnualTask) => {
+    startTransition(async () => {
+      const result = await toggleTaskCompletion(task.id, !task.isCompleted);
+      if (!result.success) {
+        toast.error("Virhe päivitettäessä tehtävää");
+      }
+    });
+  };
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -111,21 +116,43 @@ const QuarterSegment = ({
               {tasks.map((task) => (
                 <div
                   key={task.id}
-                  className="bg-white p-2 rounded border border-slate-100 shadow-sm text-xs hover:bg-blue-50 transition-colors"
+                  className="bg-white p-2 rounded border border-slate-100 shadow-sm text-xs hover:bg-blue-50 transition-colors flex items-start gap-2 cursor-pointer"
                   onMouseEnter={() => setHoveredTask(task)}
                   onMouseLeave={() => setHoveredTask(null)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent quarter click if needed
+                    handleToggle(task);
+                  }}
                 >
-                  <div className="font-medium mb-1 flex justify-between">
-                    <span>{task.title}</span>
-                    {task.isStatutory && (
-                      <Badge variant="outline" className="text-[10px] h-4 px-1">
-                        Lakisääteinen
-                      </Badge>
+                  <button className="mt-0.5 flex-shrink-0 text-slate-400 hover:text-brand-emerald transition-colors">
+                    {task.isCompleted ? (
+                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <Circle className="w-4 h-4" />
                     )}
+                  </button>
+                  <div className="flex-1">
+                    <div className="font-medium mb-1 flex justify-between items-start">
+                      <span
+                        className={
+                          task.isCompleted ? "line-through text-slate-400" : ""
+                        }
+                      >
+                        {task.title}
+                      </span>
+                      {task.isStatutory && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] h-4 px-1 ml-1 flex-shrink-0"
+                        >
+                          Laki
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-slate-500 line-clamp-2">
+                      {task.description}
+                    </p>
                   </div>
-                  <p className="text-slate-500 line-clamp-2">
-                    {task.description}
-                  </p>
                 </div>
               ))}
             </div>
@@ -136,12 +163,17 @@ const QuarterSegment = ({
   );
 };
 
-export function AnnualClock() {
-  const { annualTasks, fiscalConfig } = useStore();
+export interface AnnualClockData {
+  fiscalYearStart: number;
+  monthlyGroups: { month: number; tasks: AnnualTask[] }[];
+  totalTasks: number;
+  completedTasks: number;
+}
+
+export function AnnualClock({ data }: { data: AnnualClockData }) {
   const { currentActiveQuarter, setActiveQuarter } = useTemporalStore();
 
-  // Default to Calendar Year if no config
-  const startMonth = fiscalConfig?.startMonth || 1;
+  const startMonth = data.fiscalYearStart;
 
   const handleQuarterClick = (q: FiscalQuarter) => {
     setActiveQuarter(currentActiveQuarter === q ? null : q);
@@ -150,21 +182,17 @@ export function AnnualClock() {
   const getQuarterColor = (q: FiscalQuarter) => {
     switch (q) {
       case "Q1":
-        return "#3b82f6"; // Blue (Winter/Spring)
+        return "#3b82f6";
       case "Q2":
-        return "#22c55e"; // Green (Spring/Summer)
+        return "#22c55e";
       case "Q3":
-        return "#eab308"; // Yellow (Summer/Autumn)
+        return "#eab308";
       case "Q4":
-        return "#ef4444"; // Red (Autumn/Winter - busy time)
+        return "#ef4444";
       default:
         return "#94a3b8";
     }
   };
-
-  // Define months based on fiscal start
-  // This logic is for display if we wanted to show months.
-  // For now, just Q1-Q4 visual.
 
   return (
     <Card className="w-full">
@@ -183,7 +211,17 @@ export function AnnualClock() {
               const isSelected = currentActiveQuarter === q;
               const isDimmed = currentActiveQuarter !== null && !isSelected;
 
-              const tasks = annualTasks.filter((t) => t.quarter === q);
+              // Calculate tasks for this quarter
+              // Q1 = months [start, start+1, start+2]
+              const quarterMonths: number[] = [];
+              for (let m = 0; m < 3; m++) {
+                const month = ((startMonth - 1 + i * 3 + m) % 12) + 1;
+                quarterMonths.push(month);
+              }
+
+              const tasks = data.monthlyGroups
+                .filter((g) => quarterMonths.includes(g.month))
+                .flatMap((g) => g.tasks);
 
               return (
                 <QuarterSegment
@@ -199,7 +237,6 @@ export function AnnualClock() {
               );
             })}
 
-            {/* Center Hub */}
             <circle
               cx="50"
               cy="50"
@@ -217,18 +254,16 @@ export function AnnualClock() {
               {new Date().getFullYear()}
             </text>
           </svg>
-
-          {/* Dynamic Month Labels (Optional overlay) */}
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2 w-full">
           <div className="text-xs text-slate-500 bg-slate-50 p-2 rounded">
             <span className="font-bold block text-slate-700">Tilikausi</span>
-            Alkaa: Kuukausi {startMonth}
+            Alkaa: Kk {startMonth}
           </div>
           <div className="text-xs text-slate-500 bg-slate-50 p-2 rounded">
-            <span className="font-bold block text-slate-700">Aktiivinen</span>
-            {currentActiveQuarter || "Ei valintaa"}
+            <span className="font-bold block text-slate-700">Edistyminen</span>
+            {data.completedTasks}/{data.totalTasks}
           </div>
         </div>
       </CardContent>
