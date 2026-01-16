@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import {
@@ -37,7 +38,6 @@ export function ExpensesPieChart({ data }: { data: CategoryData[] }) {
           cx="50%"
           cy="50%"
           labelLine={false}
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           label={(props: any) =>
             `${props.name} ${((props.percent || 0) * 100).toFixed(0)}%`
           }
@@ -50,7 +50,6 @@ export function ExpensesPieChart({ data }: { data: CategoryData[] }) {
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         <Tooltip
           formatter={(value: any) => `${Number(value).toLocaleString()} €`}
         />
@@ -67,7 +66,6 @@ export function ExpensesBarChart({ data }: { data: MonthlyData[] }) {
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey="month" />
         <YAxis />
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         <Tooltip
           formatter={(value: any) => `${Number(value).toLocaleString()} €`}
         />
