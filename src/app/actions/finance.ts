@@ -14,14 +14,12 @@ export async function getFinanceAggregates(companyId: string, year: number) {
           gte: new Date(`${year}-01-01`),
           lte: new Date(`${year}-12-31`),
         },
-        status: InvoiceStatus.PAID, // Only count realized expenses
+        status: InvoiceStatus.PAID,
       },
-      _sum: {
-        amount: true,
-      },
+      _sum: { amount: true },
     });
 
-    // 2. Fetch Budgeted Amounts for Comparison
+    // 2. Fetch Budgeted Amounts
     const budgetItems = await prisma.budgetLineItem.findMany({
       where: {
         housingCompanyId: companyId,
@@ -29,9 +27,7 @@ export async function getFinanceAggregates(companyId: string, year: number) {
       },
     });
 
-    // 3. Monthly Trend Aggregation (for Bar Charts)
-    // Note: Using "invoices" table name as per @@map in schema
-    // and "housingCompanyId" column.
+    // 3. Monthly Trend (Kept your normalization logic)
     const monthlyTrendRaw: { month: number; total: number }[] =
       await prisma.$queryRaw`
       SELECT 
@@ -45,7 +41,6 @@ export async function getFinanceAggregates(companyId: string, year: number) {
       ORDER BY month ASC
     `;
 
-    // Normalize monthly trend (fill missing months)
     const monthlyTrend = Array.from({ length: 12 }, (_, i) => {
       const m = i + 1;
       const found = monthlyTrendRaw.find((r) => r.month === m);
@@ -55,7 +50,7 @@ export async function getFinanceAggregates(companyId: string, year: number) {
       };
     });
 
-    // 4. Formatting the data for the Frontend
+    // 4. Formatting Categories (Merged logic)
     const categories = expenseStats.map((stat) => {
       const budget = budgetItems.find((b) => b.category === stat.category);
       const actual = Number(stat._sum.amount || 0);
@@ -68,7 +63,7 @@ export async function getFinanceAggregates(companyId: string, year: number) {
       };
     });
 
-    // Add categories that have budget but no expenses
+    // Ensure categories with budget but 0 expenses appear (Crucial for UI)
     budgetItems.forEach((b) => {
       if (!categories.find((c) => c.category === b.category)) {
         categories.push({
@@ -86,6 +81,21 @@ export async function getFinanceAggregates(companyId: string, year: number) {
       0,
     );
 
+    // 5. NEW: Strategic Health Score Logic (The "Wow Factor")
+    const utilization =
+      totalBudgeted > 0 ? (totalActual / totalBudgeted) * 100 : 0;
+    let score: "A" | "B" | "C" | "D" | "E" = "A";
+
+    if (utilization > 115)
+      score = "E"; // Deeply over budget
+    else if (utilization > 105)
+      score = "D"; // Slightly over budget
+    else if (utilization > 100)
+      score = "C"; // On the edge
+    else if (utilization > 90)
+      score = "B"; // Good
+    else score = "A"; // Excellent control
+
     return {
       success: true,
       data: {
@@ -93,6 +103,8 @@ export async function getFinanceAggregates(companyId: string, year: number) {
         monthlyTrend,
         totalActual,
         totalBudgeted,
+        utilization,
+        score, // Power the dashboard gauge with this
       },
     };
   } catch (error) {

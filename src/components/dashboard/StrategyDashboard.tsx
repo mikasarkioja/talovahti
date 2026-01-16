@@ -24,18 +24,8 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  BarChart,
-  Bar,
 } from "recharts";
-import {
-  FileText,
-  TrendingUp,
-  AlertTriangle,
-  Target,
-  Activity,
-  Euro,
-  Zap,
-} from "lucide-react";
+import { FileText, Target, Activity, Euro, Zap } from "lucide-react";
 import { toast } from "sonner";
 
 export function StrategyDashboard() {
@@ -101,13 +91,13 @@ export function StrategyDashboard() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = result.filename || "hallitusraportti.pdf";
+        a.download = result.filename || "kunnossapitotarveselvitys.pdf";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
 
-        toast.success("Hallitusraportti ladattu", {
+        toast.success("Kunnossapitotarveselvitys ladattu", {
           description: "PDF-tiedosto on tallennettu laitteellesi.",
         });
       } else {
@@ -148,7 +138,7 @@ export function StrategyDashboard() {
         </div>
         <Button onClick={handleGenerateReport} disabled={isGenerating}>
           <FileText className="mr-2 h-4 w-4" />
-          {isGenerating ? "Luodaan..." : "Luo Hallitusraportti (PDF)"}
+          {isGenerating ? "Luodaan..." : "Luo Kunnossapitotarveselvitys (PDF)"}
         </Button>
       </div>
 
@@ -291,26 +281,6 @@ export function StrategyDashboard() {
               <CardContent>
                 <div className="space-y-6">
                   {strategicGoals.map((goal) => {
-                    const progress =
-                      goal.targetValue && goal.currentValue
-                        ? Math.min(
-                            100,
-                            Math.max(
-                              0,
-                              (goal.currentValue / goal.targetValue) * 100,
-                            ),
-                          ) // Simplistic: assuming lower is better? Or higher?
-                        : // Wait, usually target is reached when current meets target.
-                          // Let's assume progress is arbitrary for now or calculate deviation.
-                          // For Energy: Lower is better (Current 120, Target 85 -> 0% progress? Or starting point?)
-                          // Let's just use a visual bar that represents "Completion" based on status or simple math if unit is provided.
-
-                          // For simplicity in this mock:
-                          // If status == ACHIEVED -> 100%
-                          // Else 50% mock.
-                          0;
-
-                    const isEnergy = goal.unit?.includes("kWh");
                     // Complex logic for progress bar calculation skipped for mock brevity, using a heuristic.
                     const heuristicProgress =
                       goal.status === "ACHIEVED"

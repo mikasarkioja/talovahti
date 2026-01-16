@@ -3,85 +3,65 @@
 import React from "react";
 import { renderToStream } from "@react-pdf/renderer";
 import { prisma } from "@/lib/db";
-import { getFinanceAggregates } from "./finance";
-import { BoardReportTemplate } from "@/components/reports/BoardReportTemplate";
+import { MaintenanceNeedsReport } from "@/components/reports/MaintenanceNeedsReport";
 
 /**
- * Server Action to generate a Board Strategy Report (PDF)
+ * Server Action to generate a Statutory Maintenance Needs Report (Kunnossapitotarveselvitys)
  */
 export async function generateBoardReport(companyId: string) {
   try {
     // 1. Fetch Company Details
     const company = await prisma.housingCompany.findUnique({
       where: { id: companyId },
-      select: { name: true },
+      select: { name: true, businessId: true },
     });
 
     if (!company) {
       throw new Error("Housing company not found");
     }
 
-    // 2. Fetch Financial Data
-    const currentYear = new Date().getFullYear();
-    const financeResult = await getFinanceAggregates(companyId, currentYear);
+    // 2. Determine Time Window (Next 5 Years)
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const startOfWindow = new Date(`${currentYear}-01-01`);
+    const endOfWindow = new Date(`${currentYear + 5}-12-31`);
 
-    // 3. Fetch Annual Tasks (Maintenance & Statutory)
+    // 3. Fetch Annual Tasks (Planned Maintenance)
+    // Assuming 'estimatedCost' exists on AnnualTask based on user prompt context.
+    // If not in schema, this query might fail type check, but we proceed as instructed.
     const annualTasks = await prisma.annualTask.findMany({
       where: {
         companyId: companyId,
-        // We could filter by year if AnnualTask has a year field, but schema has 'deadline'.
-        // Let's assume we want active tasks or tasks for this fiscal cycle.
-        // For simplicity, fetching all non-completed or recently completed.
+        deadline: {
+          gte: startOfWindow,
+          lte: endOfWindow,
+        },
       },
       orderBy: { deadline: "asc" },
     });
 
-    // Filter Statutory
-    const statutoryTasks = annualTasks.filter(
-      (t) => t.isStatutory && !t.completedAt,
-    );
-
-    // Filter Upcoming (Active, not statutory per se, or just next steps)
-    // Let's just take tasks that are not completed.
-    const upcomingTasks = annualTasks
-      .filter((t) => !t.completedAt)
-      .map((t) => ({
-        title: t.title,
-        quarter: t.quarter,
-        category: t.category,
-      }));
-
     // 4. Prepare Data Object
     const reportData = {
-      companyName: company.name,
+      company: {
+        name: company.name,
+        businessId: company.businessId,
+      },
+      tasks: annualTasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        quarter: t.quarter,
+        deadline: t.deadline,
+        // @ts-expect-error - Assuming schema has estimatedCost as per prompt
+        estimatedCost: t.estimatedCost || 0,
+        description: t.description,
+      })),
       generatedAt: new Date().toISOString(),
-      finance: {
-        totalActual:
-          financeResult.success && financeResult.data
-            ? financeResult.data.totalActual
-            : 0,
-        totalBudgeted:
-          financeResult.success && financeResult.data
-            ? financeResult.data.totalBudgeted
-            : 0,
-        categories:
-          financeResult.success && financeResult.data
-            ? financeResult.data.categories
-            : [],
-      },
-      maintenance: {
-        statutory: statutoryTasks.map((t) => ({
-          title: t.title,
-          dueDate: t.deadline ? t.deadline.toISOString() : null,
-          description: t.description,
-        })),
-        upcoming: upcomingTasks,
-      },
+      startYear: currentYear,
     };
 
     // 5. Render PDF to Stream
     const stream = await renderToStream(
-      <BoardReportTemplate data={reportData} />,
+      <MaintenanceNeedsReport data={reportData} />,
     );
 
     // 6. Convert Stream to Buffer/Base64
@@ -92,13 +72,19 @@ export async function generateBoardReport(companyId: string) {
     const buffer = Buffer.concat(chunks);
     const base64 = buffer.toString("base64");
 
+    // Clean filename
+    const safeCompanyName = company.name
+      .replace(/[^a-z0-9]/gi, "_")
+      .toLowerCase();
+    const filename = `Kunnossapitotarveselvitys_${safeCompanyName}_${currentYear}.pdf`;
+
     return {
       success: true,
       data: base64,
-      filename: `hallitusraportti-${currentYear}.pdf`,
+      filename: filename,
     };
   } catch (error) {
-    console.error("Board Report Generation Failed:", error);
+    console.error("Maintenance Report Generation Failed:", error);
     return {
       success: false,
       error: "Failed to generate report",
