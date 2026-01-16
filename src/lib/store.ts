@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { GovernanceStatus, TicketStatus, TicketPriority, VoteChoice, UserRole, TicketType, RenovationStatus, ObservationStatus, ProjectStatus, TenderType, TenderStatus, ChangeOrderStatus, DocumentType, OrderStatus, SubscriptionPlan, SubscriptionStatus, OrderType, InvoiceStatus, BudgetCategory } from '@prisma/client'
+import { GovernanceStatus, TicketStatus, TicketPriority, VoteChoice, UserRole, TicketType, RenovationStatus, ObservationStatus, ProjectStatus, TenderType, TenderStatus, ChangeOrderStatus, DocumentType, OrderStatus, SubscriptionPlan, SubscriptionStatus, OrderType, InvoiceStatus, BudgetCategory, AnnualTask, FiscalConfiguration, TaskCategory, AnnualQuarter } from '@prisma/client'
 
 // ... (Existing Type Definitions)
 
@@ -262,6 +262,8 @@ interface AppState {
   servicePartners: MockServicePartner[]
   
   // New State
+  annualTasks: AnnualTask[]
+  fiscalConfig: FiscalConfiguration | null
   apartmentCount: number
   systemStats: MockSystemAdminStats
 
@@ -395,6 +397,14 @@ export const useStore = create<AppState>((set) => ({
   ],
 
   // New Data
+  annualTasks: [],
+  fiscalConfig: {
+      id: 'fiscal-1',
+      housingCompanyId: 'company-1',
+      startMonth: 1, // January
+      createdAt: new Date(),
+      updatedAt: new Date()
+  },
   apartmentCount: 15, // Mock value
   systemStats: {
       mrr: 15600, // Mock total across all companies

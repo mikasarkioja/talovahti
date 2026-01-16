@@ -2,6 +2,7 @@
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, Text, Billboard, Html, useCursor } from '@react-three/drei'
 import { useStore } from '@/lib/store'
+import { useTemporalStore } from '@/lib/useTemporalStore'
 import { useMemo, Suspense, useRef, useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -276,6 +277,19 @@ export function BuildingModel({ onApartmentClick, highlightId }: { onApartmentCl
               
               if (hasTicket) pulseColor = '#ef4444' // Red Pulse
               else if (activeVote) pulseColor = '#3b82f6' // Blue Pulse
+
+              // TEMPORAL SYNC
+              if (currentActiveQuarter) {
+                  if (currentActiveQuarter === 'Q1' && apt.floor === 4) {
+                      pulseColor = '#60a5fa' // Winter: Roof Focus
+                  } else if (currentActiveQuarter === 'Q2') {
+                      pulseColor = '#4ade80' // Spring: Facade
+                  } else if (currentActiveQuarter === 'Q3' && apt.floor === 1) {
+                      pulseColor = '#facc15' // Summer: Grounds
+                  } else if (currentActiveQuarter === 'Q4') {
+                      pulseColor = '#f87171' // Autumn: Systems
+                  }
+              }
 
               return (
                 <group key={apt.id}>
