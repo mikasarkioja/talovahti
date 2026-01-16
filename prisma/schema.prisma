@@ -56,6 +56,11 @@ model HousingCompany {
   financeFeePerShare     Decimal @default(0.00)
   monthlyFees            MonthlyFee[]
   
+  // TEMPORAL ENGINE
+  fiscalConfig           FiscalConfiguration?
+  annualTasks            AnnualTask[]
+  strategicGoals         StrategicGoal[]
+
   // RELATIONS
   subscription    Subscription?
   features        FeatureAccess[]
