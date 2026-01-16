@@ -1,59 +1,55 @@
-// src/lib/services/fmiParser.ts
+import { XMLParser } from 'fast-xml-parser'
 
 export interface FmiDataPoint {
-  time: Date;
-  value: number;
+  time: Date
+  value: number
 }
 
-export interface FmiForecastResponse {
-  temperature: FmiDataPoint[];
-  snowDepth: FmiDataPoint[];
-  windSpeed: FmiDataPoint[];
-}
-
-/**
- * Parses the GML/XML response from FMI WFS TimeValuePair queries.
- * Standard query: fmi::forecast::harmonie::surface::point::timevaluepair
- */
-export function parseFmiXml(xmlString: string): FmiForecastResponse {
-  const parser = new DOMParser();
-  const xmlDoc = parser.parseFromString(xmlString, "text/xml");
-
-  // Helper to extract values by FMI parameter name (e.g., 't2m', 'snow_aws')
-  const extractParameterData = (paramName: string): FmiDataPoint[] => {
-    const dataPoints: FmiDataPoint[] = [];
-    
-    // FMI uses 'om:OM_Observation' to wrap each parameter's time series
-    const observations = xmlDoc.getElementsByTagName("om:OM_Observation");
-    
-    for (let i = 0; i < observations.length; i++) {
-      const obs = observations[i];
-      const observedProperty = obs.getElementsByTagName("om:observedProperty")[0];
-      const href = observedProperty?.getAttribute("xlink:href") || "";
-
-      // Check if this observation block matches our desired parameter
-      if (href.includes(`parameter=${paramName}`)) {
-        const timeValuePairs = obs.getElementsByTagName("wml2:point");
-        
-        for (let j = 0; j < timeValuePairs.length; j++) {
-          const timeStr = timeValuePairs[j].getElementsByTagName("wml2:time")[0]?.textContent;
-          const valStr = timeValuePairs[j].getElementsByTagName("wml2:value")[0]?.textContent;
-
-          if (timeStr && valStr) {
-            dataPoints.push({
-              time: new Date(timeStr),
-              value: parseFloat(valStr),
-            });
-          }
-        }
-      }
+export function parseFmiXml(xmlData: string): { temp: FmiDataPoint[], snow: FmiDataPoint[] } {
+  const parser = new XMLParser({
+    ignoreAttributes: false,
+    attributeNamePrefix: '',
+    removeNSPrefix: true,
+    isArray: (name) => {
+      return ['member', 'TimeValuePair'].includes(name)
     }
-    return dataPoints;
-  };
+  })
 
-  return {
-    temperature: extractParameterData("t2m"),
-    snowDepth: extractParameterData("snow_aws"),
-    windSpeed: extractParameterData("windspeedms"),
-  };
+  const result = parser.parse(xmlData)
+  
+  // Navigate GML structure: FeatureCollection > member > OM_Observation
+  const members = result?.FeatureCollection?.member || []
+  
+  const tempData: FmiDataPoint[] = []
+  const snowData: FmiDataPoint[] = []
+
+  members.forEach((member: any) => {
+    const observation = member.OM_Observation
+    if (!observation) return
+
+    const parameterName = observation.observedProperty?.title || ''
+    
+    // Extract time-value pairs
+    const pairs = observation.result?.MeasurementTimeseries?.point?.TimeValuePair || []
+    
+    const parsedPoints = pairs.map((p: any) => ({
+      time: new Date(p.time),
+      value: parseFloat(p.value)
+    })).filter((p: { time: Date; value: number; }) => !isNaN(p.value))
+
+    // Map based on parameter name (t2m = temperature, snow_aws = snow depth)
+    // Note: FMI parameter names might vary slightly in WFS 2.0 vs legacy.
+    // Checking strict matches or known aliases.
+    
+    if (parameterName === 'Temperature' || parameterName.includes('t2m')) {
+      tempData.push(...parsedPoints)
+    } else if (parameterName === 'SnowDepth' || parameterName.includes('snow')) {
+      snowData.push(...parsedPoints)
+    }
+  })
+
+  return { 
+    temp: tempData.sort((a, b) => a.time.getTime() - b.time.getTime()),
+    snow: snowData.sort((a, b) => a.time.getTime() - b.time.getTime())
+  }
 }

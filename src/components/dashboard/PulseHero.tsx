@@ -10,50 +10,75 @@ import { BuildingPhysicsEngine } from '@/lib/engines/BuildingPhysicsEngine'
 import { StrategyEngine } from '@/lib/engines/StrategyEngine'
 import { motion } from 'framer-motion'
 
-export function PulseHero() {
+import { getPulseData, refreshPulse, PulseData } from '@/app/actions/pulse'
+import { useTransition } from 'react'
+import { Button } from '@/components/ui/button'
+import { RefreshCw } from 'lucide-react'
+
+export function PulseHero({ companyId, initialData }: { companyId?: string, initialData?: PulseData }) {
   const [weather, setWeather] = useState<WeatherData | null>(null)
-  const [realForecast, setRealForecast] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const [pulseData, setPulseData] = useState<PulseData | undefined>(initialData)
+  const [isPending, startTransition] = useTransition()
+  const [loading, setLoading] = useState(!initialData)
+
+  const handleRefresh = () => {
+    if (!companyId) return
+    startTransition(async () => {
+        await refreshPulse(companyId)
+        const freshData = await getPulseData(companyId)
+        setPulseData(freshData)
+    })
+  }
 
   useEffect(() => {
     async function load() {
-      try {
-        // Parallel fetch: Mock local + Real FMI
-        const [data, fmiData] = await Promise.all([
-            getLocalWeather(),
-            FmiService.fetchForecast(60.1695, 24.9354) // Helsinki default for now
-        ])
-        
-        setWeather(data)
-        setRealForecast(fmiData)
-      } finally {
-        setLoading(false)
+      if (!initialData && companyId) {
+        try {
+            const [localWeather, serverPulse] = await Promise.all([
+                getLocalWeather(),
+                getPulseData(companyId)
+            ])
+            setWeather(localWeather)
+            setPulseData(serverPulse)
+        } finally {
+            setLoading(false)
+        }
+      } else if (!weather) {
+          const local = await getLocalWeather()
+          setWeather(local)
+          setLoading(false)
       }
     }
     load()
-  }, [])
+  }, [companyId, initialData, weather])
 
   const today = new Date()
   const weekNumber = getWeekNumber(today)
   const dateString = today.toLocaleDateString('fi-FI', { weekday: 'long', day: 'numeric', month: 'long' })
 
-  // Logic
-  const energyStatus = BuildingPhysicsEngine.calculateEnergyImpact(realForecast)
-  const maintenanceStatus = BuildingPhysicsEngine.checkMaintenanceAlerts(realForecast)
+  const isColdFront = pulseData?.alerts.cold || false
+  const isSnowAlert = pulseData?.alerts.snow || false
   
-  const isColdFront = energyStatus === 'CRITICAL'
-  const isSnowAlert = maintenanceStatus === 'SNOW_REMOVAL'
-  
-  // E-impact (Mock formula: Delta T * Kloss)
-  // Base indoor temp 21. Delta = 21 - (-15) = 36.
-  const energyImpact = weather ? Math.round((21 - weather.temperature) * StrategyEngine.KLOSS_CONSTANT) : 0
+  const currentTemp = pulseData?.forecast.temp[0]?.value || weather?.temperature || 0
+  const energyImpact = Math.round((21 - currentTemp) * StrategyEngine.KLOSS_CONSTANT)
 
   if (loading) return <div className="h-48 w-full bg-slate-100 animate-pulse rounded-xl" />
 
   return (
-    <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-slate-900 to-slate-800 text-white">
+    <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-slate-900 to-slate-800 text-white relative group">
+      <div className="absolute top-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Button 
+            size="icon" 
+            variant="ghost" 
+            className="text-white/50 hover:text-white hover:bg-white/10 h-8 w-8"
+            onClick={handleRefresh}
+            disabled={isPending}
+        >
+            <RefreshCw className={`w-4 h-4 ${isPending ? 'animate-spin' : ''}`} />
+        </Button>
+      </div>
+
       <CardContent className="p-6 relative">
-        {/* Background Ambient Glow */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 blur-3xl rounded-full" />
         
         <div className="flex justify-between items-start mb-6">
@@ -62,7 +87,7 @@ export function PulseHero() {
                 <div className="text-slate-400 font-medium">Viikko {weekNumber}</div>
             </div>
             <div className="text-right">
-                <div className="text-4xl font-bold">{weather?.temperature}°</div>
+                <div className="text-4xl font-bold">{currentTemp}°</div>
                 <div className="text-sm text-slate-400 capitalize">{weather?.condition}</div>
             </div>
         </div>
