@@ -2,6 +2,8 @@ import { prisma } from "@/lib/db";
 import { HomeClient } from "@/components/dashboard/HomeClient";
 import { getAnnualClockData } from "@/app/actions/governance";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const currentYear = new Date().getFullYear();
 
