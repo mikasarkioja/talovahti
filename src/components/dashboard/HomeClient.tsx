@@ -40,12 +40,20 @@ function BuildingSkeleton() {
 
 interface HomeClientProps {
   annualClockData: AnnualClockData;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  initialData?: any;
 }
 
-export function HomeClient({ annualClockData }: HomeClientProps) {
-  const { currentUser, tickets, initiatives } = useStore();
+export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
+  const { currentUser, tickets, initiatives, hydrate } = useStore();
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  useEffect(() => {
+    if (initialData) {
+      hydrate(initialData);
+    }
+  }, [initialData, hydrate]);
 
   useEffect(() => {
     if (searchParams.get("error") === "feature_disabled") {

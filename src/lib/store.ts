@@ -48,7 +48,13 @@ export type MockInitiative = {
   status: GovernanceStatus;
   affectedArea?: string | null;
   authorId: string;
-  votes: Array<{ userId: string; choice: VoteChoice; shares: number }>;
+  votes: Array<{
+    userId: string;
+    choice: VoteChoice;
+    shares: number;
+    apartment?: { apartmentNumber: string }; // Added for 3D mapping
+    apartmentId?: string; // Original CUID
+  }>;
   createdAt: Date;
 };
 
@@ -333,6 +339,7 @@ interface AppState {
   ) => void;
   addVendorRule: (rule: MockVendorRule) => void;
   updateInvoiceCategory: (id: string, category: BudgetCategory) => void;
+  hydrate: (data: Partial<AppState>) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -765,4 +772,5 @@ export const useStore = create<AppState>((set) => ({
         i.id === id ? { ...i, category } : i,
       ),
     })),
+  hydrate: (data: Partial<AppState>) => set((state) => ({ ...state, ...data })),
 }));

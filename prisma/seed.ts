@@ -262,6 +262,7 @@ async function main() {
         category: t.cat,
         quarter: t.quarter,
         month: t.month,
+        deadline: new Date(2026, t.month - 1, 28),
         isStatutory: t.isStatutory || false,
       },
     });

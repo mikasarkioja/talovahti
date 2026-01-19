@@ -37,7 +37,9 @@ export function InitiativeCard({
     useParticipationMap();
 
   const handleMouseEnter = () => {
-    const apartmentIds = initiative.votes.map((v) => v.apartmentId);
+    const apartmentIds = initiative.votes.map(
+      (v) => v.apartment.apartmentNumber,
+    );
     highlightParticipation(apartmentIds);
   };
 
