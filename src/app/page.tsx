@@ -6,6 +6,19 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   try {
+    if (process.env.NODE_ENV === "development") {
+      const dbUrl = process.env.DATABASE_URL;
+      const maskedUrl = dbUrl
+        ? dbUrl.includes("@")
+          ? `...${dbUrl.split("@")[1]}`
+          : "Invalid URL format"
+        : "Undefined";
+      console.log("---------------------------------------------------");
+      console.log("🔍 Next.js Database Connection Debug:");
+      console.log("   URL Host:", maskedUrl);
+      console.log("---------------------------------------------------");
+    }
+
     const currentYear = new Date().getFullYear();
 
     // 1. Fetch Housing Company
@@ -124,6 +137,7 @@ export default async function Home() {
               companyLoansTotal: 450000,
               energySavingsPct: 12.5,
             },
+            // Ensure MockStore required fields are present (empty arrays if not fetched)
             renovations: [],
             observations: [],
             projects: [],

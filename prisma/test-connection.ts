@@ -4,7 +4,14 @@ const prisma = new PrismaClient();
 
 async function main() {
   console.log("🔌 Testing Database Connection...");
-  console.log(`DATABASE_URL: ${process.env.DATABASE_URL ? "Set" : "Missing"}`);
+  const dbUrl = process.env.DATABASE_URL;
+  const maskedUrl = dbUrl
+    ? dbUrl.includes("@")
+      ? `...${dbUrl.split("@")[1]}`
+      : "Invalid URL format"
+    : "Undefined";
+
+  console.log(`   URL Host: ${maskedUrl}`);
 
   try {
     const count = await prisma.housingCompany.count();
@@ -12,7 +19,7 @@ async function main() {
 
     const first = await prisma.housingCompany.findFirst();
     if (first) {
-      console.log(`First company: ${first.name} (${first.businessId})`);
+      console.log(`   First company: ${first.name} (${first.businessId})`);
     }
   } catch (e) {
     console.error("❌ Connection Failed:");
