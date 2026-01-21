@@ -41,6 +41,8 @@ model HousingCompany {
   resources       Resource[]
   thermalLeaks    ThermalLeak[]
   buildingComponents BuildingComponent[]
+  htjShadowRecords   HTJ_ShadowRecord[]
+  htjSyncLogs        HTJ_SyncLog[]
   
   // LOAN BROKERAGE
   financialStatements FinancialStatement[]
@@ -616,6 +618,44 @@ model MMLSyncLog {
   recordCount      Int
   timestamp        DateTime       @default(now())
   @@map("mml_sync_logs")
+}
+
+// HTJ2 Integration - Shadow Database for MML API responses
+model HTJ_ShadowRecord {
+  id               String         @id @default(cuid())
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  endpoint         String         // e.g., "/yhtiot/", "/osakeryhmat/"
+  businessId       String         // Y-tunnus
+  rawResponse      Json           // Full JSON response from MML API
+  recordType       String         // "YHTIO" | "OSAKERYHMA" | "ILMOITUS"
+  syncedAt         DateTime       @default(now())
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  
+  @@map("htj_shadow_records")
+  @@index([housingCompanyId])
+  @@index([businessId])
+  @@unique([housingCompanyId, endpoint, businessId])
+}
+
+model HTJ_SyncLog {
+  id               String         @id @default(cuid())
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  boardMemberId    String?        // User ID who initiated the sync
+  operation        String         // "SYNC_YHTIO" | "SYNC_OSAKERYHMAT" | "SUBMIT_RENOVATION" | "COMPARE_DELTA"
+  status           String         // "SUCCESS" | "FAILED" | "PARTIAL"
+  recordCount      Int            @default(0)
+  piiFieldsAccessed String[]      // Array of PII field names accessed (GDPR compliance)
+  errorMessage     String?
+  metadata         Json?          // Additional context (endpoint, request params, etc.)
+  timestamp        DateTime       @default(now())
+  
+  @@map("htj_sync_logs")
+  @@index([housingCompanyId])
+  @@index([boardMemberId])
+  @@index([timestamp])
 }
 
 enum DocumentType {
