@@ -44,13 +44,21 @@ After adding/changing environment variables:
 1. Go to your Supabase project dashboard
 2. Click **Settings** → **Database**
 3. Under **Connection string**, select **URI**
-4. Copy the connection string
-5. Replace `[YOUR-PASSWORD]` with your actual database password
+4. **IMPORTANT**: Verify the region matches your Supabase project region
+   - Check your Supabase project region (e.g., `eu-west-3`, `eu-west-1`)
+   - The connection string host should match: `db.[PROJECT-REF].supabase.co` or include the region
+5. Copy the connection string
+6. Replace `[YOUR-PASSWORD]` with your actual database password
 
 **Format:**
 ```
 postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
 ```
+
+**⚠️ Region Mismatch Warning:**
+- If your Supabase database is in `eu-west-3` (Paris), but your Vercel `DATABASE_URL` points to `eu-west-1` (Ireland), **this will cause connection failures**
+- Always ensure the connection string region matches your actual Supabase project region
+- Your Vercel project region (shown in project settings) doesn't need to match, but the database connection string must match your Supabase region
 
 ### For DIRECT_URL (Supabase):
 
@@ -79,13 +87,19 @@ postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres?pgbo
 This means:
 - ❌ `DATABASE_URL` is not set in Vercel, OR
 - ❌ `DATABASE_URL` has wrong credentials, OR
-- ❌ `DATABASE_URL` points to a database that doesn't exist
+- ❌ `DATABASE_URL` points to a database that doesn't exist, OR
+- ❌ **Region mismatch** - Connection string points to wrong region (e.g., `eu-west-1` when database is in `eu-west-3`)
 
 **Solution:**
-1. Verify the connection string in your Supabase dashboard
-2. Check that the password is correct
-3. Ensure the variable is set for **Production** environment
-4. Redeploy after making changes
+1. **CRITICAL: Redeploy after updating variables** - Vercel doesn't use new env vars until redeploy
+2. Verify the connection string in your Supabase dashboard
+3. **Check that the region in the connection string matches your Supabase project region**
+4. **URL-encode special characters in password** (e.g., `@` → `%40`, `#` → `%23`)
+5. Check that the password is correct (try resetting in Supabase if unsure)
+6. Ensure the variable is set for **Production** environment
+7. Test the connection string locally first (see `TROUBLESHOOTING_DB_CONNECTION.md`)
+
+**Still not working?** See `docs/TROUBLESHOOTING_DB_CONNECTION.md` for detailed debugging steps.
 
 ### Error: "Connection timeout"
 
@@ -121,6 +135,22 @@ After setting environment variables:
 - [ ] `DATABASE_URL` is set in Vercel Dashboard
 - [ ] `DIRECT_URL` is set in Vercel Dashboard (optional but recommended)
 - [ ] Variables are enabled for **Production** environment
+- [ ] **Connection string region matches your Supabase project region** (e.g., `eu-west-3`)
 - [ ] Connection string format is correct
 - [ ] Database password is correct
+- [ ] No duplicate environment variables (one per environment: Production, Preview)
 - [ ] Deployment has been triggered after setting variables
+
+## Common Issues
+
+### Duplicate Environment Variables
+
+**Normal:** Having `DATABASE_URL` once for **Production** and once for **Preview** is correct and expected.
+
+**Problem:** Having multiple `DATABASE_URL` entries for the same environment (e.g., two `DATABASE_URL` for Production) is a problem.
+
+**Solution:**
+1. In Vercel Dashboard → Environment Variables
+2. Click the **⋯** menu on duplicate entries
+3. Delete the incorrect/duplicate entries
+4. Keep only one `DATABASE_URL` and one `DIRECT_URL` per environment (Production, Preview)
