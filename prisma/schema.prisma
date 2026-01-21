@@ -18,6 +18,7 @@ model HousingCompany {
   city            String
   postalCode      String
   constructionYear Int?
+  totalSqm        Float?
   apartments      Apartment[]
   users           User[]
   surveys         Survey[]
@@ -1292,6 +1293,9 @@ model BuildingComponent {
   name            String
   type            String             // e.g. "WALL", "PIPE", "FLOOR"
   responsibility  ResponsibilityType
+  lastRenovatedYear Int?             // New
+  expectedLifespan  Int?             // New (years)
+  estimatedCostSqm  Float?           // New (EUR/m2)
   housingCompanyId String
   housingCompany   HousingCompany    @relation(fields: [housingCompanyId], references: [id])
   createdAt       DateTime           @default(now())

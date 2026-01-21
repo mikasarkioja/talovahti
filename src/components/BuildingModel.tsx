@@ -8,12 +8,12 @@ import { useMemo, Suspense, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  RefreshCw,
   RotateCcw,
   Thermometer,
   Droplets,
   Calendar,
   Layers,
+  Activity,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBuildingXray } from "@/hooks/useBuildingXray";
@@ -21,6 +21,40 @@ import { BuildingGenerator, POI } from "@/lib/three/BuildingGenerator";
 import { HudCard } from "@/components/ui/hud-card";
 import { ApartmentMesh } from "./three/ApartmentMesh";
 import { InfrastructureMesh } from "./three/InfrastructureMesh";
+
+function Roof({
+  dimensions,
+  status,
+  color,
+}: {
+  dimensions: [number, number, number];
+  status?: string;
+  color?: string;
+}) {
+  let finalColor = "#cbd5e1"; // Default gray
+  if (color) {
+    finalColor = color; // Value Heatmap mode
+  } else if (status) {
+    finalColor =
+      status === "CRITICAL"
+        ? "#ef4444"
+        : status === "WARNING"
+          ? "#eab308"
+          : status === "EXCELLENT"
+            ? "#10b981"
+            : "#cbd5e1";
+  }
+  return (
+    <mesh position={[0, dimensions[1] / 2 + 0.2, 0]}>
+      <boxGeometry args={[dimensions[0] + 0.5, 0.4, dimensions[2] + 0.5]} />
+      <meshStandardMaterial
+        color={finalColor}
+        emissive={color ? finalColor : undefined}
+        emissiveIntensity={color ? 0.3 : 0}
+      />
+    </mesh>
+  );
+}
 
 function XrayEffect({ enabled }: { enabled: boolean }) {
   useBuildingXray(enabled);
@@ -106,7 +140,7 @@ export function BuildingModel({
   onApartmentClick?: (id: string) => void;
   highlightId?: string;
 }) {
-  const { tickets, initiatives } = useStore();
+  const { tickets, initiatives, valuation } = useStore();
   const { currentActiveQuarter, hoveredTask } = useTemporalStore();
   const { participatedApartmentIds } = useGovernanceStore();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -114,12 +148,45 @@ export function BuildingModel({
   const [selectedFloor, setSelectedFloor] = useState<number | null>(null);
   const [selectedAptId, setSelectedAptId] = useState<string | null>(null);
   const [xrayEnabled, setXrayEnabled] = useState(false);
+  const [viewMode, setViewMode] = useState<
+    "NORMAL" | "LIFESPAN" | "VALUE_HEATMAP"
+  >("NORMAL");
 
   // Generate Layout
-  const { apartments, pois } = useMemo(
+  const { apartments, pois, buildingDimensions } = useMemo(
     () => BuildingGenerator.generateLayout(),
     [],
   );
+
+  // Get component statuses
+  const roofStatus = valuation?.components.find(
+    (c: { type: string; status?: string }) => c.type === "ROOF",
+  )?.status;
+  const facadeStatus = valuation?.components.find(
+    (c: { type: string; status?: string }) => c.type === "FACADE",
+  )?.status;
+
+  // Value Heatmap: Get component ages for PKI-based coloring
+  const currentYear = new Date().getFullYear();
+  const getComponentAge = (componentType: string) => {
+    const comp = valuation?.components.find(
+      (c: { type: string; lastRenovatedYear?: number | null }) =>
+        c.type === componentType,
+    );
+    if (!comp || !comp.lastRenovatedYear) return null;
+    return currentYear - comp.lastRenovatedYear;
+  };
+  const roofAge = getComponentAge("ROOF");
+  const facadeAge = getComponentAge("FACADE");
+
+  // Value Heatmap color logic: >40 years = Orange/Red, <10 years = Bright Green
+  const getHeatmapColor = (age: number | null) => {
+    if (age === null) return "#cbd5e1"; // Default gray
+    if (age > 40) return "#ef4444"; // Red for very old
+    if (age > 30) return "#f97316"; // Orange for old
+    if (age < 10) return "#10b981"; // Bright Green for newly renovated
+    return "#eab308"; // Yellow for medium age
+  };
 
   const handleResetView = () => {
     if (controlsRef.current) {
@@ -159,6 +226,48 @@ export function BuildingModel({
             )}
           </div>
         </HudCard>
+        {viewMode === "LIFESPAN" && (
+          <HudCard className="w-auto min-w-[150px]">
+            <div className="flex flex-col gap-1.5 text-xs">
+              <div className="font-bold mb-1">Tekninen Käyttöikä</div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-red-500" />{" "}
+                <span>Kriittinen (&lt;5v)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-yellow-500" />{" "}
+                <span>Huomioitava (5-15v)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500" />{" "}
+                <span>Hyvä (&gt;15v)</span>
+              </div>
+            </div>
+          </HudCard>
+        )}
+        {viewMode === "VALUE_HEATMAP" && (
+          <HudCard className="w-auto min-w-[150px]">
+            <div className="flex flex-col gap-1.5 text-xs">
+              <div className="font-bold mb-1">Arvolämpökartta (PKI)</div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500" />{" "}
+                <span>Uusi (&lt;10v)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-yellow-500" />{" "}
+                <span>Keskikerta (10-30v)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-orange-500" />{" "}
+                <span>Vanha (30-40v)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-red-500" />{" "}
+                <span>Erittäin vanha (&gt;40v)</span>
+              </div>
+            </div>
+          </HudCard>
+        )}
       </div>
 
       {/* Floor Controls */}
@@ -216,6 +325,23 @@ export function BuildingModel({
       <div className="absolute bottom-4 right-4 z-10 flex gap-2">
         <Button
           size="sm"
+          variant={viewMode === "LIFESPAN" ? "default" : "secondary"}
+          className={`backdrop-blur shadow-sm h-9 text-xs transition-all ${viewMode === "LIFESPAN" ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-white/90 text-slate-700"}`}
+          onClick={() => {
+            if (viewMode === "NORMAL") setViewMode("LIFESPAN");
+            else if (viewMode === "LIFESPAN") setViewMode("VALUE_HEATMAP");
+            else setViewMode("NORMAL");
+          }}
+        >
+          <Activity size={14} className="mr-2" />
+          {viewMode === "LIFESPAN"
+            ? "Arvolämpökartta"
+            : viewMode === "VALUE_HEATMAP"
+              ? "Normaali"
+              : "Elinkaari"}
+        </Button>
+        <Button
+          size="sm"
           variant={xrayEnabled ? "default" : "secondary"}
           className={`backdrop-blur shadow-sm h-9 text-xs transition-all ${xrayEnabled ? "bg-blue-600 hover:bg-blue-700 text-white ring-2 ring-blue-400/50" : "bg-white/90 text-slate-700"}`}
           onClick={() => setXrayEnabled(!xrayEnabled)}
@@ -265,6 +391,18 @@ export function BuildingModel({
           <group position={[0, -2, 0]}>
             <InfrastructureMesh apartments={apartments} />
 
+            {(viewMode === "LIFESPAN" || viewMode === "VALUE_HEATMAP") && (
+              <Roof
+                dimensions={buildingDimensions}
+                status={viewMode === "LIFESPAN" ? roofStatus : undefined}
+                color={
+                  viewMode === "VALUE_HEATMAP"
+                    ? getHeatmapColor(roofAge)
+                    : undefined
+                }
+              />
+            )}
+
             {/* Apartments */}
             {apartments.map((apt) => {
               // Status Logic
@@ -286,6 +424,19 @@ export function BuildingModel({
               let baseColor = "#e2e8f0"; // Nordic Concrete
               let opacity = 1;
               let transparent = false;
+
+              // Lifespan Mode
+              if (viewMode === "LIFESPAN") {
+                if (facadeStatus === "CRITICAL") baseColor = "#ef4444";
+                else if (facadeStatus === "WARNING") baseColor = "#eab308";
+                else if (facadeStatus === "EXCELLENT") baseColor = "#10b981";
+                // If no status, keep default or dim
+              }
+
+              // Value Heatmap Mode (PKI-based)
+              if (viewMode === "VALUE_HEATMAP") {
+                baseColor = getHeatmapColor(facadeAge);
+              }
 
               // X-Ray Mode:
               if (isAnySelected || isParticipationMode) {
@@ -357,11 +508,17 @@ export function BuildingModel({
                   <ApartmentMesh
                     data={apt}
                     color={baseColor}
-                    pulseColor={pulseColor}
+                    pulseColor={
+                      viewMode === "VALUE_HEATMAP" ? undefined : pulseColor
+                    } // Disable pulse in heatmap mode
                     isHovered={false}
                     onClick={() => handleAptClick(apt.id)}
                     opacity={opacity}
                     transparent={transparent}
+                    emissive={
+                      viewMode === "VALUE_HEATMAP" ? baseColor : undefined
+                    }
+                    emissiveIntensity={viewMode === "VALUE_HEATMAP" ? 0.3 : 0}
                   />
 
                   {/* Floating HUD anchored to 3D position */}

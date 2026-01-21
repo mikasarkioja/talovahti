@@ -1,47 +1,54 @@
-'use client'
-import { useState, useRef } from 'react'
-import { useStore } from '@/lib/store'
-import { Plus, PenTool, Camera, X, ImageIcon } from 'lucide-react'
-import { clsx } from 'clsx'
-import Image from 'next/image'
+"use client";
+import { useState, useRef } from "react";
+import { useStore } from "@/lib/store";
+import { Plus, PenTool, Camera, X, ImageIcon } from "lucide-react";
+import { clsx } from "clsx";
+import Image from "next/image";
 
-export default function TicketsPage() {
-  const { tickets, currentUser, addTicket, addObservation } = useStore()
-  const [isCreating, setIsCreating] = useState(false)
-  
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [image, setImage] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+
+function TicketsContent() {
+  const { tickets, currentUser, addTicket, addObservation } = useStore();
+  const [isCreating, setIsCreating] = useState(false);
+
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [image, setImage] = useState<File | null>(null);
+
+  const searchParams = useSearchParams();
+  const filter = searchParams.get("filter"); // 'closed' or null
+
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
-      setImage(file)
-      const reader = new FileReader()
+      setImage(file);
+      const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
-  }
+  };
 
   const handleRemoveImage = () => {
-    setImage(null)
-    setImagePreview(null)
+    setImage(null);
+    setImagePreview(null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = ''
+      fileInputRef.current.value = "";
     }
-  }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!title) return
-    
-    const timestamp = Date.now()
-    const obsId = `obs-${timestamp}`
-    const ticketId = `ticket-${timestamp}`
+    e.preventDefault();
+    if (!title) return;
+
+    const timestamp = Date.now();
+    const obsId = `obs-${timestamp}`;
+    const ticketId = `ticket-${timestamp}`;
 
     // 1. Create Observation for Expert View (Tehtäväjono)
     // This ensures the issue appears in the property manager's assessment queue
@@ -49,37 +56,48 @@ export default function TicketsPage() {
       id: obsId,
       component: title, // Use title as the component/subject
       description: description,
-      status: 'OPEN',
-      location: currentUser?.apartmentId || 'Yleiset tilat',
-      userId: currentUser?.id || 'unknown',
+      status: "OPEN",
+      location: currentUser?.apartmentId || "Yleiset tilat",
+      userId: currentUser?.id || "unknown",
       createdAt: new Date(),
-      imageUrl: imagePreview // Store the base64 preview as the image URL for now
-    })
+      imageUrl: imagePreview, // Store the base64 preview as the image URL for now
+    });
 
     // 2. Create Ticket for Resident View
     addTicket({
       id: ticketId,
       title,
       description,
-      status: 'OPEN',
-      priority: 'MEDIUM',
-      type: 'MAINTENANCE',
+      status: "OPEN",
+      priority: "MEDIUM",
+      type: "MAINTENANCE",
       apartmentId: currentUser?.apartmentId || null,
       createdAt: new Date(),
-      observationId: obsId // Link to observation
-    })
+      observationId: obsId, // Link to observation
+    });
 
-    setIsCreating(false)
-    setTitle('')
-    setDescription('')
-    setImage(null)
-    setImagePreview(null)
-  }
+    setIsCreating(false);
+    setTitle("");
+    setDescription("");
+    setImage(null);
+    setImagePreview(null);
+  };
 
   // Filter tickets: Board sees all, Resident sees own
-  const visibleTickets = !currentUser || (currentUser.role === 'BOARD' || currentUser.role === 'MANAGER')
-    ? tickets
-    : tickets.filter(t => t.apartmentId === currentUser.apartmentId)
+  let visibleTickets =
+    !currentUser ||
+    currentUser.role === "BOARD" ||
+    currentUser.role === "MANAGER"
+      ? tickets
+      : tickets.filter((t) => t.apartmentId === currentUser.apartmentId);
+
+  if (filter === "closed") {
+    visibleTickets = visibleTickets.filter((t) => t.status === "CLOSED");
+  } else {
+    // Default view: Show everything EXCEPT closed (unless searching for closed specifically)
+    // Or maybe just show active ones? Let's show non-closed by default for "Actionable" view.
+    visibleTickets = visibleTickets.filter((t) => t.status !== "CLOSED");
+  }
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
@@ -87,17 +105,24 @@ export default function TicketsPage() {
         <div>
           <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
             <PenTool className="text-blue-600" />
-            Vikailmoitukset
+            {filter === "closed" ? "Huoltokirja (Historia)" : "Vikailmoitukset"}
           </h1>
-          <p className="text-slate-500 mt-1">Hallinnoi huoltopyyntöjä ja ilmoita vioista.</p>
+          <p className="text-slate-500 mt-1">
+            {filter === "closed"
+              ? "Arkisto suoritetuista huoltotoimenpiteistä."
+              : "Hallinnoi huoltopyyntöjä ja ilmoita vioista."}
+          </p>
         </div>
-        <button 
-          onClick={() => setIsCreating(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors font-medium"
-        >
-          <Plus size={18} />
-          Uusi ilmoitus
-        </button>
+
+        {filter !== "closed" && (
+          <button
+            onClick={() => setIsCreating(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors font-medium"
+          >
+            <Plus size={18} />
+            Uusi ilmoitus
+          </button>
+        )}
       </div>
 
       {isCreating && (
@@ -105,20 +130,24 @@ export default function TicketsPage() {
           <h2 className="font-semibold text-lg mb-4">Uusi vikailmoitus</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Otsikko</label>
-              <input 
-                type="text" 
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Otsikko
+              </label>
+              <input
+                type="text"
                 value={title}
-                onChange={e => setTitle(e.target.value)}
+                onChange={(e) => setTitle(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Esim. Vuotava hana"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Kuvaus</label>
-              <textarea 
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Kuvaus
+              </label>
+              <textarea
                 value={description}
-                onChange={e => setDescription(e.target.value)}
+                onChange={(e) => setDescription(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
                 placeholder="Tarkempi kuvaus ongelmasta..."
               />
@@ -126,11 +155,13 @@ export default function TicketsPage() {
 
             {/* Image Upload Section */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Liitteet</label>
-              
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Liitteet
+              </label>
+
               {!imagePreview ? (
                 <div className="flex flex-col gap-2">
-                   <input
+                  <input
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
@@ -139,22 +170,24 @@ export default function TicketsPage() {
                     className="hidden"
                     id="image-upload"
                   />
-                  <label 
+                  <label
                     htmlFor="image-upload"
                     className="flex items-center justify-center gap-3 w-full p-4 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 hover:bg-slate-100 cursor-pointer transition-colors active:scale-[0.98]"
                   >
                     <div className="bg-blue-100 p-2 rounded-full text-blue-600">
                       <Camera size={24} />
                     </div>
-                    <span className="font-semibold text-slate-700">Lisää kuva ongelmasta</span>
+                    <span className="font-semibold text-slate-700">
+                      Lisää kuva ongelmasta
+                    </span>
                   </label>
                 </div>
               ) : (
                 <div className="relative inline-block">
                   <div className="relative w-full max-w-sm aspect-video rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
-                    <img 
-                      src={imagePreview} 
-                      alt="Preview" 
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -170,14 +203,14 @@ export default function TicketsPage() {
             </div>
 
             <div className="flex gap-2 justify-end pt-2">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setIsCreating(false)}
                 className="px-4 py-2 text-slate-600 hover:text-slate-900"
               >
                 Peruuta
               </button>
-              <button 
+              <button
                 type="submit"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium"
               >
@@ -191,22 +224,35 @@ export default function TicketsPage() {
       <div className="space-y-4">
         {visibleTickets.length === 0 ? (
           <div className="text-center py-12 text-slate-500 bg-slate-50 rounded-xl border border-slate-200">
-            Ei vikailmoituksia.
+            {filter === "closed"
+              ? "Ei huoltohistoriaa."
+              : "Ei avoimia vikailmoituksia."}
           </div>
         ) : (
-          visibleTickets.map(ticket => (
-            <div key={ticket.id} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+          visibleTickets.map((ticket) => (
+            <div
+              key={ticket.id}
+              className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 justify-between items-start md:items-center"
+            >
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-lg text-slate-900">{ticket.title}</h3>
-                  <span className={clsx(
-                    "text-xs px-2 py-0.5 rounded-full border font-medium",
-                    ticket.status === 'OPEN' && "bg-red-50 text-red-700 border-red-200",
-                    ticket.status === 'IN_PROGRESS' && "bg-yellow-50 text-yellow-700 border-yellow-200",
-                    ticket.status === 'RESOLVED' && "bg-green-50 text-green-700 border-green-200",
-                    ticket.status === 'CLOSED' && "bg-slate-100 text-slate-600 border-slate-200"
-                  )}>
-                    {ticket.status}
+                  <h3 className="font-semibold text-lg text-slate-900">
+                    {ticket.title}
+                  </h3>
+                  <span
+                    className={clsx(
+                      "text-xs px-2 py-0.5 rounded-full border font-medium",
+                      ticket.status === "OPEN" &&
+                        "bg-red-50 text-red-700 border-red-200",
+                      ticket.status === "IN_PROGRESS" &&
+                        "bg-yellow-50 text-yellow-700 border-yellow-200",
+                      ticket.status === "RESOLVED" &&
+                        "bg-green-50 text-green-700 border-green-200",
+                      ticket.status === "CLOSED" &&
+                        "bg-slate-100 text-slate-600 border-slate-200",
+                    )}
+                  >
+                    {ticket.status === "CLOSED" ? "SUORITETTU" : ticket.status}
                   </span>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
                     {ticket.type}
@@ -214,7 +260,7 @@ export default function TicketsPage() {
                 </div>
                 <p className="text-slate-600">{ticket.description}</p>
                 <div className="text-sm text-slate-400 flex items-center gap-4 pt-1">
-                  <span>Asunto: {ticket.apartmentId || 'Yleiset tilat'}</span>
+                  <span>Asunto: {ticket.apartmentId || "Yleiset tilat"}</span>
                   <span>Prioriteetti: {ticket.priority}</span>
                 </div>
               </div>
@@ -223,5 +269,13 @@ export default function TicketsPage() {
         )}
       </div>
     </div>
-  )
+  );
+}
+
+export default function TicketsPage() {
+  return (
+    <Suspense fallback={<div>Ladataan...</div>}>
+      <TicketsContent />
+    </Suspense>
+  );
 }

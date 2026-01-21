@@ -4,7 +4,13 @@ import { getAnnualClockData } from "@/app/actions/governance";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
+export default async function Home(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const searchParams = await props.searchParams;
+  const userQuery =
+    typeof searchParams.user === "string" ? searchParams.user : undefined;
+
   try {
     if (process.env.NODE_ENV === "development") {
       const dbUrl = process.env.DATABASE_URL;
@@ -34,16 +40,31 @@ export default async function Home() {
         invoices: true,
         fiscalConfig: true,
         strategicGoals: true,
+        renovations: true, // Fetch renovations
       },
     });
 
     const companyId = company?.id || "default-company-id";
 
-    // 2. Fetch User (Pekka)
-    const user = await prisma.user.findFirst({
-      where: { housingCompanyId: companyId, role: "BOARD" },
-      include: { apartment: true },
-    });
+    // 2. Fetch User (Dynamic Switcher)
+    let user;
+    if (userQuery) {
+      user = await prisma.user.findFirst({
+        where: {
+          housingCompanyId: companyId,
+          email: { contains: userQuery, mode: "insensitive" },
+        },
+        include: { apartment: true },
+      });
+    }
+
+    // Fallback to default Board Member if no query or user not found
+    if (!user) {
+      user = await prisma.user.findFirst({
+        where: { housingCompanyId: companyId, role: "BOARD" },
+        include: { apartment: true },
+      });
+    }
 
     const clockResult = await getAnnualClockData(companyId, currentYear);
 
@@ -138,8 +159,18 @@ export default async function Home() {
               energySavingsPct: 12.5,
             },
             // Ensure MockStore required fields are present (empty arrays if not fetched)
-            renovations: [],
+            renovations: company.renovations.map((r) => ({
+              id: r.id,
+              component: r.component,
+              yearDone: r.yearDone || undefined,
+              plannedYear: r.plannedYear || undefined,
+              cost: r.cost,
+              expectedLifeSpan: r.expectedLifeSpan,
+              description: r.description,
+              status: r.status,
+            })),
             observations: [],
+            valuation: null, // Will be fetched client-side by ValueIntelligenceCard
             projects: [],
             feed: [],
           }

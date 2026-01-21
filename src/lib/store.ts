@@ -1,4 +1,6 @@
 import { create } from "zustand";
+// ValuationData is now fetched client-side via getBuildingValueMetrics
+// import { ValuationData } from "@/app/actions/valuation";
 import {
   GovernanceStatus,
   TicketStatus,
@@ -300,6 +302,13 @@ interface AppState {
   fiscalConfig: FiscalConfiguration | null;
   apartmentCount: number;
   systemStats: MockSystemAdminStats;
+  valuation: {
+    components: Array<{
+      type: string;
+      status?: string;
+      lastRenovatedYear?: number | null;
+    }>;
+  } | null;
 
   // Actions
   setCurrentUser: (user: MockUser | null) => void;
@@ -588,6 +597,7 @@ export const useStore = create<AppState>((set) => ({
     activeCompanies: 120,
     certificatesSold: 340,
   },
+  valuation: null,
 
   setCurrentUser: (user) => set({ currentUser: user }),
   addInitiative: (initiative) =>

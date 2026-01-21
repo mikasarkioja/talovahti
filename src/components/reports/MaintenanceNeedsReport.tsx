@@ -99,6 +99,13 @@ interface MaintenanceNeedsReportProps {
     tasks: Task[];
     generatedAt: string;
     startYear: number;
+    // TCO Metrics (optional)
+    metrics?: {
+      pki: number; // Peruskorjausindeksi
+      ph: number; // PTS Horizon
+      kai: number; // Korjausaktiivisuusindeksi
+      rdr: number; // Renovation Debt Ratio
+    };
   };
 }
 
@@ -191,6 +198,85 @@ export const MaintenanceNeedsReport = ({
             </View>
           )}
         </View>
+
+        {/* Statutory Value Summary */}
+        {data.metrics && (
+          <View style={[styles.section, { marginTop: 20 }]}>
+            <Text
+              style={{
+                fontSize: 12,
+                fontFamily: "Helvetica-Bold",
+                marginBottom: 8,
+              }}
+            >
+              Lakisääteinen Arvioselvitys
+            </Text>
+            <View style={styles.table}>
+              <View style={styles.tableRow}>
+                <View style={[styles.tableColHeader, { width: "50%" }]}>
+                  <Text style={styles.tableCellHeader}>Mittari</Text>
+                </View>
+                <View style={[styles.tableColHeader, { width: "50%" }]}>
+                  <Text style={styles.tableCellHeader}>Arvo</Text>
+                </View>
+              </View>
+              <View style={styles.tableRow}>
+                <View style={[styles.tableCol, { width: "50%" }]}>
+                  <Text style={styles.tableCell}>
+                    PKI (Peruskorjausindeksi)
+                  </Text>
+                </View>
+                <View style={[styles.tableCol, { width: "50%" }]}>
+                  <Text style={styles.tableCell}>
+                    {data.metrics.pki} vuotta
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.tableRow}>
+                <View style={[styles.tableCol, { width: "50%" }]}>
+                  <Text style={styles.tableCell}>PH (PTS Horisontti)</Text>
+                </View>
+                <View style={[styles.tableCol, { width: "50%" }]}>
+                  <Text style={styles.tableCell}>{data.metrics.ph} vuotta</Text>
+                </View>
+              </View>
+              <View style={styles.tableRow}>
+                <View style={[styles.tableCol, { width: "50%" }]}>
+                  <Text style={styles.tableCell}>
+                    KAI (Korjausaktiivisuusindeksi)
+                  </Text>
+                </View>
+                <View style={[styles.tableCol, { width: "50%" }]}>
+                  <Text style={styles.tableCell}>
+                    {data.metrics.kai.toFixed(2)}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.tableRow}>
+                <View style={[styles.tableCol, { width: "50%" }]}>
+                  <Text style={styles.tableCell}>RDR (Korjausvelkasuhde)</Text>
+                </View>
+                <View style={[styles.tableCol, { width: "50%" }]}>
+                  <Text style={styles.tableCell}>
+                    {data.metrics.rdr.toFixed(1)}%
+                  </Text>
+                </View>
+              </View>
+            </View>
+            <Text
+              style={{
+                fontSize: 8,
+                color: "#666666",
+                marginTop: 10,
+                fontStyle: "italic",
+              }}
+            >
+              Huomio: Nämä arviot perustuvat RT-kortiston keskiarvoihin ja
+              teknisen eliniän laskentaan. Ne eivät ole sertifioitu
+              rakennustarkastus eikä ne korvaa ammattitaitoista arviointia.
+            </Text>
+          </View>
+        )}
 
         {/* Footer */}
         <View style={styles.footer}>

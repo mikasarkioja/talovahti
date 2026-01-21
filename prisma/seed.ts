@@ -29,6 +29,8 @@ async function main() {
     await prisma.ticket.deleteMany();
     await prisma.observation.deleteMany();
     await prisma.leakAlert.deleteMany();
+    await prisma.renovation.deleteMany();
+    await prisma.buildingComponent.deleteMany(); // Added
 
     await prisma.invoice.deleteMany();
     await prisma.budgetLineItem.deleteMany();
@@ -58,6 +60,7 @@ async function main() {
       city: "Helsinki",
       postalCode: "00100",
       constructionYear: 1985,
+      totalSqm: 2500.0, // Total building area
       maintenanceFeePerShare: 4.5,
     },
   });
@@ -389,6 +392,179 @@ async function main() {
       },
     });
   }
+
+  // 9. Renovations (PTS & History)
+  console.log("🏗️ Creating Renovations (PTS & History)...");
+
+  // Completed (History)
+  await prisma.renovation.create({
+    data: {
+      housingCompanyId: company.id,
+      component: "Vesikatto",
+      yearDone: 2010,
+      cost: 45000,
+      expectedLifeSpan: 40,
+      description: "Huopakaton uusiminen ja lisäeristys.",
+      status: "COMPLETED",
+    },
+  });
+
+  await prisma.renovation.create({
+    data: {
+      housingCompanyId: company.id,
+      component: "Lämmönjakokeskus",
+      yearDone: 2018,
+      cost: 15000,
+      expectedLifeSpan: 20,
+      description: "Lämmönsiirtimen uusiminen ja automaation päivitys.",
+      status: "COMPLETED",
+    },
+  });
+
+  // Planned (PTS)
+  await prisma.renovation.create({
+    data: {
+      housingCompanyId: company.id,
+      component: "Julkisivuremontti",
+      plannedYear: 2027,
+      cost: 120000,
+      expectedLifeSpan: 30,
+      description: "Elementtisaumaukset ja maalaus.",
+      status: "PLANNED",
+    },
+  });
+
+  await prisma.renovation.create({
+    data: {
+      housingCompanyId: company.id,
+      component: "Sähköautojen latausinfra",
+      plannedYear: 2026,
+      cost: 25000,
+      expectedLifeSpan: 15,
+      description: "Kartoitus ja vaihe 1 toteutus (4 paikkaa).",
+      status: "PLANNED",
+    },
+  });
+
+  await prisma.renovation.create({
+    data: {
+      housingCompanyId: company.id,
+      component: "Linjasaneeraus (Hankesuunnittelu)",
+      plannedYear: 2030,
+      cost: 15000,
+      expectedLifeSpan: 50,
+      description: "Putkiremontin hankesuunnittelun aloitus.",
+      status: "PLANNED",
+    },
+  });
+
+  // 10. Service Book (Huoltokirja) - Mock History via Tickets
+  console.log("📘 Creating Service Book Entries...");
+  const serviceEntries = [
+    {
+      title: "Ulko-oven säädöt",
+      desc: "Ovisuljin säädetty talviasentoon.",
+      date: new Date("2025-11-15"),
+    },
+    {
+      title: "Hiekanpoisto",
+      desc: "Piha-alueen hiekanpoisto suoritettu.",
+      date: new Date("2025-04-20"),
+    },
+    {
+      title: "Rännien puhdistus",
+      desc: "Syksyn lehdet poistettu ränneistä.",
+      date: new Date("2025-10-10"),
+    },
+    {
+      title: "Suodattimien vaihto",
+      desc: "IV-koneiden suodattimet vaihdettu (kevät).",
+      date: new Date("2025-03-05"),
+    },
+  ];
+
+  for (const entry of serviceEntries) {
+    await prisma.ticket.create({
+      data: {
+        housingCompanyId: company.id,
+        createdById: boardUser.id, // Logged by board/manager
+        title: entry.title,
+        description: entry.desc,
+        type: TicketType.MAINTENANCE,
+        status: TicketStatus.CLOSED, // Closed = History
+        priority: TicketPriority.LOW,
+        createdAt: entry.date,
+        updatedAt: entry.date,
+      },
+    });
+  }
+
+  // 11. Building Components (Value Intelligence)
+  console.log("🏗️ Creating Building Components...");
+  await prisma.buildingComponent.create({
+    data: {
+      housingCompanyId: company.id,
+      meshId: "Roof_01",
+      name: "Vesikatto (Huopa)",
+      type: "ROOF",
+      responsibility: "COMPANY",
+      lastRenovatedYear: 2010,
+      expectedLifespan: 25, // Ends 2035 (10 years left -> WARNING)
+      estimatedCostSqm: 60,
+    },
+  });
+
+  await prisma.buildingComponent.create({
+    data: {
+      housingCompanyId: company.id,
+      meshId: "Facade_01",
+      name: "Julkisivu (Betonielementti)",
+      type: "FACADE",
+      responsibility: "COMPANY",
+      lastRenovatedYear: 1985,
+      expectedLifespan: 45, // Ends 2030 (4 years left -> CRITICAL)
+      estimatedCostSqm: 150,
+    },
+  });
+
+  await prisma.buildingComponent.create({
+    data: {
+      housingCompanyId: company.id,
+      meshId: "Plumbing_01",
+      name: "Putkisto (LVIS)",
+      type: "PLUMBING",
+      responsibility: "COMPANY",
+      lastRenovatedYear: 1985,
+      expectedLifespan: 50, // RT-kortisto standard
+      estimatedCostSqm: 200,
+    },
+  });
+
+  await prisma.buildingComponent.create({
+    data: {
+      housingCompanyId: company.id,
+      meshId: "Windows_01",
+      name: "Ikkunat (Alumiini)",
+      type: "WINDOWS",
+      responsibility: "COMPANY",
+      lastRenovatedYear: 2005,
+      expectedLifespan: 25,
+      estimatedCostSqm: 300,
+    },
+  });
+
+  await prisma.buildingComponent.create({
+    data: {
+      housingCompanyId: company.id,
+      meshId: "HVAC_01",
+      name: "LVI-järjestelmä",
+      type: "HVAC",
+      responsibility: "COMPANY",
+      lastRenovatedYear: 2015,
+      expectedLifespan: 20,
+      estimatedCostSqm: 120,
+    },
+  });
 
   console.log("✅ Seed completed!");
 }

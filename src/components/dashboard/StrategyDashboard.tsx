@@ -205,9 +205,18 @@ export function StrategyDashboard() {
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Yleisnäkymä</TabsTrigger>
+          <TabsTrigger value="value">Arvo & Kehitys</TabsTrigger>
           <TabsTrigger value="roadmap">Strategia & Tavoitteet</TabsTrigger>
           <TabsTrigger value="financials">Talouden Trendit</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="value">
+          <div className="h-[400px] flex items-center justify-center">
+            <p className="text-slate-500">
+              Value Intelligence view coming soon
+            </p>
+          </div>
+        </TabsContent>
 
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
