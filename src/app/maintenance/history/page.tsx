@@ -2,6 +2,9 @@ import { prisma } from "@/lib/db";
 import { HistoryView } from "@/components/maintenance/HistoryView";
 import { RenovationStatus } from "@prisma/client";
 
+// Force dynamic rendering - this page needs real-time database access
+export const dynamic = "force-dynamic";
+
 export default async function MaintenanceHistoryPage() {
   const renovations = await prisma.renovation.findMany({
     orderBy: { plannedYear: "asc" },

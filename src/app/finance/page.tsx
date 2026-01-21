@@ -4,6 +4,9 @@ import { BudgetMirror } from "@/components/finance/BudgetMirror";
 import { InvestmentSection } from "@/components/finance/InvestmentSection";
 import { Wallet } from "lucide-react";
 
+// Force dynamic rendering - this page needs real-time database access
+export const dynamic = "force-dynamic";
+
 export default async function FinancePage() {
   const companyId = "default-company-id";
   const currentYear = 2026;
