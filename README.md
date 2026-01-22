@@ -31,12 +31,35 @@
 
 ## 🛠️ Tech Stack
 
-*   **Frontend**: Next.js 16 (App Router), React, Tailwind CSS v4 (Nordic Design Tokens), Shadcn UI.
-*   **3D Graphics**: Three.js, React Three Fiber, Drei (InstancedMesh, Custom Shaders).
-*   **Backend**: Next.js API Routes & Server Actions.
-*   **Database**: PostgreSQL (via Supabase), Prisma ORM.
-*   **State Management**: Zustand.
-*   **Security**: RBAC Middleware, GDPR Logging, Husky/Lint-Staged "Local Defense".
+### Frontend
+*   **Framework**: Next.js 16.1.1 (App Router)
+*   **UI Library**: React 19.2.3
+*   **Styling**: Tailwind CSS v4 (Nordic Design Tokens), Shadcn UI
+*   **3D Graphics**: Three.js 0.182.0, React Three Fiber 9.5.0, Drei 10.7.7
+*   **State Management**: Zustand 5.0.9
+*   **Charts**: Recharts 3.6.0
+*   **Animations**: Framer Motion 12.26.2
+
+### Backend
+*   **Runtime**: Node.js 20+
+*   **Framework**: Next.js Server Actions & API Routes
+*   **Database**: PostgreSQL (via Supabase)
+*   **ORM**: Prisma 6.19.2
+*   **Type Safety**: TypeScript 5.9.3
+
+### External Services
+*   **Database Hosting**: Supabase (PostgreSQL with connection pooling)
+*   **Deployment**: Vercel (hosting, CI/CD, edge functions)
+*   **Weather Data**: FMI Open Data API (XML)
+*   **Official Data**: MML HTJ2 API (mTLS authentication)
+
+### Security & Compliance
+*   **Authentication**: RBAC Middleware
+*   **Audit Logging**: GDPR-compliant access tracking
+*   **Data Protection**: Shadow database for compliance
+*   **Code Quality**: Husky, Lint-Staged, ESLint, Prettier
+
+**For detailed technical documentation, see [docs/TECHNICAL.md](docs/TECHNICAL.md)**
 
 ## 📦 Installation
 
@@ -75,6 +98,16 @@ Talovahti is built with **Privacy by Design**:
 ## 🤝 Contributing
 
 Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
+## 📚 Documentation
+
+*   **[Technical Documentation](docs/TECHNICAL.md)** - Complete technical reference
+*   **[Architecture](docs/ARCHITECTURE.md)** - System architecture and patterns
+*   **[Product Status](docs/PRODUCT_STATUS_REPORT.md)** - Feature inventory and roadmap
+*   **[HTJ2 Integration](docs/HTJ2_INTEGRATION.md)** - MML API integration guide
+*   **[Vercel Setup](docs/VERCEL_ENV_SETUP.md)** - Deployment and environment configuration
+*   **[Troubleshooting](docs/TROUBLESHOOTING_DB_CONNECTION.md)** - Common issues and solutions
+*   **[Changelog](docs/CHANGELOG.md)** - Version history
 
 ## 📝 Changelog
 
