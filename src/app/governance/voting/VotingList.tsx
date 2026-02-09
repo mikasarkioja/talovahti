@@ -26,7 +26,7 @@ export function VotingList({
 }: VotingListProps) {
   const handleVote = async (id: string, choice: VoteChoice) => {
     try {
-      const result = await castVote(id, choice);
+      const result = await castVote(id, choice, userId);
       if (result.success) {
         toast.success("Ääni tallennettu", {
           description: "Äänivaltasi on kirjattu päätökseen.",

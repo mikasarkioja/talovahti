@@ -3,7 +3,12 @@
 
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { GovernanceStatus, VoteChoice } from "@prisma/client";
+import {
+  GovernanceStatus,
+  VoteChoice,
+  TaskCategory,
+  FiscalQuarter,
+} from "@prisma/client";
 
 /* ==========================================
    1. VOTING & INITIATIVES LOGIC
@@ -79,7 +84,8 @@ export async function castVote(
       select: { id: true, shareCount: true },
     });
 
-    if (!userApartment) throw new Error("Vain varmistetut osakkaat voivat äänestää.");
+    if (!userApartment)
+      throw new Error("Vain varmistetut osakkaat voivat äänestää.");
 
     // Check for existing vote
     const existingVote = await prisma.vote.findUnique({
@@ -197,7 +203,7 @@ export async function toggleTaskCompletion(
 
 export async function createAnnualTask(data: {
   title: string;
-  category: any; // TaskCategory
+  category: TaskCategory;
   month: number;
   housingCompanyId: string;
   isStatutory?: boolean;
@@ -205,7 +211,7 @@ export async function createAnnualTask(data: {
 }) {
   try {
     // Calculate quarter based on month (1-3=Q1, 4-6=Q2, etc.)
-    const quarter =
+    const quarter: FiscalQuarter =
       data.month <= 3
         ? "Q1"
         : data.month <= 6
@@ -219,7 +225,7 @@ export async function createAnnualTask(data: {
         title: data.title,
         category: data.category,
         month: data.month,
-        quarter: quarter as any,
+        quarter: quarter,
         housingCompanyId: data.housingCompanyId,
         isStatutory: data.isStatutory || false,
         description: data.description,

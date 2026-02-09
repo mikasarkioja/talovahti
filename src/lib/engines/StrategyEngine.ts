@@ -1,9 +1,24 @@
-import {
-  MockFinance,
-  MockRenovation,
-  MockObservation,
-  MockTicket,
-} from "@/lib/store";
+interface StrategyObservation {
+  status: string;
+  severityGrade?: number;
+}
+
+interface StrategyRenovation {
+  status: string;
+  plannedYear?: number;
+}
+
+interface StrategyTicket {
+  status: string;
+  priority: string;
+}
+
+interface StrategyFinance {
+  score?: string;
+  utilization?: number;
+  collectionPercentage?: number;
+  companyLoansTotal?: number;
+}
 
 export class StrategyEngine {
   /**
@@ -26,9 +41,9 @@ export class StrategyEngine {
    * < 50 = Critical backlog
    */
   static calculateMaintenanceBacklogScore(
-    observations: any[],
-    renovations: any[],
-    tickets: any[],
+    observations: StrategyObservation[],
+    renovations: StrategyRenovation[],
+    tickets: StrategyTicket[],
   ): number {
     let score = 100;
 
@@ -65,19 +80,20 @@ export class StrategyEngine {
    * Generates a Financial Health Grade (A-E)
    * Based on fee collection rate and relative indebtedness.
    */
-  static calculateFinancialHealthScore(finance: any): {
+  static calculateFinancialHealthScore(finance: StrategyFinance): {
     grade: string;
     score: number;
   } {
     // If the data is coming from getFinanceAggregates (real DB data)
     if (finance.score) {
-      return { 
-        grade: finance.score, 
-        score: Math.round(finance.utilization || 0) 
+      return {
+        grade: finance.score,
+        score: Math.round(finance.utilization || 0),
       };
     }
 
-    const { collectionPercentage, companyLoansTotal } = finance;
+    const collectionPercentage = finance.collectionPercentage || 0;
+    const companyLoansTotal = finance.companyLoansTotal || 0;
 
     // Simplistic Property Value Est: 2.6M (Hardcoded for mock context)
     const ESTIMATED_PROPERTY_VALUE = 2600000;

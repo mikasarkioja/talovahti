@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { WeightedResultBar } from "./WeightedResultBar";
 import { useParticipationMap } from "@/hooks/useParticipationMap";
-import { Vote, Apartment, GovernanceStatus, VoteChoice } from "@prisma/client";
+import { Vote, Apartment, GovernanceStatus } from "@prisma/client";
 import { cn } from "@/lib/utils";
 import { castVote } from "@/app/actions/governance";
 import { toast } from "sonner";
@@ -107,7 +107,10 @@ export function InitiativeCard({
           </CardTitle>
           <div className="flex items-center gap-2">
             {hasVoted && (
-              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-100 flex items-center gap-1">
+              <Badge
+                variant="outline"
+                className="bg-emerald-50 text-emerald-700 border-emerald-100 flex items-center gap-1"
+              >
                 <CheckCircle2 className="w-3 h-3" />
                 Äänestetty
               </Badge>
@@ -169,8 +172,17 @@ export function InitiativeCard({
 
         {hasVoted && userVote && (
           <div className="mt-4 p-3 bg-emerald-50/50 rounded border border-emerald-100 text-xs text-emerald-800 flex items-center gap-2">
-             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-             <span>Sinun valintasi: <strong>{userVote.choice === 'YES' ? 'KYLLÄ' : userVote.choice === 'NO' ? 'EI' : 'TYHJÄ'}</strong></span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+            <span>
+              Sinun valintasi:{" "}
+              <strong>
+                {userVote.choice === "YES"
+                  ? "KYLLÄ"
+                  : userVote.choice === "NO"
+                    ? "EI"
+                    : "TYHJÄ"}
+              </strong>
+            </span>
           </div>
         )}
 

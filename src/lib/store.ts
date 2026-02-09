@@ -88,6 +88,9 @@ export type MockFinance = {
   collectionPercentage: number;
   companyLoansTotal: number;
   energySavingsPct: number;
+  monthlyTrend?: Array<{ month: string; amount: number }>; // Added for real data binding
+  score?: string; // Strategic Grade (A-E)
+  utilization?: number; // Budget utilization %
 };
 
 export type MockRenovation = {
@@ -127,6 +130,10 @@ export type MockObservation = {
   userId: string;
   assessment?: MockAssessment;
   createdAt: Date;
+  severityGrade?: number; // Added for verified workflow
+  technicalVerdict?: string | null; // Added for verified workflow
+  boardSummary?: string | null; // Added for verified workflow
+  projectId?: string | null; // Added for verified workflow
 };
 
 export type MockBid = {

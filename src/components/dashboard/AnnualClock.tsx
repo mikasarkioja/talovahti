@@ -2,12 +2,7 @@
 
 import React, { useState, useTransition } from "react";
 import { useTemporalStore } from "@/lib/useTemporalStore";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   Popover,
   PopoverContent,
@@ -35,7 +30,10 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { AnnualTask, FiscalQuarter, TaskCategory } from "@prisma/client";
 import { Briefcase, Calendar, CheckCircle2, Circle, Plus } from "lucide-react";
-import { toggleTaskCompletion, createAnnualTask } from "@/app/actions/governance";
+import {
+  toggleTaskCompletion,
+  createAnnualTask,
+} from "@/app/actions/governance";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
@@ -60,7 +58,7 @@ const QuarterSegment = ({
 }) => {
   const { setHoveredTask } = useTemporalStore();
   const [isOpen, setIsOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   // Convert angles to radians (subtract 90 deg to start from top)
   const startRad = (startAngle - 90) * (Math.PI / 180);
@@ -202,7 +200,11 @@ interface AnnualClockProps {
   housingCompanyId?: string;
 }
 
-export function AnnualClock({ data, isBoard, housingCompanyId }: AnnualClockProps) {
+export function AnnualClock({
+  data,
+  isBoard,
+  housingCompanyId,
+}: AnnualClockProps) {
   const { currentActiveQuarter, setActiveQuarter } = useTemporalStore();
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -268,7 +270,11 @@ export function AnnualClock({ data, isBoard, housingCompanyId }: AnnualClockProp
         {isBoard && (
           <Dialog open={isAddTaskOpen} onOpenChange={setIsAddTaskOpen}>
             <DialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-brand-navy">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-slate-400 hover:text-brand-navy"
+              >
                 <Plus className="h-4 w-4" />
               </Button>
             </DialogTrigger>
@@ -277,13 +283,19 @@ export function AnnualClock({ data, isBoard, housingCompanyId }: AnnualClockProp
                 <DialogHeader>
                   <DialogTitle>Lisää tehtävä vuosikelloon</DialogTitle>
                   <DialogDescription>
-                    Lisää uusi toistuva tai kertaluonteinen tehtävä taloyhtiön kalenteriin.
+                    Lisää uusi toistuva tai kertaluonteinen tehtävä taloyhtiön
+                    kalenteriin.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
                     <Label htmlFor="title">Otsikko</Label>
-                    <Input id="title" name="title" placeholder="Esim. Kevättalkoot" required />
+                    <Input
+                      id="title"
+                      name="title"
+                      placeholder="Esim. Kevättalkoot"
+                      required
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
@@ -295,7 +307,9 @@ export function AnnualClock({ data, isBoard, housingCompanyId }: AnnualClockProp
                         <SelectContent>
                           {Array.from({ length: 12 }, (_, i) => (
                             <SelectItem key={i + 1} value={(i + 1).toString()}>
-                              {new Date(2024, i, 1).toLocaleString('fi-FI', { month: 'long' })}
+                              {new Date(2024, i, 1).toLocaleString("fi-FI", {
+                                month: "long",
+                              })}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -308,7 +322,9 @@ export function AnnualClock({ data, isBoard, housingCompanyId }: AnnualClockProp
                           <SelectValue placeholder="Valitse kategoria" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="MAINTENANCE">Kunnossapito</SelectItem>
+                          <SelectItem value="MAINTENANCE">
+                            Kunnossapito
+                          </SelectItem>
                           <SelectItem value="FINANCE">Talous</SelectItem>
                           <SelectItem value="GOVERNANCE">Hallinto</SelectItem>
                           <SelectItem value="LEGAL">Laki</SelectItem>
@@ -317,16 +333,29 @@ export function AnnualClock({ data, isBoard, housingCompanyId }: AnnualClockProp
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <input type="checkbox" id="isStatutory" name="isStatutory" className="h-4 w-4 rounded border-gray-300" />
+                    <input
+                      type="checkbox"
+                      id="isStatutory"
+                      name="isStatutory"
+                      className="h-4 w-4 rounded border-gray-300"
+                    />
                     <Label htmlFor="isStatutory">Lakisääteinen tehtävä</Label>
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="description">Kuvaus (Valinnainen)</Label>
-                    <Input id="description" name="description" placeholder="Lyhyt kuvaus tehtävästä..." />
+                    <Input
+                      id="description"
+                      name="description"
+                      placeholder="Lyhyt kuvaus tehtävästä..."
+                    />
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button type="submit" className="bg-[#002f6c]" disabled={isPending}>
+                  <Button
+                    type="submit"
+                    className="bg-[#002f6c]"
+                    disabled={isPending}
+                  >
                     {isPending ? "Tallennetaan..." : "Tallenna"}
                   </Button>
                 </DialogFooter>

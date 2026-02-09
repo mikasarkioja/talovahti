@@ -1,91 +1,99 @@
-'use server'
+"use server";
 
-import { prisma } from '@/lib/db'
-import { revalidatePath } from 'next/cache'
+import { prisma } from "@/lib/db";
+import { revalidatePath } from "next/cache";
 
 export type KanbanItem = {
-    id: string
-    title: string
-    subtitle?: string
-    status: string
-    stage: 'INBOX' | 'ASSESSMENT' | 'MARKETPLACE' | 'EXECUTION' | 'VERIFICATION' | 'DONE'
-    priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
-    type: 'TICKET' | 'OBSERVATION' | 'PROJECT'
-    date: Date
-    meta?: any // Extra data for UI
-}
+  id: string;
+  title: string;
+  subtitle?: string;
+  status: string;
+  stage:
+    | "INBOX"
+    | "ASSESSMENT"
+    | "MARKETPLACE"
+    | "EXECUTION"
+    | "VERIFICATION"
+    | "DONE";
+  priority: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  type: "TICKET" | "OBSERVATION" | "PROJECT";
+  date: Date;
+  meta?: Record<string, unknown>; // Extra data for UI
+};
 
 export async function getOpsBoardItems(): Promise<KanbanItem[]> {
-    const items: KanbanItem[] = []
+  const items: KanbanItem[] = [];
 
-    // 1. INBOX (Open Tickets, Not yet escalated)
-    const tickets = await prisma.ticket.findMany({
-        where: { status: 'OPEN', observationId: null },
-        orderBy: { createdAt: 'desc' },
-        include: { createdBy: true }
-    })
+  // 1. INBOX (Open Tickets, Not yet escalated)
+  const tickets = await prisma.ticket.findMany({
+    where: { status: "OPEN", observationId: null },
+    orderBy: { createdAt: "desc" },
+    include: { createdBy: true },
+  });
 
-    tickets.forEach(t => items.push({
-        id: t.id,
-        title: t.title,
-        subtitle: t.createdBy.name || 'Unknown',
-        status: t.status,
-        stage: 'INBOX',
-        priority: t.priority as any,
-        type: 'TICKET',
-        date: t.createdAt
-    }))
+  tickets.forEach((t) =>
+    items.push({
+      id: t.id,
+      title: t.title,
+      subtitle: t.createdBy.name || "Unknown",
+      status: t.status,
+      stage: "INBOX",
+      priority: t.priority as KanbanItem["priority"],
+      type: "TICKET",
+      date: t.createdAt,
+    }),
+  );
 
-    // 2. ASSESSMENT (Observations with/without Expert Opinion)
-    const observations = await prisma.observation.findMany({
-        where: { status: { in: ['OPEN', 'REVIEWED'] } },
-        include: { assessment: true, ticket: true }
-    })
+  // 2. ASSESSMENT (Observations with/without Expert Opinion)
+  const observations = await prisma.observation.findMany({
+    where: { status: { in: ["OPEN", "REVIEWED"] } },
+    include: { assessment: true, ticket: true },
+  });
 
-    observations.forEach(o => {
-        // If it has an assessment recommending action, it might be ready for Marketplace
-        const hasVerdict = !!o.assessment
-        
-        // Filter out those already linked to a project (Execution phase)
-        // (Assuming we'd link Obs -> Renovation -> Project in a real app, 
-        // for now we check if it's "Done" or not)
-        
-        items.push({
-            id: o.id,
-            title: o.component,
-            subtitle: hasVerdict ? 'Asiantuntija arvioinut' : 'Odottaa arviota',
-            status: o.status,
-            stage: hasVerdict ? 'MARKETPLACE' : 'ASSESSMENT', 
-            priority: 'MEDIUM', // Default
-            type: 'OBSERVATION',
-            date: o.createdAt,
-            meta: { verdict: o.assessment?.technicalVerdict }
-        })
-    })
+  observations.forEach((o) => {
+    // If it has an assessment recommending action, it might be ready for Marketplace
+    const hasVerdict = !!o.assessment;
 
-    // 3. EXECUTION (Active Projects)
-    const projects = await prisma.project.findMany({
-        where: { status: { not: 'COMPLETED' } }
-    })
+    // Filter out those already linked to a project (Execution phase)
+    // (Assuming we'd link Obs -> Renovation -> Project in a real app,
+    // for now we check if it's "Done" or not)
 
-    projects.forEach(p => {
-        let stage: KanbanItem['stage'] = 'EXECUTION'
-        if (p.status === 'TENDERING') stage = 'MARKETPLACE'
-        if (p.status === 'WARRANTY') stage = 'VERIFICATION'
+    items.push({
+      id: o.id,
+      title: o.component,
+      subtitle: hasVerdict ? "Asiantuntija arvioinut" : "Odottaa arviota",
+      status: o.status,
+      stage: hasVerdict ? "MARKETPLACE" : "ASSESSMENT",
+      priority: "MEDIUM", // Default
+      type: "OBSERVATION",
+      date: o.createdAt,
+      meta: { verdict: o.assessment?.technicalVerdict },
+    });
+  });
 
-        items.push({
-            id: p.id,
-            title: p.title,
-            subtitle: `Status: ${p.status}`,
-            status: p.status,
-            stage: stage,
-            priority: 'HIGH',
-            type: 'PROJECT',
-            date: p.createdAt
-        })
-    })
+  // 3. EXECUTION (Active Projects)
+  const projects = await prisma.project.findMany({
+    where: { status: { not: "COMPLETED" } },
+  });
 
-    return items
+  projects.forEach((p) => {
+    let stage: KanbanItem["stage"] = "EXECUTION";
+    if (p.status === "TENDERING") stage = "MARKETPLACE";
+    if (p.status === "WARRANTY") stage = "VERIFICATION";
+
+    items.push({
+      id: p.id,
+      title: p.title,
+      subtitle: `Status: ${p.status}`,
+      status: p.status,
+      stage: stage,
+      priority: "HIGH",
+      type: "PROJECT",
+      date: p.createdAt,
+    });
+  });
+
+  return items;
 }
 
 // TRANSITIONS
@@ -212,10 +220,10 @@ export async function createProjectFromObservation(
 }
 
 export async function completeProject(projectId: string) {
-    await prisma.project.update({
-        where: { id: projectId },
-        data: { status: 'COMPLETED' }
-    })
-    revalidatePath('/admin/ops')
-    return { success: true }
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { status: "COMPLETED" },
+  });
+  revalidatePath("/admin/ops");
+  return { success: true };
 }
