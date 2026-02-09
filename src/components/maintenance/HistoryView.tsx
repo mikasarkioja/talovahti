@@ -118,7 +118,7 @@ export function HistoryView({
                           ~
                           {(
                             Math.round(estimatedCost / 1000) * 1000
-                          ).toLocaleString()}{" "}
+                          ).toLocaleString("fi-FI")}{" "}
                           €
                         </div>
                         {!isFunded && (
@@ -127,7 +127,7 @@ export function HistoryView({
                             Rahoitusvaje:{" "}
                             {(
                               estimatedCost - (finance.reserveFund || 0)
-                            ).toLocaleString()}{" "}
+                            ).toLocaleString("fi-FI")}{" "}
                             €
                           </div>
                         )}

@@ -195,8 +195,9 @@ export function InitiativeCard({
 
       <CardFooter className="pt-2 border-t border-slate-50 bg-slate-50/50 text-xs text-slate-500 flex justify-between">
         <span>
-          Äänet painotettu: <strong>{totalVotedShares.toLocaleString()}</strong>{" "}
-          / {totalShares.toLocaleString()} osaketta
+          Äänet painotettu:{" "}
+          <strong>{totalVotedShares.toLocaleString("fi-FI")}</strong> /{" "}
+          {totalShares.toLocaleString("fi-FI")} osaketta
         </span>
         <span
           className={cn(
