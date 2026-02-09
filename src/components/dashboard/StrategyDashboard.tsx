@@ -380,7 +380,7 @@ export function StrategyDashboard() {
                     Lainasalkun visualisointi on kehityksessä.
                   </span>
                   <div className="mt-4 text-xs font-mono text-slate-500">
-                    Nykyinen kanta: {finance.companyLoansTotal.toLocaleString()}{" "}
+                    Nykyinen kanta: {(finance.companyLoansTotal || 0).toLocaleString()}{" "}
                     €
                   </div>
                 </div>

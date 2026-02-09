@@ -20,12 +20,12 @@ export function BudgetSummary() {
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-slate-600">Hoitovastikekertymä (kk)</span>
-            <span className="font-medium text-slate-900">{finance.monthlyIncome.toLocaleString()} € / {finance.monthlyTarget.toLocaleString()} €</span>
+            <span className="font-medium text-slate-900">{(finance.monthlyIncome || 0).toLocaleString()} € / {(finance.monthlyTarget || 0).toLocaleString()} €</span>
           </div>
           <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
             <div 
               className="h-full bg-green-500 rounded-full"
-              style={{ width: `${Math.min(incomePercent, 100)}%` }} 
+              style={{ width: `${Math.min(incomePercent || 0, 100)}%` }} 
             />
           </div>
         </div>
@@ -37,7 +37,7 @@ export function BudgetSummary() {
           </div>
           <div>
             <div className="text-xs text-slate-500 font-medium uppercase">Kunnossapitovastike</div>
-            <div className="text-lg font-bold text-slate-900">{finance.reserveFund.toLocaleString()} €</div>
+            <div className="text-lg font-bold text-slate-900">{(finance.reserveFund || 0).toLocaleString()} €</div>
           </div>
         </div>
 

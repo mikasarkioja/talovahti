@@ -126,7 +126,7 @@ export function HistoryView({
                             <AlertTriangle size={12} />
                             Rahoitusvaje:{" "}
                             {(
-                              estimatedCost - finance.reserveFund
+                              estimatedCost - (finance.reserveFund || 0)
                             ).toLocaleString()}{" "}
                             €
                           </div>

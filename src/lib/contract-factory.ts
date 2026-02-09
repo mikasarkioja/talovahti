@@ -7,7 +7,7 @@ export const contractFactory = {
       include: { housingCompany: true }
     })
     
-    const bid = await prisma.bid.findUnique({
+    const bid = await prisma.tenderBid.findUnique({
         where: { id: bidId }
     })
 
@@ -71,7 +71,7 @@ Tämä sopimus on allekirjoitettu sähköisesti.
   },
 
   async createContractDraft(projectId: string, bidId: string) {
-    const bid = await prisma.bid.findUnique({ where: { id: bidId } })
+    const bid = await prisma.tenderBid.findUnique({ where: { id: bidId } })
     if (!bid) throw new Error("Bid not found")
 
     // Create contract

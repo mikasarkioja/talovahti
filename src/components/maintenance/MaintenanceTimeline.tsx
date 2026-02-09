@@ -32,7 +32,7 @@ export function MaintenanceTimeline({ history }: { history: MockRenovation[] }) 
                   </div>
                   <div className="text-right">
                     <div className="font-mono font-bold text-slate-700">{item.yearDone}</div>
-                    <div className="text-xs text-slate-400">{item.cost.toLocaleString()} €</div>
+                    <div className="text-xs text-slate-400">{(item.cost || 0).toLocaleString()} €</div>
                   </div>
                 </div>
 

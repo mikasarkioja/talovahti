@@ -74,6 +74,11 @@ export async function getOpsBoardItems(): Promise<KanbanItem[]> {
   // 3. EXECUTION (Active Projects)
   const projects = await prisma.project.findMany({
     where: { status: { not: "COMPLETED" } },
+    include: {
+      _count: {
+        select: { bids: true },
+      },
+    },
   });
 
   projects.forEach((p) => {
@@ -90,6 +95,7 @@ export async function getOpsBoardItems(): Promise<KanbanItem[]> {
       priority: "HIGH",
       type: "PROJECT",
       date: p.createdAt,
+      meta: { bidCount: p._count.bids },
     });
   });
 

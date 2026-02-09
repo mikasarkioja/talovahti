@@ -105,6 +105,9 @@ export async function getFinanceAggregates(companyId: string, year: number) {
         totalBudgeted,
         utilization,
         score, // Power the dashboard gauge with this
+        reserveFund: 45000, // TODO: Pull from DB when schema supports it
+        monthlyIncome: 12500,
+        monthlyTarget: 12000,
       },
     };
   } catch (error) {

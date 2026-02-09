@@ -199,6 +199,13 @@ export function OpsKanbanBoard({ items }: OpsBoardProps) {
                       <p className="text-xs text-slate-400 mt-1">
                         {item.subtitle}
                       </p>
+                      {item.meta?.bidCount !== undefined && (
+                        <div className="mt-3 flex items-center gap-2">
+                          <Badge variant="secondary" className="bg-blue-900/30 text-blue-400 border-blue-800/50 text-[10px]">
+                            {item.meta.bidCount as number} tarjousta saatu
+                          </Badge>
+                        </div>
+                      )}
                     </CardHeader>
 
                     <CardFooter className="p-3 pt-0 flex justify-end">

@@ -77,7 +77,7 @@ export function EconomicOverview() {
                <span className="text-xs font-medium">Hoitovastike</span>
              </div>
              <div className="font-semibold text-slate-900">
-               {finance.monthlyIncome.toLocaleString()} €/kk
+               {(finance.monthlyIncome || 0).toLocaleString()} €/kk
              </div>
           </div>
           <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
@@ -86,7 +86,7 @@ export function EconomicOverview() {
                <span className="text-xs font-medium">Kassavarat</span>
              </div>
              <div className="font-semibold text-slate-900">
-               {finance.reserveFund.toLocaleString()} €
+               {(finance.reserveFund || 0).toLocaleString()} €
              </div>
           </div>
         </div>

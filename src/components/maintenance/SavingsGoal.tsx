@@ -22,8 +22,8 @@ export function SavingsGoal({ targetAmount, targetYear, currentSavings }: { targ
         <div className="text-2xl font-bold mb-6">Putkiremonttivaraus</div>
         
         <div className="flex justify-between text-sm mb-2 opacity-80">
-          <span>Kerätty: {currentSavings.toLocaleString()} €</span>
-          <span>Tavoite: {targetAmount.toLocaleString()} €</span>
+          <span>Kerätty: {(currentSavings || 0).toLocaleString()} €</span>
+          <span>Tavoite: {(targetAmount || 0).toLocaleString()} €</span>
         </div>
         
         <div className="h-3 bg-slate-700 rounded-full mb-6 overflow-hidden">
