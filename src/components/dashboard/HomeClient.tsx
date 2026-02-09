@@ -30,7 +30,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 function BuildingSkeleton() {
-// ... existing BuildingSkeleton ...
+  return (
+    <div className="w-full h-full bg-slate-50 flex items-center justify-center text-slate-300">
+      <div className="flex flex-col items-center gap-2">
+        <div className="w-12 h-12 rounded-full border-4 border-slate-200 border-t-brand-emerald animate-spin"></div>
+        <p className="text-xs font-medium uppercase tracking-widest">
+          Ladataan 3D-mallia...
+        </p>
+      </div>
+    </div>
+  );
 }
 
 interface HomeClientProps {
@@ -66,7 +75,9 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
   const [highlightId, setHighlightId] = useState<string | undefined>(undefined);
 
   const isBoard =
-    currentUser?.role === "BOARD" || currentUser?.role === "MANAGER" || currentUser?.role === "ADMIN";
+    currentUser?.role === "BOARD" ||
+    currentUser?.role === "MANAGER" ||
+    currentUser?.role === "ADMIN";
 
   // Action Center Logic
   const activePolls = initiatives.filter(
@@ -98,26 +109,39 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
       <div className="p-4 max-w-lg mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500">
         <header className="text-center pt-8">
           <h1 className="text-3xl font-bold text-brand-navy">Talovahti</h1>
-          <p className="text-slate-500">Tervetuloa kotiin, {currentUser?.name?.split(" ")[0]}</p>
+          <p className="text-slate-500">
+            Tervetuloa kotiin, {currentUser?.name?.split(" ")[0]}
+          </p>
         </header>
 
         <div className="grid grid-cols-1 gap-4">
           <Link href="/maintenance/tickets" className="w-full">
-            <Button size="lg" className="w-full h-24 text-lg bg-orange-600 hover:bg-orange-700 flex flex-col gap-1">
+            <Button
+              size="lg"
+              className="w-full h-24 text-lg bg-orange-600 hover:bg-orange-700 flex flex-col gap-1"
+            >
               <PenTool size={24} />
               Ilmoita Vika
             </Button>
           </Link>
-          
+
           <Link href="/settings/profile" className="w-full">
-            <Button size="lg" variant="outline" className="w-full h-24 text-lg flex flex-col gap-1 border-2">
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full h-24 text-lg flex flex-col gap-1 border-2"
+            >
               <Home size={24} />
               Oma Koti
             </Button>
           </Link>
 
           <Link href="/dashboard/feed" className="w-full">
-            <Button size="lg" variant="outline" className="w-full h-24 text-lg flex flex-col gap-1 border-2">
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full h-24 text-lg flex flex-col gap-1 border-2"
+            >
               <Activity size={24} />
               Yhtiön Tilanne
             </Button>
@@ -125,7 +149,9 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
         </div>
 
         <div className="space-y-4">
-          <h2 className="text-lg font-bold text-brand-navy px-2">Ajankohtaista</h2>
+          <h2 className="text-lg font-bold text-brand-navy px-2">
+            Ajankohtaista
+          </h2>
           <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
             <PulseHero companyId={currentUser?.housingCompanyId} />
           </div>
@@ -222,8 +248,13 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
                 <AlertCircle size={20} className="text-brand-emerald" />
                 Toimenpidejono
               </h3>
-              <Badge variant="secondary" className="bg-slate-100 text-slate-600">
-                {approvalQueue.length + activePolls.length + urgentObservations.length}
+              <Badge
+                variant="secondary"
+                className="bg-slate-100 text-slate-600"
+              >
+                {approvalQueue.length +
+                  activePolls.length +
+                  urgentObservations.length}
               </Badge>
             </div>
 
@@ -235,8 +266,12 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
                     <div className="p-3 bg-red-50/50 border border-red-100 rounded-lg flex gap-3 items-start cursor-pointer hover:bg-red-50 mb-2">
                       <CheckCircle2 size={16} className="text-red-500 mt-0.5" />
                       <div>
-                        <div className="text-[10px] font-bold text-red-700 uppercase">Hyväksyntä</div>
-                        <div className="text-sm font-medium text-brand-navy">{item.title}</div>
+                        <div className="text-[10px] font-bold text-red-700 uppercase">
+                          Hyväksyntä
+                        </div>
+                        <div className="text-sm font-medium text-brand-navy">
+                          {item.title}
+                        </div>
                       </div>
                     </div>
                   </Link>
@@ -248,23 +283,32 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
                   <div className="p-3 bg-purple-50/50 border border-purple-100 rounded-lg flex gap-3 items-start cursor-pointer hover:bg-purple-50 mb-2">
                     <Vote size={16} className="text-purple-600 mt-0.5" />
                     <div>
-                      <div className="text-[10px] font-bold text-purple-700 uppercase">Äänestys</div>
-                      <div className="text-sm font-medium text-brand-navy">{poll.title}</div>
+                      <div className="text-[10px] font-bold text-purple-700 uppercase">
+                        Äänestys
+                      </div>
+                      <div className="text-sm font-medium text-brand-navy">
+                        {poll.title}
+                      </div>
                     </div>
                   </div>
                 </Link>
               ))}
 
               {/* Empty State */}
-              {approvalQueue.length === 0 && activePolls.length === 0 && urgentObservations.length === 0 && (
-                <div className="text-center py-4 text-slate-400 text-xs">
-                  Ei kriittisiä toimenpiteitä juuri nyt.
-                </div>
-              )}
+              {approvalQueue.length === 0 &&
+                activePolls.length === 0 &&
+                urgentObservations.length === 0 && (
+                  <div className="text-center py-4 text-slate-400 text-xs">
+                    Ei kriittisiä toimenpiteitä juuri nyt.
+                  </div>
+                )}
             </div>
-            
+
             <Link href="/admin/ops">
-              <Button variant="ghost" className="w-full mt-2 text-xs text-slate-500 hover:text-brand-navy">
+              <Button
+                variant="ghost"
+                className="w-full mt-2 text-xs text-slate-500 hover:text-brand-navy"
+              >
                 Katso kaikki tehtävät <ArrowRight size={12} className="ml-2" />
               </Button>
             </Link>
@@ -281,4 +325,3 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
     </div>
   );
 }
-

@@ -161,15 +161,19 @@ export function OpsKanbanBoard({ items }: OpsBoardProps) {
   };
 
   const getPriorityBadge = (priority: string) => {
-    const config = {
-      CRITICAL: "border-red-500/50 text-red-600 bg-red-50",
-      HIGH: "border-orange-500/50 text-orange-600 bg-orange-50",
-      MEDIUM: "border-blue-500/50 text-blue-600 bg-blue-50",
-      LOW: "border-slate-300 text-slate-500 bg-slate-50",
-    }[priority] || "border-slate-300 text-slate-500 bg-slate-50";
+    const config =
+      {
+        CRITICAL: "border-red-500/50 text-red-600 bg-red-50",
+        HIGH: "border-orange-500/50 text-orange-600 bg-orange-50",
+        MEDIUM: "border-blue-500/50 text-blue-600 bg-blue-50",
+        LOW: "border-slate-300 text-slate-500 bg-slate-50",
+      }[priority] || "border-slate-300 text-slate-500 bg-slate-50";
 
     return (
-      <Badge variant="outline" className={`text-[10px] font-bold px-1.5 h-5 ${config}`}>
+      <Badge
+        variant="outline"
+        className={`text-[10px] font-bold px-1.5 h-5 ${config}`}
+      >
         {priority}
       </Badge>
     );
@@ -192,9 +196,14 @@ export function OpsKanbanBoard({ items }: OpsBoardProps) {
                   <div className="p-1.5 rounded-lg bg-white border border-slate-100 shadow-sm">
                     <Icon className={`w-4 h-4 ${col.color}`} />
                   </div>
-                  <h3 className="font-bold text-slate-900 text-sm tracking-tight">{col.title}</h3>
+                  <h3 className="font-bold text-slate-900 text-sm tracking-tight">
+                    {col.title}
+                  </h3>
                 </div>
-                <Badge variant="secondary" className="bg-slate-200 text-slate-600 font-bold">
+                <Badge
+                  variant="secondary"
+                  className="bg-slate-200 text-slate-600 font-bold"
+                >
                   {colItems.length}
                 </Badge>
               </div>
@@ -209,7 +218,7 @@ export function OpsKanbanBoard({ items }: OpsBoardProps) {
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex gap-1.5">
                           {getPriorityBadge(item.priority)}
-                          {item.meta?.hasLocation && (
+                          {(item.meta?.hasLocation as boolean) && (
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -218,76 +227,103 @@ export function OpsKanbanBoard({ items }: OpsBoardProps) {
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p className="text-xs font-medium">Sisältää 3D-koordinaatit</p>
+                                  <p className="text-xs font-medium">
+                                    Sisältää 3D-koordinaatit
+                                  </p>
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           )}
                         </div>
-                        
+
                         <Popover>
                           <PopoverTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-slate-400 hover:text-slate-600"
+                            >
                               <MoreVertical size={16} />
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent align="end" className="w-56 p-2">
-                            <div className="px-2 py-1.5 text-[10px] font-bold uppercase text-slate-400">Toiminnot</div>
+                            <div className="px-2 py-1.5 text-[10px] font-bold uppercase text-slate-400">
+                              Toiminnot
+                            </div>
                             <div className="h-px bg-slate-100 my-1" />
-                            
+
                             <div className="space-y-1">
                               {col.id === "INBOX" && (
-                                <Button 
-                                  variant="ghost" 
+                                <Button
+                                  variant="ghost"
                                   className="w-full justify-start gap-2 h-9 px-2 text-sm font-normal"
-                                  onClick={() => handleEscalate(item.id)} 
+                                  onClick={() => handleEscalate(item.id)}
                                   disabled={loading}
                                 >
-                                  <ArrowRight size={14} className="text-blue-500" />
+                                  <ArrowRight
+                                    size={14}
+                                    className="text-blue-500"
+                                  />
                                   <span>Edistä kuntoarvioon</span>
                                 </Button>
                               )}
-                              
+
                               {col.id === "ASSESSMENT" && (
-                                <Button 
-                                  variant="ghost" 
+                                <Button
+                                  variant="ghost"
                                   className="w-full justify-start gap-2 h-9 px-2 text-sm font-normal"
                                   onClick={() => handleAssessment(item)}
                                 >
-                                  <ClipboardList size={14} className="text-purple-500" />
+                                  <ClipboardList
+                                    size={14}
+                                    className="text-purple-500"
+                                  />
                                   <span>Anna tekninen lausunto</span>
                                 </Button>
                               )}
-                              
+
                               {col.id === "MARKETPLACE" && (
-                                <Button 
-                                  variant="ghost" 
+                                <Button
+                                  variant="ghost"
                                   className="w-full justify-start gap-2 h-9 px-2 text-sm font-normal"
-                                  onClick={() => handleOrder(item.id)} 
+                                  onClick={() => handleOrder(item.id)}
                                   disabled={loading}
                                 >
-                                  <ShoppingCart size={14} className="text-orange-500" />
+                                  <ShoppingCart
+                                    size={14}
+                                    className="text-orange-500"
+                                  />
                                   <span>Kilpailuta toimittajat</span>
                                 </Button>
                               )}
-                              
+
                               {col.id === "VERIFICATION" && (
-                                <Button 
-                                  variant="ghost" 
+                                <Button
+                                  variant="ghost"
                                   className="w-full justify-start gap-2 h-9 px-2 text-sm font-normal"
-                                  onClick={() => handleVerify(item.id)} 
+                                  onClick={() => handleVerify(item.id)}
                                   disabled={loading}
                                 >
-                                  <CheckCircle2 size={14} className="text-emerald-500" />
+                                  <CheckCircle2
+                                    size={14}
+                                    className="text-emerald-500"
+                                  />
                                   <span>Hyväksy työ valmiiksi</span>
                                 </Button>
                               )}
 
                               <div className="h-px bg-slate-100 my-1" />
-                              
-                              <Link href={item.type === "PROJECT" ? `/projects/${item.id}` : "#"} className="block">
-                                <Button 
-                                  variant="ghost" 
+
+                              <Link
+                                href={
+                                  item.type === "PROJECT"
+                                    ? `/projects/${item.id}`
+                                    : "#"
+                                }
+                                className="block"
+                              >
+                                <Button
+                                  variant="ghost"
                                   className="w-full justify-start gap-2 h-9 px-2 text-sm font-normal text-slate-500"
                                 >
                                   <Info size={14} />
@@ -302,14 +338,17 @@ export function OpsKanbanBoard({ items }: OpsBoardProps) {
                       <CardTitle className="text-sm font-bold text-brand-navy leading-tight mb-1">
                         {item.title}
                       </CardTitle>
-                      
+
                       <p className="text-[11px] text-slate-500 font-medium">
                         {item.subtitle}
                       </p>
 
                       {item.meta?.bidCount !== undefined && (
                         <div className="mt-3">
-                          <Badge variant="secondary" className="bg-blue-50 text-blue-600 border-blue-100 text-[10px] font-bold">
+                          <Badge
+                            variant="secondary"
+                            className="bg-blue-50 text-blue-600 border-blue-100 text-[10px] font-bold"
+                          >
                             {item.meta.bidCount as number} tarjousta
                           </Badge>
                         </div>
@@ -318,8 +357,12 @@ export function OpsKanbanBoard({ items }: OpsBoardProps) {
 
                     <div className="px-4 pb-4 mt-2">
                       <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium border-t border-slate-50 pt-3">
-                        <span>{new Date(item.date).toLocaleDateString('fi-FI')}</span>
-                        <span className="uppercase tracking-tighter opacity-50">{item.type}</span>
+                        <span>
+                          {new Date(item.date).toLocaleDateString("fi-FI")}
+                        </span>
+                        <span className="uppercase tracking-tighter opacity-50">
+                          {item.type}
+                        </span>
                       </div>
                     </div>
                   </Card>
@@ -330,10 +373,15 @@ export function OpsKanbanBoard({ items }: OpsBoardProps) {
         })}
       </div>
 
-      <Dialog open={dialogMode === "ASSESS"} onOpenChange={() => setDialogMode(null)}>
+      <Dialog
+        open={dialogMode === "ASSESS"}
+        onOpenChange={() => setDialogMode(null)}
+      >
         <DialogContent className="bg-white border-slate-200 sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle className="text-slate-900">Tekninen Lausunto</DialogTitle>
+            <DialogTitle className="text-slate-900">
+              Tekninen Lausunto
+            </DialogTitle>
             <DialogDescription>
               Määritä havainnon kiireellisyys ja anna asiantuntija-arvio.
             </DialogDescription>
@@ -341,7 +389,9 @@ export function OpsKanbanBoard({ items }: OpsBoardProps) {
 
           <div className="space-y-6 py-4">
             <div className="space-y-2">
-              <Label htmlFor="severity" className="text-slate-700">Kiireellisyys (1-4)</Label>
+              <Label htmlFor="severity" className="text-slate-700">
+                Kiireellisyys (1-4)
+              </Label>
               <Select value={severity} onValueChange={setSeverity}>
                 <SelectTrigger className="bg-white border-slate-200 text-slate-900">
                   <SelectValue placeholder="Valitse kiireellisyys" />
@@ -349,14 +399,18 @@ export function OpsKanbanBoard({ items }: OpsBoardProps) {
                 <SelectContent className="bg-white border-slate-200">
                   <SelectItem value="1">🔴 1 - Kriittinen (Heti)</SelectItem>
                   <SelectItem value="2">🟠 2 - Kiireellinen (PTS)</SelectItem>
-                  <SelectItem value="3">🟡 3 - Normaali (Suunniteltu)</SelectItem>
+                  <SelectItem value="3">
+                    🟡 3 - Normaali (Suunniteltu)
+                  </SelectItem>
                   <SelectItem value="4">🟢 4 - Matala (Seuranta)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="verdict" className="text-slate-700">Tekninen Arvio</Label>
+              <Label htmlFor="verdict" className="text-slate-700">
+                Tekninen Arvio
+              </Label>
               <Textarea
                 id="verdict"
                 placeholder="Kirjoita lausunto..."
@@ -368,8 +422,14 @@ export function OpsKanbanBoard({ items }: OpsBoardProps) {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogMode(null)}>Peruuta</Button>
-            <Button className="bg-[#002f6c] hover:bg-blue-900" onClick={submitAssessment} disabled={loading || !verdict}>
+            <Button variant="outline" onClick={() => setDialogMode(null)}>
+              Peruuta
+            </Button>
+            <Button
+              className="bg-[#002f6c] hover:bg-blue-900"
+              onClick={submitAssessment}
+              disabled={loading || !verdict}
+            >
               {loading ? "Tallennetaan..." : "Tallenna Lausunto"}
             </Button>
           </DialogFooter>
