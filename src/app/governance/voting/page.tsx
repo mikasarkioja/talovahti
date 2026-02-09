@@ -1,25 +1,48 @@
 import { prisma } from "@/lib/db";
 import { InitiativeCard } from "@/components/governance/InitiativeCard";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { VotingClient } from "./VotingClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function GovernancePage() {
+export default async function GovernancePage(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const searchParams = await props.searchParams;
+  const userQuery =
+    typeof searchParams.user === "string" ? searchParams.user : undefined;
+
   const housingCompanyId = "default-company-id"; // In production, get from session/context
 
   // 1. Fetch Company Totals for "Power Circle" calculations
-  // We need total shares to calculate quorum and percentages
   const company = await prisma.housingCompany.findUnique({
     where: { id: housingCompanyId },
-    select: {
+    include: {
       apartments: {
         select: {
+          id: true,
           shareCount: true,
         },
       },
     },
   });
+
+  // 2. Fetch User (Dynamic Switcher pattern)
+  let user = null;
+  if (userQuery) {
+    user = await prisma.user.findFirst({
+      where: {
+        housingCompanyId: housingCompanyId,
+        email: { contains: userQuery, mode: "insensitive" },
+      },
+    });
+  }
+
+  // Fallback to default Board Member if no query or user not found
+  if (!user && !userQuery) {
+    user = await prisma.user.findFirst({
+      where: { housingCompanyId: housingCompanyId, role: "BOARD" },
+    });
+  }
 
   // Fallback if totalShares not set, sum from apartments
   const calculatedTotalShares =
@@ -30,7 +53,7 @@ export default async function GovernancePage() {
   const totalShares = calculatedTotalShares || 10000;
   const totalApartments = company?.apartments.length || 0;
 
-  // 2. Fetch Initiatives with Votes
+  // 3. Fetch Initiatives with Votes
   const initiatives = await prisma.initiative.findMany({
     where: { housingCompanyId },
     include: {
@@ -45,19 +68,10 @@ export default async function GovernancePage() {
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
-      <header className="flex justify-between items-end border-b border-slate-100 pb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Päätöksenteko</h1>
-          <p className="text-slate-500 mt-1">
-            Hallitse yhtiökokousasioita ja äänestä osakemääräisellä
-            äänivallalla.
-          </p>
-        </div>
-        <Button className="bg-[#002f6c] hover:bg-blue-900">
-          <Plus className="w-4 h-4 mr-2" />
-          Uusi Aloite
-        </Button>
-      </header>
+      <VotingClient 
+        housingCompanyId={housingCompanyId} 
+        userId={user?.id}
+      />
 
       <div className="grid gap-6">
         {initiatives.length === 0 ? (
@@ -71,6 +85,7 @@ export default async function GovernancePage() {
               initiative={initiative}
               totalShares={totalShares}
               totalApartments={totalApartments}
+              currentUserId={user?.id}
             />
           ))
         )}

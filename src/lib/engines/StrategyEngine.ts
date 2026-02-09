@@ -26,17 +26,20 @@ export class StrategyEngine {
    * < 50 = Critical backlog
    */
   static calculateMaintenanceBacklogScore(
-    observations: MockObservation[],
-    renovations: MockRenovation[],
-    tickets: MockTicket[],
+    observations: any[],
+    renovations: any[],
+    tickets: any[],
   ): number {
     let score = 100;
 
-    // 1. Open Observations (-2 per item)
-    const openObservations = observations.filter(
-      (o) => o.status === "OPEN",
-    ).length;
-    score -= openObservations * 2;
+    // 1. Open Observations (-2 per item, but higher penalty for critical severity)
+    const openObservations = observations.filter((o) => o.status === "OPEN");
+    openObservations.forEach((o) => {
+      // Penalty based on severity grade (1: Critical, 4: Low)
+      const severity = o.severityGrade || 3;
+      const penalty = severity === 1 ? 15 : severity === 2 ? 8 : 2;
+      score -= penalty;
+    });
 
     // 2. Overdue Renovations (-15 per item)
     const currentYear = new Date().getFullYear();
@@ -62,10 +65,18 @@ export class StrategyEngine {
    * Generates a Financial Health Grade (A-E)
    * Based on fee collection rate and relative indebtedness.
    */
-  static calculateFinancialHealthScore(finance: MockFinance): {
+  static calculateFinancialHealthScore(finance: any): {
     grade: string;
     score: number;
   } {
+    // If the data is coming from getFinanceAggregates (real DB data)
+    if (finance.score) {
+      return { 
+        grade: finance.score, 
+        score: Math.round(finance.utilization || 0) 
+      };
+    }
+
     const { collectionPercentage, companyLoansTotal } = finance;
 
     // Simplistic Property Value Est: 2.6M (Hardcoded for mock context)

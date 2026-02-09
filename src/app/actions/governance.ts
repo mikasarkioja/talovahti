@@ -6,17 +6,60 @@ import { revalidatePath } from "next/cache";
 import { GovernanceStatus, VoteChoice } from "@prisma/client";
 
 /* ==========================================
-   1. VOTING LOGIC (Decision Making)
+   1. VOTING & INITIATIVES LOGIC
    ========================================== */
+
+export async function createInitiative(formData: {
+  title: string;
+  description: string;
+  housingCompanyId: string;
+  authorId: string;
+}) {
+  try {
+    const initiative = await prisma.initiative.create({
+      data: {
+        title: formData.title,
+        description: formData.description,
+        housingCompanyId: formData.housingCompanyId,
+        authorId: formData.authorId,
+        status: GovernanceStatus.OPEN_FOR_SUPPORT,
+      },
+    });
+
+    revalidatePath("/governance/pipeline");
+    revalidatePath("/governance/voting");
+    return { success: true, data: initiative };
+  } catch (error) {
+    console.error("Create Initiative Error:", error);
+    return { success: false, error: "Aloitteen luonti epäonnistui." };
+  }
+}
+
+export async function updateInitiativeStatus(
+  initiativeId: string,
+  status: GovernanceStatus,
+) {
+  try {
+    await prisma.initiative.update({
+      where: { id: initiativeId },
+      data: { status },
+    });
+
+    revalidatePath("/governance/pipeline");
+    revalidatePath("/governance/voting");
+    return { success: true };
+  } catch (error) {
+    console.error("Update Status Error:", error);
+    return { success: false, error: "Tilan päivitys epäonnistui." };
+  }
+}
 
 export async function castVote(
   initiativeId: string,
   choice: "YES" | "NO" | "ABSTAIN",
+  userId: string,
 ) {
   try {
-    const session = { user: { id: "user-board-1" } }; // Mock session
-    if (!session?.user) throw new Error("Unauthorized");
-
     // 1. Verify Initiative is open for voting
     const initiative = await prisma.initiative.findUnique({
       where: { id: initiativeId },
@@ -24,19 +67,19 @@ export async function castVote(
     });
 
     if (!initiative || initiative.status !== GovernanceStatus.VOTING) {
-      throw new Error("Voting is not currently open for this initiative.");
+      throw new Error("Äänestys ei ole tällä hetkellä avoinna.");
     }
 
     // 2. Fetch User's Apartment and Share Count
     const userApartment = await prisma.apartment.findFirst({
       where: {
-        users: { some: { id: session.user.id } },
+        users: { some: { id: userId } },
         housingCompanyId: initiative.housingCompanyId,
       },
       select: { id: true, shareCount: true },
     });
 
-    if (!userApartment) throw new Error("Only verified owners can vote.");
+    if (!userApartment) throw new Error("Vain varmistetut osakkaat voivat äänestää.");
 
     // Check for existing vote
     const existingVote = await prisma.vote.findUnique({
@@ -56,20 +99,20 @@ export async function castVote(
     await prisma.vote.create({
       data: {
         initiativeId,
-        userId: session.user.id,
+        userId: userId,
         apartmentId: userApartment.id,
         choice: choice as VoteChoice,
         shares: userApartment.shareCount,
       },
     });
 
-    revalidatePath(`/dashboard/governance/${initiativeId}`);
+    revalidatePath(`/governance/voting`);
     return { success: true };
   } catch (error) {
     console.error("Voting Error:", error);
     return {
       success: false,
-      error: (error as Error).message || "Failed to cast vote.",
+      error: (error as Error).message || "Äänestys epäonnistui.",
     };
   }
 }
@@ -90,15 +133,15 @@ export async function getAnnualClockData(companyId: string, year: number) {
     const tasks = await prisma.annualTask.findMany({
       where: {
         housingCompanyId: companyId,
-        // Fetch tasks for this year (via deadline) OR all recurring tasks (via month)
-        // If we treat AnnualTask as recurring template defined by month:
-        // We just fetch all.
-        // But schema has `deadline`.
-        // If we want specific instances for `year`:
-        deadline: {
-          gte: new Date(`${year}-01-01`),
-          lte: new Date(`${year}-12-31`),
-        },
+        OR: [
+          { deadline: null },
+          {
+            deadline: {
+              gte: new Date(`${year}-01-01`),
+              lte: new Date(`${year}-12-31`),
+            },
+          },
+        ],
       },
       orderBy: { month: "asc" },
     });
@@ -108,8 +151,7 @@ export async function getAnnualClockData(companyId: string, year: number) {
       const monthIndex = i + 1;
       return {
         month: monthIndex,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        tasks: tasks.filter((t: any) => t.month === monthIndex),
+        tasks: tasks.filter((t) => t.month === monthIndex),
       };
     });
 
@@ -119,13 +161,12 @@ export async function getAnnualClockData(companyId: string, year: number) {
         fiscalYearStart: company?.fiscalConfig?.startMonth || 1,
         monthlyGroups,
         totalTasks: tasks.length,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        completedTasks: tasks.filter((t: any) => t.completedAt).length,
+        completedTasks: tasks.filter((t) => t.isCompleted).length,
       },
     };
   } catch (error) {
     console.error("Annual Clock Fetch Error:", error);
-    return { success: false, error: "Failed to load annual clock data." };
+    return { success: false, error: "Vuosikellon lataaminen epäonnistui." };
   }
 }
 
@@ -145,9 +186,50 @@ export async function toggleTaskCompletion(
       },
     });
 
-    revalidatePath("/dashboard/governance");
+    revalidatePath("/"); // Revalidate dashboard
+    revalidatePath("/governance/pipeline");
     return { success: true, data: updated };
-  } catch {
-    return { success: false, error: "Failed to update task." };
+  } catch (error) {
+    console.error("Toggle Task Error:", error);
+    return { success: false, error: "Tehtävän päivitys epäonnistui." };
+  }
+}
+
+export async function createAnnualTask(data: {
+  title: string;
+  category: any; // TaskCategory
+  month: number;
+  housingCompanyId: string;
+  isStatutory?: boolean;
+  description?: string;
+}) {
+  try {
+    // Calculate quarter based on month (1-3=Q1, 4-6=Q2, etc.)
+    const quarter =
+      data.month <= 3
+        ? "Q1"
+        : data.month <= 6
+          ? "Q2"
+          : data.month <= 9
+            ? "Q3"
+            : "Q4";
+
+    const task = await prisma.annualTask.create({
+      data: {
+        title: data.title,
+        category: data.category,
+        month: data.month,
+        quarter: quarter as any,
+        housingCompanyId: data.housingCompanyId,
+        isStatutory: data.isStatutory || false,
+        description: data.description,
+      },
+    });
+
+    revalidatePath("/");
+    return { success: true, data: task };
+  } catch (error) {
+    console.error("Create Task Error:", error);
+    return { success: false, error: "Tehtävän luonti epäonnistui." };
   }
 }

@@ -89,6 +89,10 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
     (t) => t.apartmentId === currentUser?.apartmentId && t.status !== "CLOSED",
   );
 
+  const urgentObservations = (useStore.getState().observations || []).filter(
+    (o) => o.status === "OPEN" && (o.severityGrade === 1 || o.severityGrade === 2)
+  );
+
   const handleApartmentClick = (id: string) => {
     if (tourStep === 3) {
       setHighlightId(id);
@@ -224,7 +228,11 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
         {/* 3. Right Sidebar: Action Center & Annual Clock */}
         <div className="space-y-6">
           {/* Annual Clock (Real Data) */}
-          <AnnualClock data={annualClockData} />
+          <AnnualClock 
+            data={annualClockData} 
+            isBoard={isBoard}
+            housingCompanyId={currentUser?.housingCompanyId}
+          />
 
           <div className="bg-white rounded-xl border border-surface-greige/50 shadow-soft p-5 sticky top-6">
             <div className="flex items-center justify-between mb-4">
@@ -313,10 +321,34 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
                 </div>
               ))}
 
+              {/* 4. Urgent Observations (Board Summary) */}
+              {isBoard && urgentObservations.map((obs) => (
+                <div
+                  key={obs.id}
+                  className="p-3 bg-amber-50 border border-amber-100 rounded-lg flex gap-3 items-start cursor-pointer hover:bg-amber-100 transition-colors"
+                >
+                  <div className="mt-0.5">
+                    <AlertCircle size={16} className="text-amber-600" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-amber-700 uppercase mb-0.5">
+                      Kriittinen Havainto
+                    </div>
+                    <div className="text-sm font-medium text-brand-navy">
+                      {obs.component}
+                    </div>
+                    <p className="text-[10px] text-amber-800/70 mt-1 line-clamp-2 italic">
+                      {obs.boardSummary || "Odottaa teknistä arviota..."}
+                    </p>
+                  </div>
+                </div>
+              ))}
+
               {/* Empty State */}
               {approvalQueue.length === 0 &&
                 activePolls.length === 0 &&
-                myOpenTickets.length === 0 && (
+                myOpenTickets.length === 0 &&
+                urgentObservations.length === 0 && (
                   <div className="text-center py-8 text-slate-400 text-sm">
                     <CheckCircle2
                       size={32}

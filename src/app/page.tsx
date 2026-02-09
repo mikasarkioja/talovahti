@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { HomeClient } from "@/components/dashboard/HomeClient";
 import { getAnnualClockData } from "@/app/actions/governance";
+import { getFinanceAggregates } from "@/app/actions/finance";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,10 @@ export default async function Home(props: {
         invoices: true,
         fiscalConfig: true,
         strategicGoals: true,
-        renovations: true, // Fetch renovations
+        renovations: true,
+        observations: {
+          include: { project: true },
+        },
       },
     });
 
@@ -67,6 +71,7 @@ export default async function Home(props: {
     }
 
     const clockResult = await getAnnualClockData(companyId, currentYear);
+    const financeAggregates = await getFinanceAggregates(companyId, currentYear);
 
     // Default empty data if fetch fails
     const annualClockData =
@@ -81,6 +86,18 @@ export default async function Home(props: {
             totalTasks: 0,
             completedTasks: 0,
           };
+
+    const financeData = financeAggregates.success && financeAggregates.data 
+      ? financeAggregates.data 
+      : {
+          monthlyIncome: 12500,
+          monthlyTarget: 12000,
+          reserveFund: 45000,
+          energyCostDiff: -150,
+          collectionPercentage: 98.5,
+          companyLoansTotal: 450000,
+          energySavingsPct: 12.5,
+        };
 
     // 3. Prepare Initial Data for Store
     const initialData =
@@ -149,15 +166,7 @@ export default async function Home(props: {
               ? { ...company.fiscalConfig }
               : null,
             strategicGoals: company.strategicGoals,
-            finance: {
-              monthlyIncome: 12500,
-              monthlyTarget: 12000,
-              reserveFund: 45000,
-              energyCostDiff: -150,
-              collectionPercentage: 98.5,
-              companyLoansTotal: 450000,
-              energySavingsPct: 12.5,
-            },
+            finance: financeData,
             // Ensure MockStore required fields are present (empty arrays if not fetched)
             renovations: company.renovations.map((r) => ({
               id: r.id,
@@ -169,7 +178,17 @@ export default async function Home(props: {
               description: r.description,
               status: r.status,
             })),
-            observations: [],
+            observations: company.observations.map((o) => ({
+              id: o.id,
+              component: o.component,
+              description: o.description,
+              status: o.status,
+              severityGrade: o.severityGrade,
+              technicalVerdict: o.technicalVerdict,
+              boardSummary: o.boardSummary,
+              projectId: o.projectId,
+              createdAt: o.createdAt,
+            })),
             valuation: null, // Will be fetched client-side by ValueIntelligenceCard
             projects: [],
             feed: [],

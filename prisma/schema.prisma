@@ -3,47 +3,47 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
 // --- DOMAIN ---
 
 model HousingCompany {
-  id              String      @id @default(cuid())
-  businessId      String      @unique
-  name            String
-  address         String
-  city            String
-  postalCode      String
-  constructionYear Int?
-  totalSqm        Float?
-  apartments      Apartment[]
-  users           User[]
-  surveys         Survey[]
-  tickets         Ticket[]
-  initiatives     Initiative[]
-  documents       MeetingDocument[]
-  meetings        Meeting[]
-  budgetLines     BudgetLineItem[]
-  renovations     Renovation[]
-  observations    Observation[]
-  investments     InvestmentOption[]
-  projects        Project[]
-  mmlSyncLogs     MMLSyncLog[]
-  documentOrders  DocumentOrder[]
-  invoices        Invoice[]
-  vendorRules     VendorRule[]
-  utilityPrices   UtilityPrice[]
-  partners        ServicePartner[]
-  residentTasks   ResidentTask[]
-  resources       Resource[]
-  thermalLeaks    ThermalLeak[]
+  id                 String              @id @default(cuid())
+  businessId         String              @unique
+  name               String
+  address            String
+  city               String
+  postalCode         String
+  constructionYear   Int?
+  totalSqm           Float?
+  apartments         Apartment[]
+  users              User[]
+  surveys            Survey[]
+  tickets            Ticket[]
+  initiatives        Initiative[]
+  documents          MeetingDocument[]
+  meetings           Meeting[]
+  budgetLines        BudgetLineItem[]
+  renovations        Renovation[]
+  observations       Observation[]
+  investments        InvestmentOption[]
+  projects           Project[]
+  mmlSyncLogs        MMLSyncLog[]
+  documentOrders     DocumentOrder[]
+  invoices           Invoice[]
+  vendorRules        VendorRule[]
+  utilityPrices      UtilityPrice[]
+  partners           ServicePartner[]
+  residentTasks      ResidentTask[]
+  resources          Resource[]
+  thermalLeaks       ThermalLeak[]
   buildingComponents BuildingComponent[]
   htjShadowRecords   HTJ_ShadowRecord[]
   htjSyncLogs        HTJ_SyncLog[]
-  
+
   // LOAN BROKERAGE
   financialStatements FinancialStatement[]
   shareholders        Shareholder[]
@@ -53,54 +53,56 @@ model HousingCompany {
   auditLogs           GDPRLog[]
 
   // FINANCIAL SETTINGS
-  iban                String?
-  bic                 String?
-  accountingApiKey    String?
-  maintenanceFeePerShare Decimal @default(4.50)
-  financeFeePerShare     Decimal @default(0.00)
+  iban                   String?
+  bic                    String?
+  accountingApiKey       String?
+  maintenanceFeePerShare Decimal      @default(4.50)
+  financeFeePerShare     Decimal      @default(0.00)
   monthlyFees            MonthlyFee[]
-  
+
   // TEMPORAL ENGINE
-  fiscalConfig           FiscalConfiguration?
-  annualTasks            AnnualTask[]
-  strategicGoals         StrategicGoal[]
+  fiscalConfig   FiscalConfiguration?
+  annualTasks    AnnualTask[]
+  strategicGoals StrategicGoal[]
 
   // RELATIONS
-  subscription    Subscription?
-  features        FeatureAccess[]
-  orders          Order[]
+  subscription Subscription?
+  features     FeatureAccess[]
+  orders       Order[]
 
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  @@map("housing_companies")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([businessId])
+  @@map("housing_companies")
 }
 
 model Apartment {
-  id               String         @id @default(cuid())
+  id               String           @id @default(cuid())
   housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  apartmentNumber  String         
+  housingCompany   HousingCompany   @relation(fields: [housingCompanyId], references: [id])
+  apartmentNumber  String
   floor            Int?
   area             Decimal?
   sharesStart      Int
   sharesEnd        Int
-  shareCount       Int            
-  waterFeeAdvance  Decimal        @default(0)
-  elecFeeAdvance   Decimal        @default(0)
+  shareCount       Int
+  waterFeeAdvance  Decimal          @default(0)
+  elecFeeAdvance   Decimal          @default(0)
   users            User[]
   tickets          Ticket[]
   surveyResponses  SurveyResponse[]
   meters           Meter[]
   leakAlerts       LeakAlert[]
   attributes       Json?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
   fees             MonthlyFee[]
   votes            Vote[]
+
   @@unique([housingCompanyId, apartmentNumber])
-  @@map("apartments")
   @@index([housingCompanyId])
+  @@map("apartments")
 }
 
 enum UserRole {
@@ -112,42 +114,43 @@ enum UserRole {
 }
 
 model User {
-  id                String         @id @default(cuid())
-  email             String         @unique
-  name              String?
-  phone             String?
-  language          String         @default("fi")
+  id                      String              @id @default(cuid())
+  email                   String              @unique
+  name                    String?
+  phone                   String?
+  language                String              @default("fi")
   notificationPreferences Json?
-  housingCompanyId  String
-  housingCompany    HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  apartmentId       String?
-  apartment         Apartment?     @relation(fields: [apartmentId], references: [id])
-  role              UserRole       @default(RESIDENT)
-  password          String?        
-  canApproveFinance Boolean        @default(false)
-  createdTickets    Ticket[]
-  initiatives       Initiative[]
-  supportedInitiatives InitiativeSupport[]
-  surveyResponses   SurveyResponse[]
-  comments          Comment[]
-  votes             Vote[]
-  observations      Observation[]
-  documentOrders    DocumentOrder[]
-  orders            Order[]
-  approvedInvoices  Invoice[]
-  assignedTasks     ResidentTask[]
-  bookings          Booking[]
-  wallet            Wallet?
-  reportedLeaks     ThermalLeak[]
-  pollVotes         PollVote[]
-  auditLogs         GDPRLog[]
-  consentVersion    String?        // GDPR
-  deletedAt         DateTime?      // Soft Delete
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-  @@map("users")
+  housingCompanyId        String
+  housingCompany          HousingCompany      @relation(fields: [housingCompanyId], references: [id])
+  apartmentId             String?
+  apartment               Apartment?          @relation(fields: [apartmentId], references: [id])
+  role                    UserRole            @default(RESIDENT)
+  password                String?
+  canApproveFinance       Boolean             @default(false)
+  createdTickets          Ticket[]
+  initiatives             Initiative[]
+  supportedInitiatives    InitiativeSupport[]
+  surveyResponses         SurveyResponse[]
+  comments                Comment[]
+  votes                   Vote[]
+  observations            Observation[]
+  documentOrders          DocumentOrder[]
+  orders                  Order[]
+  approvedInvoices        Invoice[]
+  assignedTasks           ResidentTask[]
+  bookings                Booking[]
+  wallet                  Wallet?
+  reportedLeaks           ThermalLeak[]
+  pollVotes               PollVote[]
+  auditLogs               GDPRLog[]
+  consentVersion          String? // GDPR
+  deletedAt               DateTime? // Soft Delete
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+
   @@index([housingCompanyId])
   @@index([apartmentId])
+  @@map("users")
 }
 
 enum SubscriptionPlan {
@@ -173,17 +176,19 @@ model Subscription {
   nextBillingDate  DateTime?
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
+
   @@map("subscriptions")
 }
 
 model FeatureAccess {
   id               String         @id @default(cuid())
-  key              String         
+  key              String
   name             String
   price            Float
   isEnabled        Boolean        @default(false)
   housingCompanyId String
   housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+
   @@unique([housingCompanyId, key])
   @@map("feature_access")
 }
@@ -207,9 +212,10 @@ model Order {
   metadata         String?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
-  @@map("orders")
+
   @@index([userId])
   @@index([housingCompanyId])
+  @@map("orders")
 }
 
 enum TicketStatus {
@@ -232,28 +238,29 @@ enum TicketType {
 }
 
 model Ticket {
-  id               String         @id @default(cuid())
-  title            String
-  description      String
-  status           TicketStatus   @default(OPEN)
-  priority         TicketPriority @default(MEDIUM)
-  type             TicketType     @default(MAINTENANCE)
-  category         String?
-  supervisor       String?
-  housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  apartmentId      String?
-  apartment        Apartment?     @relation(fields: [apartmentId], references: [id])
-  createdById      String
-  createdBy        User           @relation(fields: [createdById], references: [id])
+  id                  String         @id @default(cuid())
+  title               String
+  description         String
+  status              TicketStatus   @default(OPEN)
+  priority            TicketPriority @default(MEDIUM)
+  type                TicketType     @default(MAINTENANCE)
+  category            String?
+  supervisor          String?
+  housingCompanyId    String
+  housingCompany      HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  apartmentId         String?
+  apartment           Apartment?     @relation(fields: [apartmentId], references: [id])
+  createdById         String
+  createdBy           User           @relation(fields: [createdById], references: [id])
   sentToMaintenanceAt DateTime?
-  observationId    String?        @unique
-  observation      Observation?   @relation(fields: [observationId], references: [id])
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  @@map("tickets")
+  observationId       String?        @unique
+  observation         Observation?   @relation(fields: [observationId], references: [id])
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
   @@index([housingCompanyId, status])
   @@index([createdById])
+  @@map("tickets")
 }
 
 enum RenovationStatus {
@@ -262,21 +269,22 @@ enum RenovationStatus {
 }
 
 model Renovation {
-  id                String           @id @default(cuid())
-  component         String
-  yearDone          Int?
-  plannedYear       Int?
-  cost              Float
-  expectedLifeSpan  Int
-  description       String?
-  status            RenovationStatus @default(COMPLETED)
-  housingCompanyId  String
-  housingCompany    HousingCompany   @relation(fields: [housingCompanyId], references: [id])
-  assessments       ExpertAssessment[]
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  @@map("renovations")
+  id               String             @id @default(cuid())
+  component        String
+  yearDone         Int?
+  plannedYear      Int?
+  cost             Float
+  expectedLifeSpan Int
+  description      String?
+  status           RenovationStatus   @default(COMPLETED)
+  housingCompanyId String
+  housingCompany   HousingCompany     @relation(fields: [housingCompanyId], references: [id])
+  assessments      ExpertAssessment[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
   @@index([housingCompanyId])
+  @@map("renovations")
 }
 
 enum ObservationStatus {
@@ -290,18 +298,24 @@ model Observation {
   description      String
   imageUrl         String?
   status           ObservationStatus @default(OPEN)
-  location         String?
+  location         String? // JSON string: {x, y, z}
+  severityGrade    Int? // 1-4: Critical, Urgent, Normal, Low
+  technicalVerdict String?
+  boardSummary     String? // Automated or expert-written summary for board
   userId           String
   user             User              @relation(fields: [userId], references: [id])
   housingCompanyId String
   housingCompany   HousingCompany    @relation(fields: [housingCompanyId], references: [id])
   assessment       ExpertAssessment?
   ticket           Ticket?
+  projectId        String?           @unique
+  project          Project?          @relation("ObservationToProject", fields: [projectId], references: [id])
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
-  @@map("observations")
+
   @@index([housingCompanyId])
   @@index([userId])
+  @@map("observations")
 }
 
 model ExpertAssessment {
@@ -316,6 +330,7 @@ model ExpertAssessment {
   options          SolutionOption[]
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
+
   @@map("expert_assessments")
 }
 
@@ -329,6 +344,7 @@ model SolutionOption {
   lifeSpanExtension Int
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
+
   @@map("solution_options")
 }
 
@@ -350,8 +366,9 @@ model BudgetLineItem {
   housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
-  @@map("budget_line_items")
+
   @@index([housingCompanyId, year])
+  @@map("budget_line_items")
 }
 
 enum InvoiceStatus {
@@ -380,20 +397,22 @@ model Invoice {
   imageUrl         String?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
-  @@map("invoices")
+
   @@index([housingCompanyId, status])
   @@index([projectId])
+  @@map("invoices")
 }
 
 model VendorRule {
   id               String         @id @default(cuid())
-  yTunnus          String?        
+  yTunnus          String?
   vendorName       String?
   category         BudgetCategory
   housingCompanyId String
   housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
+
   @@unique([housingCompanyId, yTunnus])
   @@map("vendor_rules")
 }
@@ -417,8 +436,9 @@ model InvestmentOption {
   housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
-  @@map("investment_options")
+
   @@index([housingCompanyId])
+  @@map("investment_options")
 }
 
 enum ProjectStatus {
@@ -441,16 +461,16 @@ enum ProjectType {
 }
 
 model Project {
-  id               String         @id @default(cuid())
+  id               String              @id @default(cuid())
   title            String
   description      String?
   type             String
   projectType      ProjectType?
-  status           ProjectStatus  @default(DIAGNOSIS)
+  status           ProjectStatus       @default(DIAGNOSIS)
   estimatedCost    Float?
   energySavingsEst Float?
   housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  housingCompany   HousingCompany      @relation(fields: [housingCompanyId], references: [id])
   tenders          Tender[]
   siteReports      SiteReport[]
   changeOrders     ChangeOrder[]
@@ -459,10 +479,13 @@ model Project {
   updates          BuildingUpdate[]
   scenarios        FinancialScenario[]
   loanApplications LoanApplication[]
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  @@map("projects")
+  observationId    String?             @unique
+  observation      Observation?        @relation("ObservationToProject")
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
   @@index([housingCompanyId, status])
+  @@map("projects")
 }
 
 enum UpdateType {
@@ -472,15 +495,16 @@ enum UpdateType {
 }
 
 model BuildingUpdate {
-  id        String   @id @default(cuid())
+  id        String     @id @default(cuid())
   projectId String
-  project   Project  @relation(fields: [projectId], references: [id])
+  project   Project    @relation(fields: [projectId], references: [id])
   title     String
   content   String
   type      UpdateType
-  createdAt DateTime @default(now())
-  @@map("building_updates")
+  createdAt DateTime   @default(now())
+
   @@index([projectId, createdAt])
+  @@map("building_updates")
 }
 
 enum PollType {
@@ -499,8 +523,9 @@ model Poll {
   votes          PollVote[]
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
-  @@map("polls")
+
   @@index([expiresAt])
+  @@map("polls")
 }
 
 model PollOption {
@@ -510,24 +535,26 @@ model PollOption {
   label         String
   vastikeImpact Float
   votes         PollVote[]
-  @@map("poll_options")
+
   @@index([pollId])
+  @@map("poll_options")
 }
 
 model PollVote {
-  id       String     @id @default(cuid())
-  pollId   String
-  poll     Poll       @relation(fields: [pollId], references: [id])
-  userId   String
-  user     User       @relation(fields: [userId], references: [id])
-  optionId String
-  option   PollOption @relation(fields: [optionId], references: [id])
-  weight   Float
-  createdAt DateTime  @default(now())
+  id        String     @id @default(cuid())
+  pollId    String
+  poll      Poll       @relation(fields: [pollId], references: [id])
+  userId    String
+  user      User       @relation(fields: [userId], references: [id])
+  optionId  String
+  option    PollOption @relation(fields: [optionId], references: [id])
+  weight    Float
+  createdAt DateTime   @default(now())
+
   @@unique([pollId, userId])
-  @@map("poll_votes")
   @@index([pollId])
   @@index([userId])
+  @@map("poll_votes")
 }
 
 enum TenderType {
@@ -550,8 +577,9 @@ model Tender {
   bids      Bid[]
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
-  @@map("tenders")
+
   @@index([projectId])
+  @@map("tenders")
 }
 
 model Bid {
@@ -575,8 +603,9 @@ model Bid {
   isWinner          Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-  @@map("bids")
+
   @@index([tenderId])
+  @@map("bids")
 }
 
 model SiteReport {
@@ -587,8 +616,9 @@ model SiteReport {
   content   String
   imageUrl  String?
   timestamp DateTime @default(now())
-  @@map("site_reports")
+
   @@index([projectId])
+  @@map("site_reports")
 }
 
 enum ChangeOrderStatus {
@@ -606,8 +636,9 @@ model ChangeOrder {
   status     ChangeOrderStatus @default(PENDING)
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
-  @@map("change_orders")
+
   @@index([projectId])
+  @@map("change_orders")
 }
 
 model MMLSyncLog {
@@ -617,6 +648,7 @@ model MMLSyncLog {
   status           String
   recordCount      Int
   timestamp        DateTime       @default(now())
+
   @@map("mml_sync_logs")
 }
 
@@ -625,37 +657,37 @@ model HTJ_ShadowRecord {
   id               String         @id @default(cuid())
   housingCompanyId String
   housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  endpoint         String         // e.g., "/yhtiot/", "/osakeryhmat/"
-  businessId       String         // Y-tunnus
-  rawResponse      Json           // Full JSON response from MML API
-  recordType       String         // "YHTIO" | "OSAKERYHMA" | "ILMOITUS"
+  endpoint         String // e.g., "/yhtiot/", "/osakeryhmat/"
+  businessId       String // Y-tunnus
+  rawResponse      Json // Full JSON response from MML API
+  recordType       String // "YHTIO" | "OSAKERYHMA" | "ILMOITUS"
   syncedAt         DateTime       @default(now())
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
-  
-  @@map("htj_shadow_records")
+
+  @@unique([housingCompanyId, endpoint, businessId])
   @@index([housingCompanyId])
   @@index([businessId])
-  @@unique([housingCompanyId, endpoint, businessId])
+  @@map("htj_shadow_records")
 }
 
 model HTJ_SyncLog {
-  id               String         @id @default(cuid())
-  housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  boardMemberId    String?        // User ID who initiated the sync
-  operation        String         // "SYNC_YHTIO" | "SYNC_OSAKERYHMAT" | "SUBMIT_RENOVATION" | "COMPARE_DELTA"
-  status           String         // "SUCCESS" | "FAILED" | "PARTIAL"
-  recordCount      Int            @default(0)
-  piiFieldsAccessed String[]      // Array of PII field names accessed (GDPR compliance)
-  errorMessage     String?
-  metadata         Json?          // Additional context (endpoint, request params, etc.)
-  timestamp        DateTime       @default(now())
-  
-  @@map("htj_sync_logs")
+  id                String         @id @default(cuid())
+  housingCompanyId  String
+  housingCompany    HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  boardMemberId     String? // User ID who initiated the sync
+  operation         String // "SYNC_YHTIO" | "SYNC_OSAKERYHMAT" | "SUBMIT_RENOVATION" | "COMPARE_DELTA"
+  status            String // "SUCCESS" | "FAILED" | "PARTIAL"
+  recordCount       Int            @default(0)
+  piiFieldsAccessed String[] // Array of PII field names accessed (GDPR compliance)
+  errorMessage      String?
+  metadata          Json? // Additional context (endpoint, request params, etc.)
+  timestamp         DateTime       @default(now())
+
   @@index([housingCompanyId])
   @@index([boardMemberId])
   @@index([timestamp])
+  @@map("htj_sync_logs")
 }
 
 enum DocumentType {
@@ -681,40 +713,42 @@ model DocumentOrder {
   status           OrderStatus    @default(PENDING)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
-  @@map("document_orders")
+
   @@index([userId])
+  @@map("document_orders")
 }
 
 enum GovernanceStatus {
   DRAFT
   OPEN_FOR_SUPPORT
-  QUALIFIED 
-  VOTING 
+  QUALIFIED
+  VOTING
   APPROVED
   REJECTED
 }
 
 model Initiative {
-  id               String            @id @default(cuid())
+  id               String              @id @default(cuid())
   title            String
   description      String
-  status           GovernanceStatus  @default(DRAFT)
+  status           GovernanceStatus    @default(DRAFT)
   affectedArea     String?
   housingCompanyId String
-  housingCompany   HousingCompany    @relation(fields: [housingCompanyId], references: [id])
+  housingCompany   HousingCompany      @relation(fields: [housingCompanyId], references: [id])
   authorId         String
-  author           User              @relation(fields: [authorId], references: [id])
+  author           User                @relation(fields: [authorId], references: [id])
   supporters       InitiativeSupport[]
   votes            Vote[]
   comments         Comment[]
   meetingId        String?
-  meeting          Meeting?          @relation(fields: [meetingId], references: [id])
-  requiredSupport  Int               @default(10)
+  meeting          Meeting?            @relation(fields: [meetingId], references: [id])
+  requiredSupport  Int                 @default(10)
   votingEndsAt     DateTime?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  @@map("initiatives")
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
   @@index([housingCompanyId, status])
+  @@map("initiatives")
 }
 
 model InitiativeSupport {
@@ -724,6 +758,7 @@ model InitiativeSupport {
   userId       String
   user         User       @relation(fields: [userId], references: [id])
   createdAt    DateTime   @default(now())
+
   @@unique([initiativeId, userId])
   @@map("initiative_supports")
 }
@@ -736,8 +771,9 @@ model Comment {
   userId       String
   user         User       @relation(fields: [userId], references: [id])
   createdAt    DateTime   @default(now())
-  @@map("comments")
+
   @@index([initiativeId])
+  @@map("comments")
 }
 
 enum VoteChoice {
@@ -753,16 +789,16 @@ model Vote {
   initiativeId String
   initiative   Initiative @relation(fields: [initiativeId], references: [id])
   choice       VoteChoice
-  shares       Int        
+  shares       Int
   timestamp    DateTime   @default(now())
-  
-  apartmentId  String
-  apartment    Apartment  @relation(fields: [apartmentId], references: [id])
+
+  apartmentId String
+  apartment   Apartment @relation(fields: [apartmentId], references: [id])
 
   @@unique([initiativeId, apartmentId])
-  @@map("votes")
   @@index([initiativeId])
   @@index([apartmentId])
+  @@map("votes")
 }
 
 enum MeetingType {
@@ -776,28 +812,29 @@ enum SignatureStatus {
 }
 
 model Meeting {
-  id               String       @id @default(cuid())
+  id               String           @id @default(cuid())
   title            String
   type             MeetingType
   date             DateTime
   status           GovernanceStatus @default(OPEN_FOR_SUPPORT)
   housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  housingCompany   HousingCompany   @relation(fields: [housingCompanyId], references: [id])
   initiatives      Initiative[]
   chairmanId       String?
   secretaryId      String?
-  scrutineerIds    String[] 
+  scrutineerIds    String[]
   minutesContent   String?
-  signatureStatus  SignatureStatus @default(PENDING)
+  signatureStatus  SignatureStatus  @default(PENDING)
   signedUrl        String?
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  @@map("meetings")
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
   @@index([housingCompanyId, date])
+  @@map("meetings")
 }
 
 model MeetingDocument {
-  id               String       @id @default(cuid())
+  id               String         @id @default(cuid())
   title            String
   type             MeetingType
   date             DateTime
@@ -806,34 +843,37 @@ model MeetingDocument {
   aiSummary        String?
   housingCompanyId String
   housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  @@map("meeting_documents")
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
   @@index([housingCompanyId, year])
+  @@map("meeting_documents")
 }
 
 model Survey {
-  id               String         @id @default(cuid())
+  id               String           @id @default(cuid())
   housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  housingCompany   HousingCompany   @relation(fields: [housingCompanyId], references: [id])
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
   responses        SurveyResponse[]
-  @@map("surveys")
+
   @@index([housingCompanyId])
+  @@map("surveys")
 }
 
 model SurveyResponse {
-  id        String    @id @default(cuid())
-  surveyId  String
-  survey    Survey    @relation(fields: [surveyId], references: [id])
-  userId    String
-  user      User      @relation(fields: [userId], references: [id])
+  id          String     @id @default(cuid())
+  surveyId    String
+  survey      Survey     @relation(fields: [surveyId], references: [id])
+  userId      String
+  user        User       @relation(fields: [userId], references: [id])
   apartmentId String?
-  apartment Apartment? @relation(fields: [apartmentId], references: [id])
-  createdAt DateTime  @default(now())
-  @@map("survey_responses")
+  apartment   Apartment? @relation(fields: [apartmentId], references: [id])
+  createdAt   DateTime   @default(now())
+
   @@index([surveyId])
+  @@map("survey_responses")
 }
 
 enum MeterType {
@@ -843,18 +883,19 @@ enum MeterType {
 }
 
 model Meter {
-  id           String    @id @default(cuid())
-  apartmentId  String
-  apartment    Apartment @relation(fields: [apartmentId], references: [id])
-  type         MeterType
-  serialNumber String
-  lastReading  Decimal
+  id              String    @id @default(cuid())
+  apartmentId     String
+  apartment       Apartment @relation(fields: [apartmentId], references: [id])
+  type            MeterType
+  serialNumber    String
+  lastReading     Decimal
   lastReadingDate DateTime
-  readings     Reading[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  @@map("meters")
+  readings        Reading[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
   @@index([apartmentId])
+  @@map("meters")
 }
 
 model Reading {
@@ -866,22 +907,24 @@ model Reading {
   isManual  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  @@map("readings")
+
   @@index([meterId, date])
+  @@map("readings")
 }
 
 model UtilityPrice {
-  id             String         @id @default(cuid())
+  id               String         @id @default(cuid())
   housingCompanyId String
-  housingCompany HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  type           MeterType
-  pricePerUnit   Decimal
-  validFrom      DateTime
-  currency       String         @default("EUR")
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  @@map("utility_prices")
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  type             MeterType
+  pricePerUnit     Decimal
+  validFrom        DateTime
+  currency         String         @default("EUR")
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
   @@index([housingCompanyId])
+  @@map("utility_prices")
 }
 
 enum LeakSeverity {
@@ -912,9 +955,10 @@ model LeakAlert {
   detectionMetadata String?
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
-  @@map("leak_alerts")
+
   @@index([apartmentId, status])
   @@index([createdAt])
+  @@map("leak_alerts")
 }
 
 enum PartnerCategory {
@@ -937,8 +981,9 @@ model ServicePartner {
   housingCompany   HousingCompany  @relation(fields: [housingCompanyId], references: [id])
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
-  @@map("service_partners")
+
   @@index([housingCompanyId, category])
+  @@map("service_partners")
 }
 
 enum ResidentTaskStatus {
@@ -967,8 +1012,9 @@ model ResidentTask {
   proofImageUrl      String?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
-  @@map("resident_tasks")
+
   @@index([housingCompanyId, status])
+  @@map("resident_tasks")
 }
 
 enum ResourceType {
@@ -994,8 +1040,9 @@ model Resource {
   powerEvents       PowerEvent[]
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
-  @@map("resources")
+
   @@index([housingCompanyId])
+  @@map("resources")
 }
 
 enum PaymentType {
@@ -1010,38 +1057,40 @@ enum BookingStatus {
 }
 
 model Booking {
-  id          String        @id @default(cuid())
-  resourceId  String
-  resource    Resource      @relation(fields: [resourceId], references: [id])
-  userId      String
-  user        User          @relation(fields: [userId], references: [id])
-  startTime   DateTime
-  endTime     DateTime
-  paymentType PaymentType
-  status      BookingStatus @default(CONFIRMED)
-  accessCode  String?
-  isPreheating Boolean      @default(false)
-  powerEvents PowerEvent[]
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  @@map("bookings")
+  id           String        @id @default(cuid())
+  resourceId   String
+  resource     Resource      @relation(fields: [resourceId], references: [id])
+  userId       String
+  user         User          @relation(fields: [userId], references: [id])
+  startTime    DateTime
+  endTime      DateTime
+  paymentType  PaymentType
+  status       BookingStatus @default(CONFIRMED)
+  accessCode   String?
+  isPreheating Boolean       @default(false)
+  powerEvents  PowerEvent[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
   @@index([resourceId, startTime])
   @@index([userId])
+  @@map("bookings")
 }
 
 model PowerEvent {
-  id            String   @id @default(cuid())
-  resourceId    String
-  resource      Resource @relation(fields: [resourceId], references: [id])
-  bookingId     String?
-  booking       Booking? @relation(fields: [bookingId], references: [id])
-  timestamp     DateTime @default(now())
-  eventType     String
+  id              String   @id @default(cuid())
+  resourceId      String
+  resource        Resource @relation(fields: [resourceId], references: [id])
+  bookingId       String?
+  booking         Booking? @relation(fields: [bookingId], references: [id])
+  timestamp       DateTime @default(now())
+  eventType       String
   durationMinutes Int?
-  kwhEstimated  Float?
-  costEstimated Float?
-  @@map("power_events")
+  kwhEstimated    Float?
+  costEstimated   Float?
+
   @@index([resourceId, timestamp])
+  @@map("power_events")
 }
 
 model Wallet {
@@ -1052,6 +1101,7 @@ model Wallet {
   karmaBalance Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
   @@map("wallets")
 }
 
@@ -1068,8 +1118,9 @@ model ThermalLeak {
   housingCompanyId String
   housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
   createdAt        DateTime       @default(now())
-  @@map("thermal_leaks")
+
   @@index([housingCompanyId])
+  @@map("thermal_leaks")
 }
 
 enum ContractStatus {
@@ -1093,25 +1144,27 @@ model LegalContract {
   milestones     Milestone[]
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
+
   @@map("legal_contracts")
 }
 
 model Milestone {
-  id          String        @id @default(cuid())
-  contractId  String
-  contract    LegalContract @relation(fields: [contractId], references: [id])
-  title       String
-  amount      Float
-  dueDate     DateTime
-  isApproved  Boolean       @default(false)
-  approvedAt  DateTime?
-  approvedBy  String?
-  isPaid      Boolean       @default(false)
-  paidAt      DateTime?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  @@map("milestones")
+  id         String        @id @default(cuid())
+  contractId String
+  contract   LegalContract @relation(fields: [contractId], references: [id])
+  title      String
+  amount     Float
+  dueDate    DateTime
+  isApproved Boolean       @default(false)
+  approvedAt DateTime?
+  approvedBy String?
+  isPaid     Boolean       @default(false)
+  paidAt     DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
   @@index([contractId])
+  @@map("milestones")
 }
 
 model FinancialStatement {
@@ -1124,8 +1177,9 @@ model FinancialStatement {
   loansTotal       Float
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
-  @@map("financial_statements")
+
   @@index([housingCompanyId])
+  @@map("financial_statements")
 }
 
 model Shareholder {
@@ -1133,14 +1187,15 @@ model Shareholder {
   housingCompanyId String
   housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
   name             String
-  businessId       String?        
+  businessId       String?
   shareCount       Int
   isInstitutional  Boolean        @default(false)
-  deletedAt        DateTime?      // Soft Delete
+  deletedAt        DateTime? // Soft Delete
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
-  @@map("shareholders")
+
   @@index([housingCompanyId])
+  @@map("shareholders")
 }
 
 enum LoanStatus {
@@ -1169,25 +1224,27 @@ model LoanApplication {
   collateralType   String?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
-  @@map("loan_applications")
+
   @@index([housingCompanyId])
   @@index([projectId])
+  @@map("loan_applications")
 }
 
 model CostBenchmark {
-  id                      String   @id @default(cuid())
-  category                String   
-  unitPriceM2             Float    
-  expectedLifeYears       Int      
-  technicalDepreciationRate Float  
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
-  @@map("cost_benchmarks")
+  id                        String   @id @default(cuid())
+  category                  String
+  unitPriceM2               Float
+  expectedLifeYears         Int
+  technicalDepreciationRate Float
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
   @@unique([category])
+  @@map("cost_benchmarks")
 }
 
 model FinancialScenario {
-  id                 String   @id @default(cuid())
+  id                 String         @id @default(cuid())
   housingCompanyId   String
   housingCompany     HousingCompany @relation(fields: [housingCompanyId], references: [id])
   title              String
@@ -1197,41 +1254,44 @@ model FinancialScenario {
   monthlyImpactPerM2 Float
   projectId          String?
   project            Project?       @relation(fields: [projectId], references: [id])
-  isBaseline         Boolean  @default(false)
-  metadata           String?  
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  @@map("financial_scenarios")
+  isBaseline         Boolean        @default(false)
+  metadata           String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
   @@index([housingCompanyId])
+  @@map("financial_scenarios")
 }
 
 model InvestmentGrade {
   id               String         @id @default(cuid())
   housingCompanyId String
   housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  score            Float          
-  grade            String         
-  pillarScores     String         
+  score            Float
+  grade            String
+  pillarScores     String
   updatedAt        DateTime       @updatedAt
   createdAt        DateTime       @default(now())
-  @@map("investment_grades")
+
   @@index([housingCompanyId])
+  @@map("investment_grades")
 }
 
 model GDPRLog {
-  id               String         @id @default(cuid())
+  id               String          @id @default(cuid())
   actorId          String
-  actor            User           @relation(fields: [actorId], references: [id])
-  action           String         // READ, WRITE, DELETE
-  targetEntity     String         // e.g. "User:123"
+  actor            User            @relation(fields: [actorId], references: [id])
+  action           String // READ, WRITE, DELETE
+  targetEntity     String // e.g. "User:123"
   details          String?
   ipAddress        String?
   housingCompanyId String?
   housingCompany   HousingCompany? @relation(fields: [housingCompanyId], references: [id])
-  timestamp        DateTime       @default(now())
-  @@map("gdpr_logs")
+  timestamp        DateTime        @default(now())
+
   @@index([housingCompanyId])
   @@index([actorId])
+  @@map("gdpr_logs")
 }
 
 model MonthlyFee {
@@ -1243,15 +1303,17 @@ model MonthlyFee {
   referenceNumber  String
   amount           Decimal
   dueDate          DateTime
-  period           DateTime       // The month being billed (e.g. 2026-02-01)
+  period           DateTime // The month being billed (e.g. 2026-02-01)
   status           InvoiceStatus  @default(PENDING)
-  breakdown        Json?          // { hoitovastike: 100, rahoitus: 50, water: 20 }
+  breakdown        Json? // { hoitovastike: 100, rahoitus: 50, water: 20 }
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
-  @@map("monthly_fees")
+
   @@index([housingCompanyId, period])
   @@index([apartmentId])
+  @@map("monthly_fees")
 }
+
 // --- Temporal Engine Models ---
 
 enum FiscalQuarter {
@@ -1262,10 +1324,10 @@ enum FiscalQuarter {
 }
 
 enum TaskCategory {
-  GOVERNANCE    // Meetings, NLS filings, voting
-  MAINTENANCE   // Inspections, snow removal, HVAC
-  FINANCE       // Budgeting, tax, audit
-  LEGAL         // Insurance, contracts
+  GOVERNANCE // Meetings, NLS filings, voting
+  MAINTENANCE // Inspections, snow removal, HVAC
+  FINANCE // Budgeting, tax, audit
+  LEGAL // Insurance, contracts
 }
 
 enum GoalStatus {
@@ -1276,49 +1338,49 @@ enum GoalStatus {
 }
 
 model FiscalConfiguration {
-  id              String         @id @default(cuid())
-  housingCompanyId String        @unique
+  id               String         @id @default(cuid())
+  housingCompanyId String         @unique
   housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  startMonth      Int            @default(1) // 1 = January, 7 = July (Finnish: Tilikauden alkamiskuukausi)
-  
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  startMonth       Int            @default(1) // 1 = January, 7 = July (Finnish: Tilikauden alkamiskuukausi)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model AnnualTask {
-  id              String         @id @default(cuid())
+  id               String         @id @default(cuid())
   housingCompanyId String
   housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  
-  title           String         // e.g., "Yhtiökokous" (General Meeting)
-  category        TaskCategory
-  quarter         FiscalQuarter
-  month           Int            @default(1)
-  isStatutory     Boolean        @default(false)
-  isCompleted     Boolean        @default(false)
-  description     String?
-  
+
+  title       String // e.g., "Yhtiökokous" (General Meeting)
+  category    TaskCategory
+  quarter     FiscalQuarter
+  month       Int           @default(1)
+  isStatutory Boolean       @default(false)
+  isCompleted Boolean       @default(false)
+  description String?
+
   // Link to 3D Space
-  meshId          String?        // ID of the 3D mesh in the digital twin (e.g., "Roof_01")
-  
-  completedAt     DateTime?
-  deadline        DateTime?
+  meshId String? // ID of the 3D mesh in the digital twin (e.g., "Roof_01")
+
+  completedAt DateTime?
+  deadline    DateTime?
 }
 
 model StrategicGoal {
-  id              String         @id @default(cuid())
+  id               String         @id @default(cuid())
   housingCompanyId String
   housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  
-  title           String         // e.g., "Energy Efficiency 2030"
-  targetValue     Float?
-  currentValue    Float?
-  unit            String?        // e.g., "kWh/m2"
-  status          GoalStatus     @default(IN_PROGRESS)
-  targetDate      DateTime?
-  
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+
+  title        String // e.g., "Energy Efficiency 2030"
+  targetValue  Float?
+  currentValue Float?
+  unit         String? // e.g., "kWh/m2"
+  status       GoalStatus @default(IN_PROGRESS)
+  targetDate   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum ResponsibilityType {
@@ -1328,19 +1390,19 @@ enum ResponsibilityType {
 }
 
 model BuildingComponent {
-  id              String             @id @default(cuid())
-  meshId          String             @unique
-  name            String
-  type            String             // e.g. "WALL", "PIPE", "FLOOR"
-  responsibility  ResponsibilityType
-  lastRenovatedYear Int?             // New
-  expectedLifespan  Int?             // New (years)
-  estimatedCostSqm  Float?           // New (EUR/m2)
-  housingCompanyId String
-  housingCompany   HousingCompany    @relation(fields: [housingCompanyId], references: [id])
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-  
-  @@map("building_components")
+  id                String             @id @default(cuid())
+  meshId            String             @unique
+  name              String
+  type              String // e.g. "WALL", "PIPE", "FLOOR"
+  responsibility    ResponsibilityType
+  lastRenovatedYear Int? // New
+  expectedLifespan  Int? // New (years)
+  estimatedCostSqm  Float? // New (EUR/m2)
+  housingCompanyId  String
+  housingCompany    HousingCompany     @relation(fields: [housingCompanyId], references: [id])
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
   @@index([housingCompanyId])
+  @@map("building_components")
 }

@@ -2,18 +2,42 @@
 
 import React, { useState, useTransition } from "react";
 import { useTemporalStore } from "@/lib/useTemporalStore";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "@/components/ui/card";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { AnnualTask, FiscalQuarter } from "@prisma/client";
-import { Briefcase, Calendar, CheckCircle2, Circle } from "lucide-react";
-import { toggleTaskCompletion } from "@/app/actions/governance";
+import { AnnualTask, FiscalQuarter, TaskCategory } from "@prisma/client";
+import { Briefcase, Calendar, CheckCircle2, Circle, Plus } from "lucide-react";
+import { toggleTaskCompletion, createAnnualTask } from "@/app/actions/governance";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 const QUARTERS: FiscalQuarter[] = ["Q1", "Q2", "Q3", "Q4"];
 
@@ -120,7 +144,7 @@ const QuarterSegment = ({
                   onMouseEnter={() => setHoveredTask(task)}
                   onMouseLeave={() => setHoveredTask(null)}
                   onClick={(e) => {
-                    e.stopPropagation(); // Prevent quarter click if needed
+                    e.stopPropagation();
                     handleToggle(task);
                   }}
                 >
@@ -149,9 +173,11 @@ const QuarterSegment = ({
                         </Badge>
                       )}
                     </div>
-                    <p className="text-slate-500 line-clamp-2">
-                      {task.description}
-                    </p>
+                    {task.description && (
+                      <p className="text-slate-500 line-clamp-2">
+                        {task.description}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
@@ -170,8 +196,16 @@ export interface AnnualClockData {
   completedTasks: number;
 }
 
-export function AnnualClock({ data }: { data: AnnualClockData }) {
+interface AnnualClockProps {
+  data: AnnualClockData;
+  isBoard?: boolean;
+  housingCompanyId?: string;
+}
+
+export function AnnualClock({ data, isBoard, housingCompanyId }: AnnualClockProps) {
   const { currentActiveQuarter, setActiveQuarter } = useTemporalStore();
+  const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   const startMonth = data.fiscalYearStart;
 
@@ -194,13 +228,112 @@ export function AnnualClock({ data }: { data: AnnualClockData }) {
     }
   };
 
+  const handleAddTask = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!housingCompanyId) return;
+
+    const formData = new FormData(e.currentTarget);
+    const title = formData.get("title") as string;
+    const category = formData.get("category") as TaskCategory;
+    const month = parseInt(formData.get("month") as string);
+    const isStatutory = formData.get("isStatutory") === "on";
+    const description = formData.get("description") as string;
+
+    startTransition(async () => {
+      const result = await createAnnualTask({
+        title,
+        category,
+        month,
+        housingCompanyId,
+        isStatutory,
+        description,
+      });
+
+      if (result.success) {
+        toast.success("Tehtävä lisätty vuosikelloon!");
+        setIsAddTaskOpen(false);
+      } else {
+        toast.error(result.error || "Virhe lisättäessä tehtävää.");
+      }
+    });
+  };
+
   return (
     <Card className="w-full">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
           <Briefcase className="w-5 h-5" />
           Vuosikello
         </CardTitle>
+        {isBoard && (
+          <Dialog open={isAddTaskOpen} onOpenChange={setIsAddTaskOpen}>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-brand-navy">
+                <Plus className="h-4 w-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <form onSubmit={handleAddTask}>
+                <DialogHeader>
+                  <DialogTitle>Lisää tehtävä vuosikelloon</DialogTitle>
+                  <DialogDescription>
+                    Lisää uusi toistuva tai kertaluonteinen tehtävä taloyhtiön kalenteriin.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="title">Otsikko</Label>
+                    <Input id="title" name="title" placeholder="Esim. Kevättalkoot" required />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="month">Kuukausi</Label>
+                      <Select name="month" defaultValue="1">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Valitse kk" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 12 }, (_, i) => (
+                            <SelectItem key={i + 1} value={(i + 1).toString()}>
+                              {new Date(2024, i, 1).toLocaleString('fi-FI', { month: 'long' })}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="category">Kategoria</Label>
+                      <Select name="category" defaultValue="MAINTENANCE">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Valitse kategoria" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MAINTENANCE">Kunnossapito</SelectItem>
+                          <SelectItem value="FINANCE">Talous</SelectItem>
+                          <SelectItem value="GOVERNANCE">Hallinto</SelectItem>
+                          <SelectItem value="LEGAL">Laki</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input type="checkbox" id="isStatutory" name="isStatutory" className="h-4 w-4 rounded border-gray-300" />
+                    <Label htmlFor="isStatutory">Lakisääteinen tehtävä</Label>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="description">Kuvaus (Valinnainen)</Label>
+                    <Input id="description" name="description" placeholder="Lyhyt kuvaus tehtävästä..." />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="submit" className="bg-[#002f6c]" disabled={isPending}>
+                    {isPending ? "Tallennetaan..." : "Tallenna"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
       </CardHeader>
       <CardContent className="flex flex-col items-center">
         <div className="relative w-48 h-48">
@@ -211,8 +344,6 @@ export function AnnualClock({ data }: { data: AnnualClockData }) {
               const isSelected = currentActiveQuarter === q;
               const isDimmed = currentActiveQuarter !== null && !isSelected;
 
-              // Calculate tasks for this quarter
-              // Q1 = months [start, start+1, start+2]
               const quarterMonths: number[] = [];
               for (let m = 0; m < 3; m++) {
                 const month = ((startMonth - 1 + i * 3 + m) % 12) + 1;

@@ -91,65 +91,124 @@ export async function getOpsBoardItems(): Promise<KanbanItem[]> {
 // TRANSITIONS
 
 export async function escalateTicketToObservation(ticketId: string) {
-    const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } })
-    if (!ticket) return { error: 'Ticket not found' }
+  const ticket = await prisma.ticket.findUnique({
+    where: { id: ticketId },
+    include: { apartment: true },
+  });
+  if (!ticket) return { error: "Ticket not found" };
 
-    // Create Observation
-    const obs = await prisma.observation.create({
-        data: {
-            component: ticket.title,
-            description: ticket.description,
-            userId: ticket.createdById,
-            housingCompanyId: ticket.housingCompanyId,
-            status: 'OPEN'
-        }
-    })
+  // 1. Create Observation with spatial metadata and association
+  const obs = await prisma.observation.create({
+    data: {
+      component: ticket.title,
+      description: ticket.description,
+      userId: ticket.createdById,
+      housingCompanyId: ticket.housingCompanyId,
+      status: "OPEN",
+      location: ticket.apartment?.attributes
+        ? JSON.stringify(ticket.apartment.attributes)
+        : undefined, // Preserve spatial data if attached to apartment
+    },
+  });
 
-    // Link
-    await prisma.ticket.update({
-        where: { id: ticketId },
-        data: { observationId: obs.id, status: 'IN_PROGRESS' }
-    })
+  // 2. Link Ticket to Observation and update status
+  await prisma.ticket.update({
+    where: { id: ticketId },
+    data: { observationId: obs.id, status: "IN_PROGRESS" },
+  });
 
-    revalidatePath('/admin/ops')
-    return { success: true }
+  // 3. Log GDPR Event
+  await prisma.gDPRLog.create({
+    data: {
+      actorId: "system", // In a real app, use the current user session ID
+      action: "ESCALATE_TICKET",
+      targetEntity: `Observation:${obs.id}`,
+      details: `Escalated Ticket ${ticketId} to Observation.`,
+      housingCompanyId: ticket.housingCompanyId,
+    },
+  });
+
+  revalidatePath("/admin/ops");
+  return { success: true, observationId: obs.id };
 }
 
-export async function submitExpertAssessment(observationId: string, verdict: string) {
-    await prisma.expertAssessment.create({
-        data: {
-            observationId,
-            technicalVerdict: verdict,
-            severityGrade: 3, // Mock
-        }
-    })
-    
-    // Move Obs to reviewed
-    await prisma.observation.update({
-        where: { id: observationId },
-        data: { status: 'REVIEWED' }
-    })
+export async function submitTechnicalVerdict(
+  observationId: string,
+  data: {
+    verdict: string;
+    severity: number;
+    boardSummary?: string;
+  },
+) {
+  try {
+    const updated = await prisma.observation.update({
+      where: { id: observationId },
+      data: {
+        technicalVerdict: data.verdict,
+        severityGrade: data.severity,
+        boardSummary: data.boardSummary,
+        status: "REVIEWED",
+      },
+      include: { housingCompany: true },
+    });
 
-    revalidatePath('/admin/ops')
-    return { success: true }
+    // 1. Log GDPR Event
+    await prisma.gDPRLog.create({
+      data: {
+        actorId: "expert", // Replace with real user ID
+        action: "SUBMIT_TECHNICAL_VERDICT",
+        targetEntity: `Observation:${observationId}`,
+        details: `Severity: ${data.severity}, Verdict: ${data.verdict.substring(0, 50)}...`,
+        housingCompanyId: updated.housingCompanyId,
+      },
+    });
+
+    // 2. Revalidate
+    revalidatePath("/admin/ops");
+    revalidatePath("/"); // Update dashboard backlog scores
+
+    return { success: true, data: updated };
+  } catch (error) {
+    console.error("Verdict Error:", error);
+    return { success: false, error: "Failed to submit verdict." };
+  }
 }
 
-export async function createProjectFromObservation(observationId: string) {
-    const obs = await prisma.observation.findUnique({ where: { id: observationId }, include: { housingCompany: true } })
-    if (!obs) return 
+export async function createProjectFromObservation(
+  observationId: string,
+  projectData: { title: string; type: string },
+) {
+  const obs = await prisma.observation.findUnique({
+    where: { id: observationId },
+    include: { housingCompany: true },
+  });
+  if (!obs) return { error: "Observation not found" };
 
-    await prisma.project.create({
-        data: {
-            title: `Korjaus: ${obs.component}`,
-            type: 'MAINTENANCE',
-            status: 'TENDERING',
-            housingCompanyId: obs.housingCompanyId,
-            description: obs.description // Note: Schema might not have desc on Project, using title mainly
-        }
-    })
-    
-    revalidatePath('/admin/ops')
-    return { success: true }
+  const result = await prisma.$transaction(async (tx) => {
+    // 1. Create Project
+    const project = await tx.project.create({
+      data: {
+        title: projectData.title || `Korjaus: ${obs.component}`,
+        type: projectData.type || "MAINTENANCE",
+        status: "TENDERING",
+        housingCompanyId: obs.housingCompanyId,
+        description: obs.description,
+        observationId: obs.id,
+      },
+    });
+
+    // 2. Link Observation to Project
+    await tx.observation.update({
+      where: { id: obs.id },
+      data: { projectId: project.id },
+    });
+
+    return project;
+  });
+
+  revalidatePath("/admin/ops");
+  revalidatePath("/governance/projects");
+  return { success: true, projectId: result.id };
 }
 
 export async function completeProject(projectId: string) {

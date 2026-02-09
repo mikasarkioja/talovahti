@@ -60,16 +60,18 @@ export function StrategyDashboard() {
     const financialHealth =
       StrategyEngine.calculateFinancialHealthScore(finance);
 
-    return { energyIntensity, backlogScore, financialHealth };
+    // Dynamic historical data based on real aggregates if available
+    const chartData = finance.monthlyTrend || [
+      { month: "Jan", total: 135 },
+      { month: "Feb", total: 128 },
+      { month: "Mar", total: 120 },
+    ];
+
+    return { energyIntensity, backlogScore, financialHealth, chartData };
   }, [finance, observations, renovations, tickets, apartmentCount]);
 
-  // 2. Mock Historical Data for Charts
-  const historyData = [
-    { year: "2023", energy: 135, cost: 4.2 },
-    { year: "2024", energy: 128, cost: 4.35 },
-    { year: "2025", energy: 120, cost: 4.5 },
-    { year: "2026 (Est)", energy: 115, cost: 4.6 },
-  ];
+  // 2. Mock Historical Data for Charts (Keep as fallback if needed)
+  const historyData = metrics.chartData;
 
   const handleGenerateReport = async () => {
     setIsGenerating(true);
@@ -222,9 +224,9 @@ export function StrategyDashboard() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
             <Card className="col-span-4">
               <CardHeader>
-                <CardTitle>Energiankulutus ja Hoitovastike</CardTitle>
+                <CardTitle>Kuluseuranta (Toteutunut)</CardTitle>
                 <CardDescription>
-                  Kehitys viimeisen 3 tilikauden aikana.
+                  Maksetut laskut kuukausittain.
                 </CardDescription>
               </CardHeader>
               <CardContent className="pl-2">
@@ -260,20 +262,17 @@ export function StrategyDashboard() {
                     <Line
                       yAxisId="left"
                       type="monotone"
-                      dataKey="energy"
-                      name="Energia (kWh/m²)"
+                      dataKey="total"
+                      name="Kulut (€)"
                       stroke="#3b82f6"
                       strokeWidth={2}
                       dot={{ r: 4 }}
                     />
-                    <Line
-                      yAxisId="right"
-                      type="monotone"
-                      dataKey="cost"
-                      name="Vastike (€/m²)"
-                      stroke="#10b981"
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
+                    <XAxis
+                      dataKey="month"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
                     />
                   </LineChart>
                 </ResponsiveContainer>
