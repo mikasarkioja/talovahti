@@ -3,6 +3,18 @@ import { HomeClient } from "@/components/dashboard/HomeClient";
 import { getAnnualClockData } from "@/app/actions/governance";
 import { getFinanceAggregates } from "@/app/actions/finance";
 
+/**
+ * UI/Feature Audit Report - Talovahti MVP
+ * --------------------------------------
+ * Hidden or Hard-to-Find Features Identified:
+ * 1. GDPR Audit Logs: Located at /admin/privacy/audit. Essential for compliance.
+ * 2. Ops Board: Located at /admin/ops. The primary workflow tool for management.
+ * 3. Building Physics / Energy ROI: Located at /board/roi. Advanced board-level analytics.
+ * 4. Technical Verdicts: Currently mixed into generic Observation cards; needs dedicated focus.
+ * 5. Strategic Health Grades (A-E): Calculated in StrategyEngine but under-surfaced in dashboard.
+ * 6. Annual Clock Management: Currently dashboard-only; may need full-screen admin view.
+ */
+
 export const dynamic = "force-dynamic";
 
 export default async function Home(props: {

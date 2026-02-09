@@ -2,18 +2,15 @@
 
 import React, { useEffect, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { CloudSnow, ThermometerSnowflake, Zap } from 'lucide-react'
+import { CloudSnow, ThermometerSnowflake, Zap, Thermometer, RefreshCw } from 'lucide-react'
 import { getLocalWeather, WeatherData } from '@/lib/services/weather'
-import { FmiService } from '@/lib/services/fmiService'
-import { BuildingPhysicsEngine } from '@/lib/engines/BuildingPhysicsEngine'
 import { StrategyEngine } from '@/lib/engines/StrategyEngine'
 import { motion } from 'framer-motion'
+import { cn } from '@/lib/utils'
 
 import { getPulseData, refreshPulse, PulseData } from '@/app/actions/pulse'
 import { useTransition } from 'react'
 import { Button } from '@/components/ui/button'
-import { RefreshCw } from 'lucide-react'
 
 export function PulseHero({ companyId, initialData }: { companyId?: string, initialData?: PulseData }) {
   const [weather, setWeather] = useState<WeatherData | null>(null)
@@ -58,11 +55,38 @@ export function PulseHero({ companyId, initialData }: { companyId?: string, init
 
   const isColdFront = pulseData?.alerts.cold || false
   const isSnowAlert = pulseData?.alerts.snow || false
-  
+  const hasAlert = isColdFront || isSnowAlert
+
   const currentTemp = pulseData?.forecast.temp[0]?.value || weather?.temperature || 0
   const energyImpact = Math.round((21 - currentTemp) * StrategyEngine.KLOSS_CONSTANT)
 
   if (loading) return <div className="h-48 w-full bg-slate-100 animate-pulse rounded-xl" />
+
+  // Compact View (Status Icon) if no alerts
+  if (!hasAlert) {
+    return (
+      <div className="flex items-center gap-4 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm w-fit">
+        <div className="flex items-center gap-2">
+          <Thermometer size={16} className="text-blue-500" />
+          <span className="text-sm font-bold text-slate-700">{currentTemp}°C</span>
+        </div>
+        <div className="w-px h-4 bg-slate-200" />
+        <div className="flex items-center gap-2">
+          <Zap size={16} className="text-emerald-500" />
+          <span className="text-xs font-medium text-slate-600">Järjestelmät OK</span>
+        </div>
+        <Button 
+          size="icon" 
+          variant="ghost" 
+          className="h-6 w-6 text-slate-400 hover:text-slate-600"
+          onClick={handleRefresh}
+          disabled={isPending}
+        >
+          <RefreshCw className={cn("w-3 h-3", isPending && "animate-spin")} />
+        </Button>
+      </div>
+    )
+  }
 
   return (
     <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-slate-900 to-slate-800 text-white relative group">

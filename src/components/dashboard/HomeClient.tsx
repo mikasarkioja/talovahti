@@ -7,8 +7,9 @@ import {
   CheckCircle2,
   ArrowRight,
   Zap,
-  CalendarClock,
   PenTool,
+  Home,
+  Activity,
 } from "lucide-react";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { BuildingModel } from "@/components/BuildingModel";
@@ -18,6 +19,7 @@ import {
   AnnualClockData,
 } from "@/components/dashboard/AnnualClock";
 import { StrategyDashboard } from "@/components/dashboard/StrategyDashboard";
+import { DashboardKPIs } from "@/components/dashboard/DashboardKPIs";
 import { TourOverlay } from "@/components/onboarding/TourOverlay";
 import { FEATURES } from "@/config/features";
 import { useState, Suspense, useEffect } from "react";
@@ -25,16 +27,10 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 function BuildingSkeleton() {
-  return (
-    <div className="w-full h-[400px] bg-slate-100 rounded-xl animate-pulse flex items-center justify-center text-slate-300">
-      <div className="flex flex-col items-center gap-2">
-        <div className="w-16 h-16 rounded-full bg-slate-200"></div>
-        <p>Ladataan 3D-mallia...</p>
-      </div>
-    </div>
-  );
+// ... existing BuildingSkeleton ...
 }
 
 interface HomeClientProps {
@@ -70,7 +66,7 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
   const [highlightId, setHighlightId] = useState<string | undefined>(undefined);
 
   const isBoard =
-    currentUser?.role === "BOARD" || currentUser?.role === "MANAGER";
+    currentUser?.role === "BOARD" || currentUser?.role === "MANAGER" || currentUser?.role === "ADMIN";
 
   // Action Center Logic
   const activePolls = initiatives.filter(
@@ -82,9 +78,6 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
     (t) =>
       (t.type === "RENOVATION" && t.status === "OPEN") ||
       (t.priority === "HIGH" && t.status === "OPEN"),
-  );
-  const myOpenTickets = tickets.filter(
-    (t) => t.apartmentId === currentUser?.apartmentId && t.status !== "CLOSED",
   );
 
   const urgentObservations = (useStore.getState().observations || []).filter(
@@ -98,6 +91,49 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
       setTourStep(4);
     }
   };
+
+  // --- RESIDENT MOBILE VIEW ---
+  if (!isBoard && currentUser?.role === "RESIDENT") {
+    return (
+      <div className="p-4 max-w-lg mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+        <header className="text-center pt-8">
+          <h1 className="text-3xl font-bold text-brand-navy">Talovahti</h1>
+          <p className="text-slate-500">Tervetuloa kotiin, {currentUser?.name?.split(" ")[0]}</p>
+        </header>
+
+        <div className="grid grid-cols-1 gap-4">
+          <Link href="/maintenance/tickets" className="w-full">
+            <Button size="lg" className="w-full h-24 text-lg bg-orange-600 hover:bg-orange-700 flex flex-col gap-1">
+              <PenTool size={24} />
+              Ilmoita Vika
+            </Button>
+          </Link>
+          
+          <Link href="/settings/profile" className="w-full">
+            <Button size="lg" variant="outline" className="w-full h-24 text-lg flex flex-col gap-1 border-2">
+              <Home size={24} />
+              Oma Koti
+            </Button>
+          </Link>
+
+          <Link href="/dashboard/feed" className="w-full">
+            <Button size="lg" variant="outline" className="w-full h-24 text-lg flex flex-col gap-1 border-2">
+              <Activity size={24} />
+              Yhtiön Tilanne
+            </Button>
+          </Link>
+        </div>
+
+        <div className="space-y-4">
+          <h2 className="text-lg font-bold text-brand-navy px-2">Ajankohtaista</h2>
+          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            <PulseHero companyId={currentUser?.housingCompanyId} />
+          </div>
+          <ActivityFeed limit={3} compact />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
@@ -113,31 +149,31 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
         />
       )}
 
-      {/* 1. Header & Pulse */}
-      <header className="space-y-6">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-brand-navy tracking-tight">
-              Hei, {currentUser?.name?.split(" ")[0]}
-            </h1>
-            <p className="text-slate-500 mt-1 flex items-center gap-2 text-sm">
-              <span className="w-2 h-2 rounded-full bg-brand-emerald animate-pulse"></span>
-              As Oy Esimerkkikatu 123 • {isBoard ? "Hallitus" : "Asukas"}
-            </p>
-          </div>
+      {/* 1. Header & Quick Status */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-brand-navy tracking-tight">
+            Hallinto-ohjaamo
+          </h1>
+          <p className="text-slate-500 text-sm flex items-center gap-2">
+            As Oy Esimerkkikatu 123 • {currentUser?.name}
+          </p>
         </div>
-
-        {/* Daily Context: Weather & Building Physics */}
         <PulseHero companyId={currentUser?.housingCompanyId} />
       </header>
 
+      {/* 2. Signal Zone: KPI Dashboard */}
+      <section>
+        <DashboardKPIs />
+      </section>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* 2. Primary Zone: 3D Twin & Strategy */}
+        {/* 3. Primary Workspace: 3D Twin & Strategy */}
         <div className="lg:col-span-2 space-y-8">
           {/* 3D Twin */}
-          <section className="bg-white rounded-2xl shadow-soft overflow-hidden border border-surface-greige/20 relative group">
+          <section className="bg-white rounded-2xl shadow-soft overflow-hidden border border-surface-greige/20 relative group h-[450px]">
             <div className="absolute top-4 left-4 z-10 bg-white/80 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-brand-navy shadow-sm">
-              Reaaliaikainen Tilannekuva
+              Reaaliaikainen 3D-tilannekuva
             </div>
             <Suspense fallback={<BuildingSkeleton />}>
               <BuildingModel
@@ -175,200 +211,74 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
               )}
             </section>
           )}
-
-          {/* Quick Access Grid */}
-          <section>
-            <h2 className="text-lg font-bold text-brand-navy mb-4">
-              Pikavalinnat
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <Link href="/booking" className="group">
-                <Card className="hover:border-brand-emerald/50 transition-all cursor-pointer h-full border-surface-greige/50 shadow-sm hover:shadow-md">
-                  <CardContent className="p-4 flex flex-col items-center justify-center gap-3 text-center h-full">
-                    <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <CalendarClock size={24} />
-                    </div>
-                    <span className="font-medium text-brand-navy text-sm">
-                      Varaa Vuoro
-                    </span>
-                  </CardContent>
-                </Card>
-              </Link>
-
-              <Link href="/maintenance/tickets" className="group">
-                <Card className="hover:border-brand-emerald/50 transition-all cursor-pointer h-full border-surface-greige/50 shadow-sm hover:shadow-md">
-                  <CardContent className="p-4 flex flex-col items-center justify-center gap-3 text-center h-full">
-                    <div className="w-12 h-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <PenTool size={24} />
-                    </div>
-                    <span className="font-medium text-brand-navy text-sm">
-                      Ilmoita Vika
-                    </span>
-                  </CardContent>
-                </Card>
-              </Link>
-
-              <Link href="/dashboard/feed" className="group">
-                <Card className="hover:border-brand-emerald/50 transition-all cursor-pointer h-full border-surface-greige/50 shadow-sm hover:shadow-md">
-                  <CardContent className="p-4 flex flex-col items-center justify-center gap-3 text-center h-full">
-                    <div className="w-12 h-12 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Zap size={24} />
-                    </div>
-                    <span className="font-medium text-brand-navy text-sm">
-                      Tapahtumat
-                    </span>
-                  </CardContent>
-                </Card>
-              </Link>
-            </div>
-          </section>
         </div>
 
-        {/* 3. Right Sidebar: Action Center & Annual Clock */}
+        {/* 4. Operations & Schedule */}
         <div className="space-y-6">
-          {/* Annual Clock (Real Data) */}
+          {/* Action Center (Consolidated) */}
+          <div className="bg-white rounded-xl border border-surface-greige/50 shadow-soft p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-brand-navy flex items-center gap-2">
+                <AlertCircle size={20} className="text-brand-emerald" />
+                Toimenpidejono
+              </h3>
+              <Badge variant="secondary" className="bg-slate-100 text-slate-600">
+                {approvalQueue.length + activePolls.length + urgentObservations.length}
+              </Badge>
+            </div>
+
+            <div className="space-y-3">
+              {/* Urgent Items Only */}
+              {isBoard &&
+                approvalQueue.slice(0, 3).map((item) => (
+                  <Link key={item.id} href="/admin/ops">
+                    <div className="p-3 bg-red-50/50 border border-red-100 rounded-lg flex gap-3 items-start cursor-pointer hover:bg-red-50 mb-2">
+                      <CheckCircle2 size={16} className="text-red-500 mt-0.5" />
+                      <div>
+                        <div className="text-[10px] font-bold text-red-700 uppercase">Hyväksyntä</div>
+                        <div className="text-sm font-medium text-brand-navy">{item.title}</div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+
+              {/* Polls */}
+              {activePolls.slice(0, 2).map((poll) => (
+                <Link key={poll.id} href="/governance/voting">
+                  <div className="p-3 bg-purple-50/50 border border-purple-100 rounded-lg flex gap-3 items-start cursor-pointer hover:bg-purple-50 mb-2">
+                    <Vote size={16} className="text-purple-600 mt-0.5" />
+                    <div>
+                      <div className="text-[10px] font-bold text-purple-700 uppercase">Äänestys</div>
+                      <div className="text-sm font-medium text-brand-navy">{poll.title}</div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+
+              {/* Empty State */}
+              {approvalQueue.length === 0 && activePolls.length === 0 && urgentObservations.length === 0 && (
+                <div className="text-center py-4 text-slate-400 text-xs">
+                  Ei kriittisiä toimenpiteitä juuri nyt.
+                </div>
+              )}
+            </div>
+            
+            <Link href="/admin/ops">
+              <Button variant="ghost" className="w-full mt-2 text-xs text-slate-500 hover:text-brand-navy">
+                Katso kaikki tehtävät <ArrowRight size={12} className="ml-2" />
+              </Button>
+            </Link>
+          </div>
+
+          {/* Annual Clock */}
           <AnnualClock
             data={annualClockData}
             isBoard={isBoard}
             housingCompanyId={currentUser?.housingCompanyId}
           />
-
-          <div className="bg-white rounded-xl border border-surface-greige/50 shadow-soft p-5 sticky top-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-brand-navy flex items-center gap-2">
-                <AlertCircle size={20} className="text-brand-emerald" />
-                Action Center
-              </h3>
-              <Badge
-                variant="secondary"
-                className="bg-slate-100 text-slate-600"
-              >
-                {approvalQueue.length +
-                  activePolls.length +
-                  myOpenTickets.length}
-              </Badge>
-            </div>
-
-            <div className="space-y-3">
-              {/* 1. Urgent Approvals (Board) */}
-              {isBoard &&
-                approvalQueue.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-3 bg-red-50/50 border border-red-100 rounded-lg flex gap-3 items-start cursor-pointer hover:bg-red-50 transition-colors"
-                  >
-                    <div className="mt-0.5">
-                      <CheckCircle2 size={16} className="text-red-500" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-red-700 uppercase mb-0.5">
-                        Hyväksyntä Vaaditaan
-                      </div>
-                      <div className="text-sm font-medium text-brand-navy">
-                        {item.title}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-              {/* 2. Active Polls */}
-              {activePolls.map((poll) => (
-                <div
-                  key={poll.id}
-                  className="p-3 bg-purple-50/50 border border-purple-100 rounded-lg flex gap-3 items-start cursor-pointer hover:bg-purple-50 transition-colors"
-                >
-                  <div className="mt-0.5">
-                    <Vote size={16} className="text-purple-600" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-purple-700 uppercase mb-0.5">
-                      Äänestys Käynnissä
-                    </div>
-                    <div className="text-sm font-medium text-brand-navy mb-1">
-                      {poll.title}
-                    </div>
-                    <div className="text-xs text-purple-600 flex items-center gap-1 font-semibold">
-                      Osallistu <ArrowRight size={10} />
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {/* 3. My Issues */}
-              {myOpenTickets.map((ticket) => (
-                <div
-                  key={ticket.id}
-                  className="p-3 bg-slate-50 border border-slate-100 rounded-lg flex gap-3 items-start"
-                >
-                  <div className="mt-0.5">
-                    <PenTool size={16} className="text-slate-400" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-500 uppercase mb-0.5">
-                      Oma Ilmoitus
-                    </div>
-                    <div className="text-sm font-medium text-brand-navy">
-                      {ticket.title}
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className="mt-1 text-[10px] h-5 px-1.5 bg-white"
-                    >
-                      {ticket.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-
-              {/* 4. Urgent Observations (Board Summary) */}
-              {isBoard &&
-                urgentObservations.map((obs) => (
-                  <div
-                    key={obs.id}
-                    className="p-3 bg-amber-50 border border-amber-100 rounded-lg flex gap-3 items-start cursor-pointer hover:bg-amber-100 transition-colors"
-                  >
-                    <div className="mt-0.5">
-                      <AlertCircle size={16} className="text-amber-600" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-amber-700 uppercase mb-0.5">
-                        Kriittinen Havainto
-                      </div>
-                      <div className="text-sm font-medium text-brand-navy">
-                        {obs.component}
-                      </div>
-                      <p className="text-[10px] text-amber-800/70 mt-1 line-clamp-2 italic">
-                        {obs.boardSummary || "Odottaa teknistä arviota..."}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-
-              {/* Empty State */}
-              {approvalQueue.length === 0 &&
-                activePolls.length === 0 &&
-                myOpenTickets.length === 0 &&
-                urgentObservations.length === 0 && (
-                  <div className="text-center py-8 text-slate-400 text-sm">
-                    <CheckCircle2
-                      size={32}
-                      className="mx-auto mb-2 text-slate-200"
-                    />
-                    Ei vaadittuja toimenpiteitä.
-                  </div>
-                )}
-            </div>
-          </div>
-
-          {/* Secondary Feed Summary */}
-          <div className="bg-white rounded-xl border border-surface-greige/50 shadow-soft p-5 opacity-80 hover:opacity-100 transition-opacity">
-            <h3 className="font-bold text-slate-700 text-sm mb-3">
-              Viimeisimmät tapahtumat
-            </h3>
-            <ActivityFeed limit={3} compact />
-          </div>
         </div>
       </div>
     </div>
   );
 }
+

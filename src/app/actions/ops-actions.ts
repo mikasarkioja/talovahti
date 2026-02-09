@@ -28,7 +28,7 @@ export async function getOpsBoardItems(): Promise<KanbanItem[]> {
   const tickets = await prisma.ticket.findMany({
     where: { status: "OPEN", observationId: null },
     orderBy: { createdAt: "desc" },
-    include: { createdBy: true },
+    include: { createdBy: true, apartment: true },
   });
 
   tickets.forEach((t) =>
@@ -41,22 +41,21 @@ export async function getOpsBoardItems(): Promise<KanbanItem[]> {
       priority: t.priority as KanbanItem["priority"],
       type: "TICKET",
       date: t.createdAt,
+      meta: { 
+        hasLocation: !!t.apartment?.attributes 
+      },
     }),
   );
 
   // 2. ASSESSMENT (Observations with/without Expert Opinion)
   const observations = await prisma.observation.findMany({
     where: { status: { in: ["OPEN", "REVIEWED"] } },
-    include: { assessment: true, ticket: true },
+    include: { ticket: true },
   });
 
   observations.forEach((o) => {
     // If it has an assessment recommending action, it might be ready for Marketplace
-    const hasVerdict = !!o.assessment;
-
-    // Filter out those already linked to a project (Execution phase)
-    // (Assuming we'd link Obs -> Renovation -> Project in a real app,
-    // for now we check if it's "Done" or not)
+    const hasVerdict = o.status === "REVIEWED";
 
     items.push({
       id: o.id,
@@ -64,10 +63,13 @@ export async function getOpsBoardItems(): Promise<KanbanItem[]> {
       subtitle: hasVerdict ? "Asiantuntija arvioinut" : "Odottaa arviota",
       status: o.status,
       stage: hasVerdict ? "MARKETPLACE" : "ASSESSMENT",
-      priority: "MEDIUM", // Default
+      priority: o.severityGrade === 1 ? "CRITICAL" : o.severityGrade === 2 ? "HIGH" : "MEDIUM",
       type: "OBSERVATION",
       date: o.createdAt,
-      meta: { verdict: o.assessment?.technicalVerdict },
+      meta: { 
+        verdict: o.technicalVerdict,
+        hasLocation: !!o.location 
+      },
     });
   });
 
@@ -75,6 +77,7 @@ export async function getOpsBoardItems(): Promise<KanbanItem[]> {
   const projects = await prisma.project.findMany({
     where: { status: { not: "COMPLETED" } },
     include: {
+      observation: true,
       _count: {
         select: { bids: true },
       },
@@ -95,7 +98,10 @@ export async function getOpsBoardItems(): Promise<KanbanItem[]> {
       priority: "HIGH",
       type: "PROJECT",
       date: p.createdAt,
-      meta: { bidCount: p._count.bids },
+      meta: { 
+        bidCount: p._count.bids,
+        hasLocation: !!p.observation?.location 
+      },
     });
   });
 

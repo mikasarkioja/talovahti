@@ -10,31 +10,29 @@ import {
   CheckSquare,
   TrendingUp,
   Vote,
-  FileText,
-  Lock,
-  LayoutDashboard,
-  Database,
   HardHat,
+  ShieldCheck,
+  Settings,
+  Workflow,
   LucideIcon,
   Activity,
   CalendarClock,
   Hammer,
   Users,
-  ScanLine,
-  Gauge,
+  Database,
   Thermometer,
   LineChart,
-  Megaphone,
+  LayoutDashboard,
   MoreHorizontal,
   ChevronDown,
   ChevronRight,
+  Lock,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
 import { useStore } from "@/lib/store";
 import { FEATURES } from "@/config/features";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 type MenuGroup = {
@@ -61,22 +59,22 @@ export function Sidebar() {
   const isBasic = plan === "BASIC";
 
   const primaryItems = [
-    { href: "/", label: "Koti (3D Twin)", icon: Home },
+    { href: "/", label: "Dashboard", icon: Home },
     { href: "/dashboard/feed", label: "Tapahtumat", icon: Activity },
+    ...(isBoard
+      ? [{ href: "/admin/ops", label: "Ops Board", icon: Workflow }]
+      : []),
     { href: "/maintenance/tickets", label: "Vikailmoitukset", icon: PenTool },
-    { href: "/booking", label: "Varaukset", icon: CalendarClock },
   ];
 
   const secondaryGroups: MenuGroup[] = [
     {
-      title: "Asuminen & Palvelut",
+      title: "Asuminen",
       items: [
-        { href: "/tasks", label: "Talkoot & Tehtävät", icon: Hammer },
+        { href: "/booking", label: "Varaukset", icon: CalendarClock },
+        { href: "/tasks", label: "Talkoot", icon: Hammer },
         ...(FEATURES.SERVICE_MARKETPLACE
           ? [{ href: "/partners", label: "Palvelutori", icon: Users }]
-          : []),
-        ...(FEATURES.AR_SCANNER_PRO
-          ? [{ href: "/scanner", label: "Energia-Skanneri", icon: ScanLine }]
           : []),
       ],
     },
@@ -103,22 +101,12 @@ export function Sidebar() {
       ],
     },
     {
-      title: "Talous",
+      title: "Talous & Strategia",
       items: [
         { href: "/finance", label: "Talousnäkymä", icon: Wallet },
-        {
-          href: "/finance/meter-billing",
-          label: "Kulutus & Laskut",
-          icon: Gauge,
-        },
         { href: "/finance/scenarios", label: "Skenaariot", icon: TrendingUp },
         ...(isBoard
           ? [
-              {
-                href: "/finance/approvals",
-                label: "Laskujen hyväksyntä",
-                icon: CheckSquare,
-              },
               { href: "/board/roi", label: "Energia ROI", icon: LineChart },
               {
                 href: "/finance/summary",
@@ -133,33 +121,51 @@ export function Sidebar() {
       title: "Hallinto",
       items: [
         { href: "/governance/pipeline", label: "Päätösputki", icon: Gavel },
-        { href: "/admin/democracy", label: "Demokratia", icon: Megaphone },
         { href: "/governance/voting", label: "Äänestykset", icon: Vote },
         {
           href: "/governance/projects",
-          label: "Urakat (Kilpailutus)",
+          label: "Urakat",
           icon: HardHat,
           locked: isBasic,
-          description: "Vaatii Pro- tai Premium-tilauksen.",
         },
-        {
-          href: "/admin/mml-sync",
-          label: "MML Integraatio",
-          icon: Database,
-          locked: isBasic,
-          description: "Vaatii Pro-tilauksen.",
-        },
-        ...(FEATURES.DOCUMENT_VAULT
-          ? [
-              {
-                href: "/documents/marketplace",
-                label: "Asiakirjat",
-                icon: FileText,
-              },
-            ]
-          : []),
       ],
     },
+    ...(isBoard
+      ? [
+          {
+            title: "Ylläpito & Asetukset",
+            items: [
+              {
+                href: "/admin/privacy/audit",
+                label: "GDPR Audit",
+                icon: ShieldCheck,
+              },
+              {
+                href: "/admin/mml-sync",
+                label: "MML Integraatio",
+                icon: Database,
+                locked: isBasic,
+              },
+              {
+                href: "/settings/profile",
+                label: "Omat Asetukset",
+                icon: Settings,
+              },
+            ],
+          },
+        ]
+      : [
+          {
+            title: "Asetukset",
+            items: [
+              {
+                href: "/settings/profile",
+                label: "Omat Asetukset",
+                icon: Settings,
+              },
+            ],
+          },
+        ]),
   ];
 
   const roleLabels: Record<string, string> = {
@@ -207,7 +213,7 @@ export function Sidebar() {
         <ScrollArea className="flex-1 pr-2 -mr-2">
           <nav className="space-y-1 mb-6">
             {primaryItems.map((link) => {
-              const Icon = link.icon;
+              const NavIcon = link.icon;
               const isActive =
                 pathname === link.href ||
                 (link.href !== "/" && pathname.startsWith(link.href));
@@ -223,7 +229,7 @@ export function Sidebar() {
                       : "text-blue-100 hover:bg-white/10 hover:text-white",
                   )}
                 >
-                  <Icon
+                  <NavIcon
                     size={20}
                     className={clsx(
                       "transition-colors",
@@ -264,7 +270,7 @@ export function Sidebar() {
                     )}
                     <nav className="space-y-1 border-l border-white/10 ml-2 pl-2">
                       {group.items.map((link) => {
-                        const Icon = link.icon;
+                        const ItemIcon = link.icon;
                         const isActive = pathname === link.href;
                         const isLocked = link.locked;
 
@@ -290,6 +296,7 @@ export function Sidebar() {
                               }
                             }}
                           >
+                            <ItemIcon size={16} className="text-blue-300 group-hover:text-white" />
                             <span className="flex-1 truncate">
                               {link.label}
                             </span>
