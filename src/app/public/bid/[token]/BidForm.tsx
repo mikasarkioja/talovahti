@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,8 @@ const formSchema = z.object({
   notes: z.string().optional(),
 });
 
+type BidFormValues = z.infer<typeof formSchema>;
+
 interface BidFormProps {
   token: string;
   vendorName: string;
@@ -29,8 +31,8 @@ export function BidForm({ token, vendorName, projectName }: BidFormProps) {
   const [isPending, startTransition] = useTransition();
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<BidFormValues>({
+    resolver: zodResolver(formSchema) as any,
     defaultValues: {
       amount: 0,
       startDate: "",
@@ -38,7 +40,7 @@ export function BidForm({ token, vendorName, projectName }: BidFormProps) {
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit: SubmitHandler<BidFormValues> = async (values) => {
     startTransition(async () => {
       const result = await submitBid({
         token,
@@ -82,7 +84,7 @@ export function BidForm({ token, vendorName, projectName }: BidFormProps) {
         <CardTitle className="text-xl">Jätä Tarjous</CardTitle>
         <p className="text-sm text-slate-500">Täytä tarjouksesi tiedot alle.</p>
       </CardHeader>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
+      <form onSubmit={form.handleSubmit(onSubmit as any)}>
         <CardContent className="space-y-6 pt-6">
           <div className="grid gap-2">
             <Label htmlFor="amount">Hinta-arvio (€, alv 0%)</Label>
