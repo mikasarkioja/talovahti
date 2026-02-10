@@ -83,7 +83,10 @@ export default async function Home(props: {
     }
 
     const clockResult = await getAnnualClockData(companyId, currentYear);
-    const financeAggregates = await getFinanceAggregates(companyId, currentYear);
+    const financeAggregates = await getFinanceAggregates(
+      companyId,
+      currentYear,
+    );
 
     // Default empty data if fetch fails
     const annualClockData =
@@ -99,17 +102,18 @@ export default async function Home(props: {
             completedTasks: 0,
           };
 
-    const financeData = financeAggregates.success && financeAggregates.data 
-      ? financeAggregates.data 
-      : {
-          monthlyIncome: 12500,
-          monthlyTarget: 12000,
-          reserveFund: 45000,
-          energyCostDiff: -150,
-          collectionPercentage: 98.5,
-          companyLoansTotal: 450000,
-          energySavingsPct: 12.5,
-        };
+    const financeData =
+      financeAggregates.success && financeAggregates.data
+        ? financeAggregates.data
+        : {
+            monthlyIncome: 12500,
+            monthlyTarget: 12000,
+            reserveFund: 45000,
+            energyCostDiff: -150,
+            collectionPercentage: 98.5,
+            companyLoansTotal: 450000,
+            energySavingsPct: 12.5,
+          };
 
     // 3. Prepare Initial Data for Store
     const initialData =
@@ -131,6 +135,7 @@ export default async function Home(props: {
               title: t.title,
               description: t.description,
               status: t.status,
+              category: t.category,
               priority: t.priority,
               type: t.type,
               apartmentId: t.apartment?.apartmentNumber || null,

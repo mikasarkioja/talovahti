@@ -6,6 +6,8 @@ import {
   TicketStatus,
   TicketPriority,
   TicketType,
+  TicketCategory,
+  TriageLevel,
   FiscalQuarter,
   TaskCategory,
   GovernanceStatus,
@@ -20,21 +22,46 @@ async function main() {
   // 1. Cleanup
   console.log("🧹 Cleaning up old data...");
   try {
-    // Delete in order of dependencies
+    // Delete in order of dependencies (Child-to-Parent)
+    await prisma.milestone.deleteMany();
+    await prisma.legalContract.deleteMany();
+    await prisma.projectAccessToken.deleteMany();
+    await prisma.bid.deleteMany();
+    await prisma.tenderBid.deleteMany();
+    await prisma.tender.deleteMany();
+    await prisma.siteReport.deleteMany();
+    await prisma.changeOrder.deleteMany();
+    await prisma.buildingUpdate.deleteMany();
+    await prisma.loanApplication.deleteMany();
+    await prisma.financialScenario.deleteMany();
+    await prisma.project.deleteMany();
+
     await prisma.vote.deleteMany();
     await prisma.initiativeSupport.deleteMany();
     await prisma.comment.deleteMany();
     await prisma.initiative.deleteMany();
+    await prisma.meetingDocument.deleteMany();
+    await prisma.meeting.deleteMany();
+
+    await prisma.pollVote.deleteMany();
+    await prisma.pollOption.deleteMany();
+    await prisma.poll.deleteMany();
 
     await prisma.ticket.deleteMany();
+    await prisma.expertAssessment.deleteMany();
+    await prisma.solutionOption.deleteMany();
     await prisma.observation.deleteMany();
     await prisma.leakAlert.deleteMany();
     await prisma.renovation.deleteMany();
-    await prisma.buildingComponent.deleteMany(); // Added
+    await prisma.buildingComponent.deleteMany();
+    await prisma.thermalLeak.deleteMany();
 
     await prisma.invoice.deleteMany();
     await prisma.budgetLineItem.deleteMany();
     await prisma.monthlyFee.deleteMany();
+    await prisma.financialStatement.deleteMany();
+    await prisma.investmentGrade.deleteMany();
+    await prisma.gDPRLog.deleteMany();
 
     await prisma.annualTask.deleteMany();
     await prisma.strategicGoal.deleteMany();
@@ -42,10 +69,12 @@ async function main() {
 
     await prisma.booking.deleteMany();
     await prisma.resource.deleteMany();
+    await prisma.powerEvent.deleteMany();
 
     await prisma.user.deleteMany();
     await prisma.apartment.deleteMany();
     await prisma.housingCompany.deleteMany();
+    await prisma.vendor.deleteMany();
   } catch (e) {
     console.warn("Cleanup warning (tables might be empty):", e);
   }
@@ -328,67 +357,78 @@ async function main() {
   // 8. Maintenance Tickets (3D Pins)
   console.log("🔧 Creating Maintenance Tickets...");
 
-  const tickets = [
+  const demoTickets = [
     {
       title: "Vesivuoto kellarissa",
       type: TicketType.MAINTENANCE,
       status: TicketStatus.OPEN,
       priority: TicketPriority.CRITICAL,
+      category: TicketCategory.PROJECT,
+      triageLevel: TriageLevel.CRITICAL,
       loc: { x: 10, y: -2, z: 5 },
+      desc: "Kellarin putkistossa merkittävä vuoto. Vaatii välitöntä huomiota.",
     },
     {
       title: "Ulko-oven lukko jumittaa",
       type: TicketType.MAINTENANCE,
       status: TicketStatus.IN_PROGRESS,
       priority: TicketPriority.HIGH,
+      category: TicketCategory.MAINTENANCE,
+      triageLevel: TriageLevel.ROUTINE,
       loc: { x: 0, y: 0, z: 15 },
-    }, // Main entrance
-    {
-      title: "Katon tarkistus",
-      type: TicketType.MAINTENANCE,
-      status: TicketStatus.RESOLVED,
-      priority: TicketPriority.MEDIUM,
-      loc: { x: 5, y: 10, z: 5 },
-    },
-    {
-      title: "Parvekkeen maalaus B4",
-      type: TicketType.RENOVATION,
-      status: TicketStatus.OPEN,
-      priority: TicketPriority.LOW,
-      loc: { x: -10, y: 4, z: -5 },
+      desc: "Pääoven lukko vaatii rasvausta tai vaihtoa.",
     },
     {
       title: "Patteri ei lämpene A2",
       type: TicketType.MAINTENANCE,
       status: TicketStatus.OPEN,
       priority: TicketPriority.MEDIUM,
+      category: TicketCategory.MAINTENANCE,
+      triageLevel: TriageLevel.ROUTINE,
       loc: { x: 8, y: 3, z: 2 },
+      desc: "Makuuhuoneen patteri on kylmä.",
+    },
+    {
+      title: "Julkisivun halkeama",
+      type: TicketType.RENOVATION,
+      status: TicketStatus.OPEN,
+      priority: TicketPriority.HIGH,
+      category: TicketCategory.PROJECT,
+      triageLevel: TriageLevel.ESCALATED,
+      loc: { x: -15, y: 8, z: 0 },
+      desc: "Havaittu pystysuuntainen halkeama C-rapun kulmassa.",
+      huoltoNotes:
+        "Tarkastettu huoltoyhtiön toimesta. Vaatii rakennusinsinöörin arvion.",
     },
   ];
 
-  for (const t of tickets) {
-    // Create Observation first to hold location
+  for (const t of demoTickets) {
+    // 1. Create Observation first to hold location and for escalation demo
     const obs = await prisma.observation.create({
       data: {
         housingCompanyId: company.id,
-        userId: residentUser.id, // Reported by resident
-        component: "Structure",
-        description: t.title,
+        userId: residentUser.id,
+        component: t.title,
+        description: t.desc,
         status: "OPEN",
         location: JSON.stringify(t.loc),
       },
     });
 
+    // 2. Create Ticket linked to Observation
     await prisma.ticket.create({
       data: {
         housingCompanyId: company.id,
         createdById: residentUser.id,
         title: t.title,
-        description: t.title + " vaatii huomiota.",
+        description: t.desc,
         type: t.type,
         status: t.status,
         priority: t.priority,
+        category: t.category,
+        triageLevel: t.triageLevel,
         observationId: obs.id,
+        huoltoNotes: t.huoltoNotes || null,
       },
     });
   }

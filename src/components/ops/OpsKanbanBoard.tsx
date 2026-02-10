@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   KanbanItem,
-  escalateTicketToObservation,
+  janitorialCheckIn,
+  escalateToExpert,
   submitTechnicalVerdict,
   createProjectFromObservation,
   completeProject,
@@ -24,6 +25,9 @@ import {
   Info,
   MoreVertical,
   Box,
+  Truck,
+  Stethoscope,
+  ChevronRight,
 } from "lucide-react";
 import {
   Dialog,
@@ -94,18 +98,38 @@ const COLUMNS = [
 
 export function OpsKanbanBoard({ items }: OpsBoardProps) {
   const [activeItem, setActiveItem] = useState<KanbanItem | null>(null);
-  const [dialogMode, setDialogMode] = useState<"ASSESS" | null>(null);
+  const [dialogMode, setDialogMode] = useState<"ASSESS" | "CHECKIN" | null>(
+    null,
+  );
   const [verdict, setVerdict] = useState("");
   const [severity, setSeverity] = useState<string>("3");
+  const [huoltoNotes, setHuoltoNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleEscalate = async (id: string) => {
+  const handleCheckInOpen = (item: KanbanItem) => {
+    setActiveItem(item);
+    setDialogMode("CHECKIN");
+    setHuoltoNotes(item.huoltoNotes || "");
+  };
+
+  const submitCheckIn = async (action: "RESOLVE" | "ESCALATE") => {
+    if (!activeItem) return;
     setLoading(true);
-    const result = await escalateTicketToObservation(id);
+    const result = await janitorialCheckIn(activeItem.id, {
+      notes: huoltoNotes,
+      action,
+    });
+
     if (result.success) {
-      toast.success("Ilmoitus siirretty kuntoarvioon");
+      toast.success(
+        action === "RESOLVE"
+          ? "Vika kuitattu korjatuksi"
+          : "Eskaloitu asiantuntijalle",
+      );
+      setDialogMode(null);
+      setHuoltoNotes("");
     } else {
-      toast.error("Virhe siirrettäessä ilmoitusta");
+      toast.error(result.error || "Virhe kirjauksessa");
     }
     setLoading(false);
   };
@@ -218,12 +242,21 @@ export function OpsKanbanBoard({ items }: OpsBoardProps) {
                 {colItems.map((item) => (
                   <Card
                     key={item.id}
-                    className="bg-white border-slate-200 hover:border-brand-emerald/30 hover:shadow-md transition-all group relative overflow-hidden"
+                    className={`bg-white border-slate-200 hover:border-brand-emerald/30 hover:shadow-md transition-all group relative overflow-hidden ${
+                      item.category === "PROJECT"
+                        ? "border-l-4 border-l-blue-500 shadow-sm"
+                        : ""
+                    }`}
                   >
                     <CardHeader className="p-4 pb-2">
                       <div className="flex justify-between items-start mb-3">
-                        <div className="flex gap-1.5">
+                        <div className="flex gap-1.5 items-center">
                           {getPriorityBadge(item.priority)}
+                          {item.category === "PROJECT" && (
+                            <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-[9px] h-5 font-bold uppercase">
+                              Projekti
+                            </Badge>
+                          )}
                           {(item.meta?.hasLocation as boolean) && (
                             <TooltipProvider>
                               <Tooltip>
@@ -260,18 +293,20 @@ export function OpsKanbanBoard({ items }: OpsBoardProps) {
 
                             <div className="space-y-1">
                               {col.id === "INBOX" && (
-                                <Button
-                                  variant="ghost"
-                                  className="w-full justify-start gap-2 h-9 px-2 text-sm font-normal"
-                                  onClick={() => handleEscalate(item.id)}
-                                  disabled={loading}
-                                >
-                                  <ArrowRight
-                                    size={14}
-                                    className="text-blue-500"
-                                  />
-                                  <span>Edistä kuntoarvioon</span>
-                                </Button>
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    className="w-full justify-start gap-2 h-9 px-2 text-sm font-normal"
+                                    onClick={() => handleCheckInOpen(item)}
+                                    disabled={loading}
+                                  >
+                                    <Stethoscope
+                                      size={14}
+                                      className="text-blue-500"
+                                    />
+                                    <span>Huoltotarkastus</span>
+                                  </Button>
+                                </>
                               )}
 
                               {col.id === "ASSESSMENT" && (
@@ -387,60 +422,55 @@ export function OpsKanbanBoard({ items }: OpsBoardProps) {
         open={dialogMode === "ASSESS"}
         onOpenChange={() => setDialogMode(null)}
       >
+        {/* ... existing ASSESS dialog ... */}
+      </Dialog>
+
+      <Dialog
+        open={dialogMode === "CHECKIN"}
+        onOpenChange={() => setDialogMode(null)}
+      >
         <DialogContent className="bg-white border-slate-200 sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="text-slate-900">
-              Tekninen Lausunto
+              Huoltotarkastus (Janitorial Check-in)
             </DialogTitle>
             <DialogDescription>
-              Määritä havainnon kiireellisyys ja anna asiantuntija-arvio.
+              Kirjaa huoltoyhtiön huomiot ja päätä jatkotoimenpiteistä.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6 py-4">
             <div className="space-y-2">
-              <Label htmlFor="severity" className="text-slate-700">
-                Kiireellisyys (1-4)
-              </Label>
-              <Select value={severity} onValueChange={setSeverity}>
-                <SelectTrigger className="bg-white border-slate-200 text-slate-900">
-                  <SelectValue placeholder="Valitse kiireellisyys" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border-slate-200">
-                  <SelectItem value="1">🔴 1 - Kriittinen (Heti)</SelectItem>
-                  <SelectItem value="2">🟠 2 - Kiireellinen (PTS)</SelectItem>
-                  <SelectItem value="3">
-                    🟡 3 - Normaali (Suunniteltu)
-                  </SelectItem>
-                  <SelectItem value="4">🟢 4 - Matala (Seuranta)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="verdict" className="text-slate-700">
-                Tekninen Arvio
+              <Label htmlFor="huoltoNotes" className="text-slate-700">
+                Huollon huomiot / Tehdyt toimenpiteet
               </Label>
               <Textarea
-                id="verdict"
-                placeholder="Kirjoita lausunto..."
+                id="huoltoNotes"
+                placeholder="Esim. Vuoto paikallistettu, vaatii putkiasentajan..."
                 className="bg-white border-slate-200 text-slate-900 min-h-[120px] resize-none"
-                value={verdict}
-                onChange={(e) => setVerdict(e.target.value)}
+                value={huoltoNotes}
+                onChange={(e) => setHuoltoNotes(e.target.value)}
               />
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogMode(null)}>
-              Peruuta
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => submitCheckIn("RESOLVE")}
+              disabled={loading}
+            >
+              <CheckCircle2 size={14} className="mr-2 text-emerald-500" />
+              Kuitattu korjatuksi
             </Button>
             <Button
-              className="bg-[#002f6c] hover:bg-blue-900"
-              onClick={submitAssessment}
-              disabled={loading || !verdict}
+              className="flex-1 bg-blue-600 hover:bg-blue-700"
+              onClick={() => submitCheckIn("ESCALATE")}
+              disabled={loading || !huoltoNotes}
             >
-              {loading ? "Tallennetaan..." : "Tallenna Lausunto"}
+              <ChevronRight size={14} className="mr-2" />
+              Eskaloi asiantuntijalle
             </Button>
           </DialogFooter>
         </DialogContent>

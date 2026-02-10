@@ -237,6 +237,17 @@ enum TicketType {
   RENOVATION
 }
 
+enum TicketCategory {
+  MAINTENANCE // Routine janitorial tasks
+  PROJECT // Major repairs requiring experts/bidding
+}
+
+enum TriageLevel {
+  ROUTINE // Handled by huoltoyhtiö
+  ESCALATED // Needs expert assessment
+  CRITICAL // Immediate safety/structural risk
+}
+
 model Ticket {
   id                  String         @id @default(cuid())
   title               String
@@ -244,7 +255,10 @@ model Ticket {
   status              TicketStatus   @default(OPEN)
   priority            TicketPriority @default(MEDIUM)
   type                TicketType     @default(MAINTENANCE)
-  category            String?
+  category            TicketCategory @default(MAINTENANCE)
+  triageLevel         TriageLevel    @default(ROUTINE)
+  huoltoNotes         String? // Feedback from the janitor/maintenance company
+  isPublic            Boolean        @default(false) // Whether residents see detailed updates
   supervisor          String?
   housingCompanyId    String
   housingCompany      HousingCompany @relation(fields: [housingCompanyId], references: [id])
@@ -260,6 +274,7 @@ model Ticket {
 
   @@index([housingCompanyId, status])
   @@index([createdById])
+  @@index([category, triageLevel])
   @@map("tickets")
 }
 

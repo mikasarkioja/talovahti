@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, PenTool } from "lucide-react";
+import {
+  Plus,
+  PenTool,
+  CheckCircle2,
+  Clock,
+  Search,
+  Hammer,
+} from "lucide-react";
 import { clsx } from "clsx";
 import { useSearchParams } from "next/navigation";
 import { createTicket } from "@/app/actions/ops-actions";
@@ -13,10 +20,82 @@ interface Ticket {
   title: string;
   description: string;
   status: string;
+  category: string;
   priority: string;
   type: string;
   apartmentId: string | null;
   createdAt: Date;
+}
+
+function StatusTimeline({
+  status,
+  category,
+}: {
+  status: string;
+  category: string;
+}) {
+  const steps = [
+    { id: "RECEIVED", label: "Vastaanotettu", icon: Clock },
+    { id: "MAINTENANCE", label: "Huoltoarvio", icon: Search },
+    { id: "EXPERT", label: "Asiantuntija", icon: Search },
+    { id: "PROGRESS", label: "Työn alla", icon: Hammer },
+    { id: "DONE", label: "Valmis", icon: CheckCircle2 },
+  ];
+
+  let currentIdx = 0;
+  if (status === "RESOLVED" || status === "CLOSED") currentIdx = 4;
+  else if (status === "IN_PROGRESS") currentIdx = 3;
+  else if (category === "PROJECT") currentIdx = 2;
+  else if (status === "OPEN") currentIdx = 1;
+
+  return (
+    <div className="flex items-center gap-1 mt-4 overflow-x-auto pb-2">
+      {steps.map((step, idx) => {
+        const Icon = step.icon;
+        const isActive = idx <= currentIdx;
+        const isCurrent = idx === currentIdx;
+
+        // Skip "Expert" step for non-project routine items unless already passed
+        if (step.id === "EXPERT" && category !== "PROJECT" && currentIdx < 2)
+          return null;
+
+        return (
+          <div key={step.id} className="flex items-center">
+            <div
+              className={clsx(
+                "flex flex-col items-center gap-1 min-w-[80px]",
+                isActive ? "text-blue-600" : "text-slate-300",
+              )}
+            >
+              <div
+                className={clsx(
+                  "w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all",
+                  isCurrent
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : isActive
+                      ? "bg-blue-50 text-blue-600 border-blue-200"
+                      : "bg-white text-slate-300 border-slate-200",
+                )}
+              >
+                <Icon size={14} />
+              </div>
+              <span className="text-[9px] font-bold uppercase tracking-tight">
+                {step.label}
+              </span>
+            </div>
+            {idx < steps.length - 1 && (
+              <div
+                className={clsx(
+                  "w-4 h-0.5 mt-[-14px]",
+                  idx < currentIdx ? "bg-blue-200" : "bg-slate-100",
+                )}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export function TicketsClient({
@@ -68,9 +147,13 @@ export function TicketsClient({
   let visibleTickets = initialTickets;
 
   if (filter === "closed") {
-    visibleTickets = visibleTickets.filter((t) => t.status === "CLOSED");
+    visibleTickets = visibleTickets.filter(
+      (t) => t.status === "CLOSED" || t.status === "RESOLVED",
+    );
   } else {
-    visibleTickets = visibleTickets.filter((t) => t.status !== "CLOSED");
+    visibleTickets = visibleTickets.filter(
+      (t) => t.status !== "CLOSED" && t.status !== "RESOLVED",
+    );
   }
 
   return (
@@ -208,6 +291,12 @@ export function TicketsClient({
                     }[ticket.priority] || ticket.priority}
                   </span>
                 </div>
+                {filter !== "closed" && (
+                  <StatusTimeline
+                    status={ticket.status}
+                    category={ticket.category}
+                  />
+                )}
               </div>
             </div>
           ))

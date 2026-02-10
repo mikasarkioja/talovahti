@@ -2,13 +2,21 @@
 
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { TicketPriority, TicketType } from "@prisma/client";
+import {
+  TicketPriority,
+  TicketType,
+  TicketCategory,
+  TriageLevel,
+} from "@prisma/client";
 
 export type KanbanItem = {
   id: string;
   title: string;
   subtitle?: string;
   status: string;
+  category?: TicketCategory;
+  triageLevel?: TriageLevel;
+  huoltoNotes?: string | null;
   stage:
     | "INBOX"
     | "ASSESSMENT"
@@ -25,9 +33,13 @@ export type KanbanItem = {
 export async function getOpsBoardItems(): Promise<KanbanItem[]> {
   const items: KanbanItem[] = [];
 
-  // 1. INBOX (Open Tickets, Not yet escalated)
+  // 1. INBOX (Open Tickets, Not yet escalated to Expert)
   const tickets = await prisma.ticket.findMany({
-    where: { status: "OPEN", observationId: null },
+    where: {
+      status: { in: ["OPEN", "IN_PROGRESS"] },
+      observationId: null,
+      category: "MAINTENANCE",
+    },
     orderBy: { createdAt: "desc" },
     include: { createdBy: true, apartment: true },
   });
@@ -38,6 +50,9 @@ export async function getOpsBoardItems(): Promise<KanbanItem[]> {
       title: t.title,
       subtitle: t.createdBy.name || "Unknown",
       status: t.status,
+      category: t.category,
+      triageLevel: t.triageLevel,
+      huoltoNotes: t.huoltoNotes,
       stage: "INBOX",
       priority: t.priority as KanbanItem["priority"],
       type: "TICKET",
@@ -48,7 +63,31 @@ export async function getOpsBoardItems(): Promise<KanbanItem[]> {
     }),
   );
 
-  // 2. ASSESSMENT (Observations with/without Expert Opinion)
+  // 2. ASSESSMENT (Observations or PROJECT Category Tickets)
+  // Find Project-level tickets that need expert review
+  const projectTickets = await prisma.ticket.findMany({
+    where: {
+      category: "PROJECT",
+      status: "OPEN",
+      observationId: null,
+    },
+    include: { createdBy: true },
+  });
+
+  projectTickets.forEach((t) =>
+    items.push({
+      id: t.id,
+      title: t.title,
+      subtitle: `Eskaloitu: ${t.createdBy.name || "Asukas"}`,
+      status: t.status,
+      category: t.category,
+      stage: "ASSESSMENT",
+      priority: t.priority as KanbanItem["priority"],
+      type: "TICKET",
+      date: t.createdAt,
+    }),
+  );
+
   const observations = await prisma.observation.findMany({
     where: { status: { in: ["OPEN", "REVIEWED"] } },
     include: { ticket: true },
@@ -128,7 +167,34 @@ export async function getOpsBoardItems(): Promise<KanbanItem[]> {
 
 // TRANSITIONS
 
-export async function escalateTicketToObservation(ticketId: string) {
+export async function janitorialCheckIn(
+  ticketId: string,
+  data: { notes: string; action: "RESOLVE" | "ESCALATE" },
+) {
+  try {
+    if (data.action === "RESOLVE") {
+      await prisma.ticket.update({
+        where: { id: ticketId },
+        data: {
+          status: "CLOSED",
+          huoltoNotes: data.notes,
+          triageLevel: "ROUTINE",
+        },
+      });
+    } else {
+      // Escalating to Expert
+      return await escalateToExpert(ticketId, data.notes);
+    }
+
+    revalidatePath("/admin/ops");
+    return { success: true };
+  } catch (error) {
+    console.error("Check-in Error:", error);
+    return { success: false, error: "Tarkastuksen kirjaaminen epäonnistui." };
+  }
+}
+
+export async function escalateToExpert(ticketId: string, notes?: string) {
   const ticket = await prisma.ticket.findUnique({
     where: { id: ticketId },
     include: { apartment: true },
@@ -136,38 +202,76 @@ export async function escalateTicketToObservation(ticketId: string) {
   if (!ticket) return { error: "Ticket not found" };
 
   // 1. Create Observation with spatial metadata and association
+  // Mapping spatial (x, y, z) metadata from apartment attributes
   const obs = await prisma.observation.create({
     data: {
       component: ticket.title,
-      description: ticket.description,
+      description: `${ticket.description}\n\nHuoltoyhtiön huomiot: ${notes || "Ei lisätietoja."}`,
       userId: ticket.createdById,
       housingCompanyId: ticket.housingCompanyId,
       status: "OPEN",
       location: ticket.apartment?.attributes
         ? JSON.stringify(ticket.apartment.attributes)
-        : undefined, // Preserve spatial data if attached to apartment
+        : undefined, // Preserve spatial data
     },
   });
 
-  // 2. Link Ticket to Observation and update status
+  // 2. Update Ticket to PROJECT category and link to Observation
   await prisma.ticket.update({
     where: { id: ticketId },
-    data: { observationId: obs.id, status: "IN_PROGRESS" },
+    data: {
+      observationId: obs.id,
+      status: "OPEN",
+      category: "PROJECT",
+      triageLevel: "ESCALATED",
+      huoltoNotes: notes,
+    },
   });
 
   // 3. Log GDPR Event
   await prisma.gDPRLog.create({
     data: {
-      actorId: "system", // In a real app, use the current user session ID
-      action: "ESCALATE_TICKET",
+      actorId: "system", // Should be current user
+      action: "ESCALATE_TO_EXPERT",
       targetEntity: `Observation:${obs.id}`,
-      details: `Escalated Ticket ${ticketId} to Observation.`,
+      details: `Escalated Ticket ${ticketId} to Expert Project. Notes: ${notes}`,
       housingCompanyId: ticket.housingCompanyId,
     },
   });
 
   revalidatePath("/admin/ops");
   return { success: true, observationId: obs.id };
+}
+
+// Deprecated in favor of escalateToExpert but kept for compatibility if needed
+export async function escalateTicketToObservation(ticketId: string) {
+  return escalateToExpert(ticketId);
+}
+
+export async function assignTicketToMaintenance(ticketId: string) {
+  try {
+    await prisma.ticket.update({
+      where: { id: ticketId },
+      data: { status: "IN_PROGRESS" },
+    });
+
+    // Log GDPR Event
+    await prisma.gDPRLog.create({
+      data: {
+        actorId: "system",
+        action: "ASSIGN_TO_MAINTENANCE",
+        targetEntity: `Ticket:${ticketId}`,
+        details: `Ticket assigned directly to maintenance company.`,
+        housingCompanyId: "default-company-id", // Should be fetched from ticket
+      },
+    });
+
+    revalidatePath("/admin/ops");
+    return { success: true };
+  } catch (error) {
+    console.error("Assign Error:", error);
+    return { success: false, error: "Virhe määritettäessä huoltoa." };
+  }
 }
 
 export async function submitTechnicalVerdict(
