@@ -8,6 +8,8 @@ import {
   VoteChoice,
   UserRole,
   TicketType,
+  TicketCategory,
+  TriageLevel,
   RenovationStatus,
   ObservationStatus,
   ProjectStatus,
@@ -23,8 +25,6 @@ import {
   BudgetCategory,
   AnnualTask,
   FiscalConfiguration,
-  TaskCategory,
-  FiscalQuarter,
   StrategicGoal,
   GoalStatus,
 } from "@prisma/client";
@@ -67,8 +67,12 @@ export type MockTicket = {
   status: TicketStatus;
   priority: TicketPriority;
   type: TicketType;
+  category: TicketCategory;
+  triageLevel: TriageLevel;
   apartmentId: string | null;
   createdAt: Date;
+  date?: Date; // Added for Kanban compatibility
+  createdById?: string;
   observationId?: string;
 };
 
@@ -393,8 +397,12 @@ export const useStore = create<AppState>((set) => ({
       status: "OPEN",
       priority: "MEDIUM",
       type: "MAINTENANCE",
+      category: "MAINTENANCE",
+      triageLevel: "ROUTINE",
       apartmentId: "A 1",
       createdAt: new Date(2025, 10, 1),
+      date: new Date(2025, 10, 1),
+      createdById: "user-resident-1",
     },
   ],
 

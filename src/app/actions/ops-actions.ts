@@ -13,10 +13,12 @@ export type KanbanItem = {
   id: string;
   title: string;
   subtitle?: string;
+  description?: string;
   status: string;
   category?: TicketCategory;
   triageLevel?: TriageLevel;
   huoltoNotes?: string | null;
+  apartmentId?: string | null;
   stage:
     | "INBOX"
     | "ASSESSMENT"
@@ -49,16 +51,20 @@ export async function getOpsBoardItems(): Promise<KanbanItem[]> {
       id: t.id,
       title: t.title,
       subtitle: t.createdBy.name || "Unknown",
+      description: t.description,
       status: t.status,
       category: t.category,
       triageLevel: t.triageLevel,
       huoltoNotes: t.huoltoNotes,
+      apartmentId: t.apartmentId,
       stage: "INBOX",
       priority: t.priority as KanbanItem["priority"],
       type: "TICKET",
       date: t.createdAt,
       meta: {
         hasLocation: !!t.apartment?.attributes,
+        locationData: t.apartment?.attributes,
+        isPublic: t.isPublic,
       },
     }),
   );
@@ -392,4 +398,54 @@ export async function createTicket(data: {
     console.error("Create Ticket Error:", error);
     return { success: false, error: "Tiketin luonti epäonnistui." };
   }
+}
+
+export async function requestTicketInfo(ticketId: string, message: string) {
+  try {
+    const ticket = await prisma.ticket.update({
+      where: { id: ticketId },
+      data: {
+        status: "OPEN", // Keep it open, but maybe we could add a "PENDING_INFO" status later
+        huoltoNotes: `LISÄTIETOPYYNTÖ: ${message}`,
+      },
+    });
+
+    // In a real app, this would trigger a push notification or email to the resident
+    await prisma.gDPRLog.create({
+      data: {
+        actorId: "board", // Replace with real session user
+        action: "REQUEST_INFO",
+        targetEntity: `Ticket:${ticketId}`,
+        details: `Requested more info from resident: ${message}`,
+        housingCompanyId: ticket.housingCompanyId,
+      },
+    });
+
+    revalidatePath("/admin/ops");
+    revalidatePath("/maintenance/tickets");
+    return { success: true };
+  } catch (error) {
+    console.error("Request Info Error:", error);
+    return { success: false, error: "Lisätietopyynnön lähetys epäonnistui." };
+  }
+}
+
+export async function getTicketHistoryForLocation(apartmentId: string) {
+  if (!apartmentId) return [];
+  const twelveMonthsAgo = new Date();
+  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+
+  return await prisma.ticket.findMany({
+    where: {
+      apartmentId,
+      createdAt: { gte: twelveMonthsAgo },
+    },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      createdAt: true,
+    },
+  });
 }

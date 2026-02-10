@@ -14,6 +14,7 @@ import {
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { BuildingModel } from "@/components/BuildingModel";
 import { PulseHero } from "@/components/dashboard/PulseHero";
+import { TicketTimeline } from "@/components/mobile/TicketTimeline";
 import {
   AnnualClock,
   AnnualClockData,
@@ -97,6 +98,14 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
       o.status === "OPEN" && (o.severityGrade === 1 || o.severityGrade === 2),
   );
 
+  const latestOpenTicket = (tickets || [])
+    .filter((t) => t.createdById === currentUser?.id && t.status !== "CLOSED")
+    .sort((a, b) => {
+      const dateA = a.date ? new Date(a.date).getTime() : 0;
+      const dateB = b.date ? new Date(b.date).getTime() : 0;
+      return dateB - dateA;
+    })[0];
+
   const handleApartmentClick = (id: string) => {
     if (tourStep === 3) {
       setHighlightId(id);
@@ -156,6 +165,25 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
           <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
             <PulseHero companyId={currentUser?.housingCompanyId} />
           </div>
+
+          {latestOpenTicket && (
+            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-2">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-bold text-brand-navy">
+                  Vikailmoituksen tila
+                </h3>
+                <Badge variant="outline" className="text-[10px]">
+                  {latestOpenTicket.title}
+                </Badge>
+              </div>
+              <TicketTimeline
+                status={latestOpenTicket.status}
+                category={latestOpenTicket.category}
+                triageLevel={latestOpenTicket.triageLevel}
+              />
+            </div>
+          )}
+
           <ActivityFeed limit={3} compact />
         </div>
       </div>

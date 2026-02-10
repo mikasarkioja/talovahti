@@ -136,10 +136,13 @@ export default async function Home(props: {
               description: t.description,
               status: t.status,
               category: t.category,
+              triageLevel: t.triageLevel,
               priority: t.priority,
               type: t.type,
               apartmentId: t.apartment?.apartmentNumber || null,
               createdAt: t.createdAt,
+              date: t.createdAt,
+              createdById: t.createdById,
               observationId: t.observationId,
             })),
             initiatives: company.initiatives.map((i) => ({
