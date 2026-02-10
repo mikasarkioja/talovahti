@@ -7,10 +7,8 @@ import {
   Wallet,
   Building2,
   ClipboardList,
-  CheckSquare,
   TrendingUp,
   Vote,
-  HardHat,
   ShieldCheck,
   Settings,
   Workflow,
@@ -86,17 +84,6 @@ export function Sidebar() {
           label: "PTS & Historia",
           icon: ClipboardList,
         },
-        isBoard
-          ? {
-              href: "/admin/assessment",
-              label: "Kuntoarvio",
-              icon: CheckSquare,
-            }
-          : {
-              href: "/maintenance/observe",
-              label: "Ilmoita havainto",
-              icon: CheckSquare,
-            },
         { href: "/admin/sauna-safety", label: "Saunavahti", icon: Thermometer },
       ],
     },
@@ -122,12 +109,6 @@ export function Sidebar() {
       items: [
         { href: "/governance/pipeline", label: "Päätösputki", icon: Gavel },
         { href: "/governance/voting", label: "Äänestykset", icon: Vote },
-        {
-          href: "/governance/projects",
-          label: "Urakat",
-          icon: HardHat,
-          locked: isBasic,
-        },
       ],
     },
     ...(isBoard
@@ -296,7 +277,10 @@ export function Sidebar() {
                               }
                             }}
                           >
-                            <ItemIcon size={16} className="text-blue-300 group-hover:text-white" />
+                            <ItemIcon
+                              size={16}
+                              className="text-blue-300 group-hover:text-white"
+                            />
                             <span className="flex-1 truncate">
                               {link.label}
                             </span>

@@ -11,7 +11,8 @@ export default async function GovernancePage(props: {
   const userQuery =
     typeof searchParams.user === "string" ? searchParams.user : undefined;
 
-  const housingCompanyId = "default-company-id"; // In production, get from session/context
+  const firstCompany = await prisma.housingCompany.findFirst();
+  const housingCompanyId = firstCompany?.id || "default-company-id";
 
   // 1. Fetch Company Totals for "Power Circle" calculations
   const company = await prisma.housingCompany.findUnique({
@@ -44,6 +45,13 @@ export default async function GovernancePage(props: {
     });
   }
 
+  // Final fallback for development
+  if (!user) {
+    user = await prisma.user.findFirst({
+      where: { housingCompanyId: housingCompanyId },
+    });
+  }
+
   // Fallback if totalShares not set, sum from apartments
   const calculatedTotalShares =
     company?.apartments.reduce(
@@ -68,10 +76,7 @@ export default async function GovernancePage(props: {
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
-      <VotingClient 
-        housingCompanyId={housingCompanyId} 
-        userId={user?.id}
-      />
+      <VotingClient housingCompanyId={housingCompanyId} userId={user?.id} />
 
       <div className="grid gap-6">
         {initiatives.length === 0 ? (

@@ -1,101 +1,76 @@
 "use client";
-import { useState, useRef } from "react";
-import { useStore } from "@/lib/store";
-import { Plus, PenTool, Camera, X, ImageIcon } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Plus, PenTool } from "lucide-react";
 import { clsx } from "clsx";
-import Image from "next/image";
-
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { createTicket } from "@/app/actions/ops-actions";
+import { toast } from "sonner";
+import { prisma } from "@/lib/db";
+import { TicketPriority, TicketType } from "@prisma/client";
 
-function TicketsContent() {
-  const { tickets, currentUser, addTicket, addObservation } = useStore();
+interface Ticket {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: string;
+  type: string;
+  apartmentId: string | null;
+  createdAt: Date;
+}
+
+function TicketsContent({
+  initialTickets,
+  context,
+}: {
+  initialTickets: Ticket[];
+  context: { companyId?: string; userId?: string };
+}) {
   const [isCreating, setIsCreating] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [image, setImage] = useState<File | null>(null);
 
   const searchParams = useSearchParams();
   const filter = searchParams.get("filter"); // 'closed' or null
 
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleRemoveImage = () => {
-    setImage(null);
-    setImagePreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title) return;
+    if (!context.companyId || !context.userId) {
+      toast.error("Yhtiön tai käyttäjän tietoja ei löytynyt.");
+      return;
+    }
 
-    const timestamp = Date.now();
-    const obsId = `obs-${timestamp}`;
-    const ticketId = `ticket-${timestamp}`;
+    startTransition(async () => {
+      const result = await createTicket({
+        title,
+        description,
+        priority: TicketPriority.MEDIUM,
+        type: TicketType.MAINTENANCE,
+        housingCompanyId: context.companyId!,
+        createdById: context.userId!,
+      });
 
-    // 1. Create Observation for Expert View (Tehtäväjono)
-    // This ensures the issue appears in the property manager's assessment queue
-    addObservation({
-      id: obsId,
-      component: title, // Use title as the component/subject
-      description: description,
-      status: "OPEN",
-      location: currentUser?.apartmentId || "Yleiset tilat",
-      userId: currentUser?.id || "unknown",
-      createdAt: new Date(),
-      imageUrl: imagePreview, // Store the base64 preview as the image URL for now
+      if (result.success) {
+        toast.success("Vikailmoitus lähetetty!");
+        setIsCreating(false);
+        setTitle("");
+        setDescription("");
+      } else {
+        toast.error(result.error || "Lähetys epäonnistui.");
+      }
     });
-
-    // 2. Create Ticket for Resident View
-    addTicket({
-      id: ticketId,
-      title,
-      description,
-      status: "OPEN",
-      priority: "MEDIUM",
-      type: "MAINTENANCE",
-      apartmentId: currentUser?.apartmentId || null,
-      createdAt: new Date(),
-      observationId: obsId, // Link to observation
-    });
-
-    setIsCreating(false);
-    setTitle("");
-    setDescription("");
-    setImage(null);
-    setImagePreview(null);
   };
 
-  // Filter tickets: Board sees all, Resident sees own
-  let visibleTickets =
-    !currentUser ||
-    currentUser.role === "BOARD" ||
-    currentUser.role === "MANAGER"
-      ? tickets
-      : tickets.filter((t) => t.apartmentId === currentUser.apartmentId);
+  // Filter tickets
+  let visibleTickets = initialTickets;
 
   if (filter === "closed") {
     visibleTickets = visibleTickets.filter((t) => t.status === "CLOSED");
   } else {
-    // Default view: Show everything EXCEPT closed (unless searching for closed specifically)
-    // Or maybe just show active ones? Let's show non-closed by default for "Actionable" view.
     visibleTickets = visibleTickets.filter((t) => t.status !== "CLOSED");
   }
 
@@ -139,6 +114,7 @@ function TicketsContent() {
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Esim. Vuotava hana"
+                required
               />
             </div>
             <div>
@@ -150,56 +126,8 @@ function TicketsContent() {
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
                 placeholder="Tarkempi kuvaus ongelmasta..."
+                required
               />
-            </div>
-
-            {/* Image Upload Section */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Liitteet
-              </label>
-
-              {!imagePreview ? (
-                <div className="flex flex-col gap-2">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handleImageChange}
-                    className="hidden"
-                    id="image-upload"
-                  />
-                  <label
-                    htmlFor="image-upload"
-                    className="flex items-center justify-center gap-3 w-full p-4 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 hover:bg-slate-100 cursor-pointer transition-colors active:scale-[0.98]"
-                  >
-                    <div className="bg-blue-100 p-2 rounded-full text-blue-600">
-                      <Camera size={24} />
-                    </div>
-                    <span className="font-semibold text-slate-700">
-                      Lisää kuva ongelmasta
-                    </span>
-                  </label>
-                </div>
-              ) : (
-                <div className="relative inline-block">
-                  <div className="relative w-full max-w-sm aspect-video rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleRemoveImage}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-md hover:bg-red-600 transition-colors"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              )}
             </div>
 
             <div className="flex gap-2 justify-end pt-2">
@@ -207,14 +135,16 @@ function TicketsContent() {
                 type="button"
                 onClick={() => setIsCreating(false)}
                 className="px-4 py-2 text-slate-600 hover:text-slate-900"
+                disabled={isPending}
               >
                 Peruuta
               </button>
               <button
                 type="submit"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium"
+                disabled={isPending}
               >
-                Lähetä ilmoitus
+                {isPending ? "Lähetetään..." : "Lähetä ilmoitus"}
               </button>
             </div>
           </form>
@@ -272,10 +202,30 @@ function TicketsContent() {
   );
 }
 
+// Separate Server Component to fetch data
+async function TicketsPageServer() {
+  const tickets = await prisma.ticket.findMany({
+    orderBy: { createdAt: "desc" },
+    include: { apartment: true },
+  });
+
+  const company = await prisma.housingCompany.findFirst();
+  const boardUser = await prisma.user.findFirst({
+    where: { role: "BOARD", housingCompanyId: company?.id },
+  });
+
+  return (
+    <TicketsContent
+      initialTickets={JSON.parse(JSON.stringify(tickets))}
+      context={{ companyId: company?.id, userId: boardUser?.id }}
+    />
+  );
+}
+
 export default function TicketsPage() {
   return (
     <Suspense fallback={<div>Ladataan...</div>}>
-      <TicketsContent />
+      <TicketsPageServer />
     </Suspense>
   );
 }

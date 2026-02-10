@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { TicketPriority, TicketType } from "@prisma/client";
 
 export type KanbanItem = {
   id: string;
@@ -41,8 +42,8 @@ export async function getOpsBoardItems(): Promise<KanbanItem[]> {
       priority: t.priority as KanbanItem["priority"],
       type: "TICKET",
       date: t.createdAt,
-      meta: { 
-        hasLocation: !!t.apartment?.attributes 
+      meta: {
+        hasLocation: !!t.apartment?.attributes,
       },
     }),
   );
@@ -63,12 +64,17 @@ export async function getOpsBoardItems(): Promise<KanbanItem[]> {
       subtitle: hasVerdict ? "Asiantuntija arvioinut" : "Odottaa arviota",
       status: o.status,
       stage: hasVerdict ? "MARKETPLACE" : "ASSESSMENT",
-      priority: o.severityGrade === 1 ? "CRITICAL" : o.severityGrade === 2 ? "HIGH" : "MEDIUM",
+      priority:
+        o.severityGrade === 1
+          ? "CRITICAL"
+          : o.severityGrade === 2
+            ? "HIGH"
+            : "MEDIUM",
       type: "OBSERVATION",
       date: o.createdAt,
-      meta: { 
+      meta: {
         verdict: o.technicalVerdict,
-        hasLocation: !!o.location 
+        hasLocation: !!o.location,
       },
     });
   });
@@ -98,9 +104,9 @@ export async function getOpsBoardItems(): Promise<KanbanItem[]> {
       priority: "HIGH",
       type: "PROJECT",
       date: p.createdAt,
-      meta: { 
+      meta: {
         bidCount: p._count.bids,
-        hasLocation: !!p.observation?.location 
+        hasLocation: !!p.observation?.location,
       },
     });
   });
@@ -238,4 +244,36 @@ export async function completeProject(projectId: string) {
   });
   revalidatePath("/admin/ops");
   return { success: true };
+}
+
+export async function createTicket(data: {
+  title: string;
+  description: string;
+  priority: TicketPriority;
+  type: TicketType;
+  housingCompanyId: string;
+  createdById: string;
+  apartmentId?: string;
+}) {
+  try {
+    const ticket = await prisma.ticket.create({
+      data: {
+        title: data.title,
+        description: data.description,
+        priority: data.priority,
+        status: "OPEN",
+        type: data.type,
+        housingCompanyId: data.housingCompanyId,
+        createdById: data.createdById,
+        apartmentId: data.apartmentId || null,
+      },
+    });
+
+    revalidatePath("/admin/ops");
+    revalidatePath("/maintenance/tickets");
+    return { success: true, ticket };
+  } catch (error) {
+    console.error("Create Ticket Error:", error);
+    return { success: false, error: "Tiketin luonti epäonnistui." };
+  }
 }

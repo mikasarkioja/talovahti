@@ -11,7 +11,8 @@ export default async function PipelinePage(props: {
   const userQuery =
     typeof searchParams.user === "string" ? searchParams.user : undefined;
 
-  const housingCompanyId = "default-company-id";
+  const company = await prisma.housingCompany.findFirst();
+  const housingCompanyId = company?.id || "default-company-id";
 
   // 1. Fetch User (Dynamic Switcher pattern)
   let user = null;
@@ -28,6 +29,13 @@ export default async function PipelinePage(props: {
   if (!user && !userQuery) {
     user = await prisma.user.findFirst({
       where: { housingCompanyId: housingCompanyId, role: "BOARD" },
+    });
+  }
+
+  // Final fallback for development
+  if (!user) {
+    user = await prisma.user.findFirst({
+      where: { housingCompanyId: housingCompanyId },
     });
   }
 
