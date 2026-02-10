@@ -49,7 +49,8 @@ interface HomeClientProps {
 }
 
 export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
-  const { currentUser, tickets, initiatives, hydrate } = useStore();
+  const { currentUser, tickets, initiatives, observations, hydrate } =
+    useStore();
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -91,7 +92,7 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
       (t.priority === "HIGH" && t.status === "OPEN"),
   );
 
-  const urgentObservations = (useStore.getState().observations || []).filter(
+  const urgentObservations = (observations || []).filter(
     (o) =>
       o.status === "OPEN" && (o.severityGrade === 1 || o.severityGrade === 2),
   );

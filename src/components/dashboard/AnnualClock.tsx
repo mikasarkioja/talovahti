@@ -65,10 +65,10 @@ const QuarterSegment = ({
   const endRad = (endAngle - 90) * (Math.PI / 180);
 
   // Calculate path commands
-  const x1 = 50 + 50 * Math.cos(startRad);
-  const y1 = 50 + 50 * Math.sin(startRad);
-  const x2 = 50 + 50 * Math.cos(endRad);
-  const y2 = 50 + 50 * Math.sin(endRad);
+  const x1 = (50 + 50 * Math.cos(startRad)).toFixed(2);
+  const y1 = (50 + 50 * Math.sin(startRad)).toFixed(2);
+  const x2 = (50 + 50 * Math.cos(endRad)).toFixed(2);
+  const y2 = (50 + 50 * Math.sin(endRad)).toFixed(2);
 
   // SVG Path for a wedge
   const d = [`M 50 50`, `L ${x1} ${y1}`, `A 50 50 0 0 1 ${x2} ${y2}`, `Z`].join(
@@ -78,8 +78,8 @@ const QuarterSegment = ({
   // Center point for label
   const midAngle = (startAngle + endAngle) / 2;
   const midRad = (midAngle - 90) * (Math.PI / 180);
-  const labelX = 50 + 35 * Math.cos(midRad);
-  const labelY = 50 + 35 * Math.sin(midRad);
+  const labelX = (50 + 35 * Math.cos(midRad)).toFixed(2);
+  const labelY = (50 + 35 * Math.sin(midRad)).toFixed(2);
 
   const handleToggle = async (task: AnnualTask) => {
     startTransition(async () => {

@@ -14,18 +14,15 @@ export default async function GovernancePage(props: {
   const firstCompany = await prisma.housingCompany.findFirst();
   const housingCompanyId = firstCompany?.id || "default-company-id";
 
-  // 1. Fetch Company Totals for "Power Circle" calculations
-  const company = await prisma.housingCompany.findUnique({
-    where: { id: housingCompanyId },
-    include: {
-      apartments: {
-        select: {
-          id: true,
-          shareCount: true,
-        },
-      },
-    },
+  // 1. Fetch Totals using Database Aggregation (High Performance)
+  const apartmentStats = await prisma.apartment.aggregate({
+    where: { housingCompanyId },
+    _sum: { shareCount: true },
+    _count: { id: true },
   });
+
+  const totalShares = apartmentStats._sum.shareCount || 10000;
+  const totalApartments = apartmentStats._count.id || 0;
 
   // 2. Fetch User (Dynamic Switcher pattern)
   let user = null;
@@ -51,15 +48,6 @@ export default async function GovernancePage(props: {
       where: { housingCompanyId: housingCompanyId },
     });
   }
-
-  // Fallback if totalShares not set, sum from apartments
-  const calculatedTotalShares =
-    company?.apartments.reduce(
-      (sum: number, apt: { shareCount: number }) => sum + apt.shareCount,
-      0,
-    ) || 0;
-  const totalShares = calculatedTotalShares || 10000;
-  const totalApartments = company?.apartments.length || 0;
 
   // 3. Fetch Initiatives with Votes
   const initiatives = await prisma.initiative.findMany({
