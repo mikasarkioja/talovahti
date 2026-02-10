@@ -98,7 +98,19 @@ export async function getOpsBoardItems(): Promise<KanbanItem[]> {
     items.push({
       id: p.id,
       title: p.title,
-      subtitle: `Status: ${p.status}`,
+      subtitle: `Tila: ${
+        {
+          PLANNED: "Suunnitteilla",
+          TENDERING: "Kilpailutuksessa",
+          EXECUTION: "Käynnissä",
+          WARRANTY: "Takuuvaihe",
+          COMPLETED: "Valmis",
+          CONSTRUCTION: "Rakennusvaihe",
+          DIAGNOSIS: "Kuntoarvio",
+          ROI_ANALYSIS: "Analyysi",
+          TECH_LEAD: "Suunnittelussa",
+        }[p.status] || p.status
+      }`,
       status: p.status,
       stage: stage,
       priority: "HIGH",

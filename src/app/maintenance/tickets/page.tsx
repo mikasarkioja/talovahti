@@ -182,16 +182,32 @@ function TicketsContent({
                         "bg-slate-100 text-slate-600 border-slate-200",
                     )}
                   >
-                    {ticket.status === "CLOSED" ? "SUORITETTU" : ticket.status}
+                    {{
+                      OPEN: "AVOIN",
+                      IN_PROGRESS: "TYÖN ALLA",
+                      RESOLVED: "RATKAISTU",
+                      CLOSED: "SULJETTU",
+                    }[ticket.status] || ticket.status}
                   </span>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                    {ticket.type}
+                    {{
+                      MAINTENANCE: "YLLÄPITO",
+                      RENOVATION: "REMONTTI",
+                    }[ticket.type] || ticket.type}
                   </span>
                 </div>
                 <p className="text-slate-600">{ticket.description}</p>
                 <div className="text-sm text-slate-400 flex items-center gap-4 pt-1">
                   <span>Asunto: {ticket.apartmentId || "Yleiset tilat"}</span>
-                  <span>Prioriteetti: {ticket.priority}</span>
+                  <span>
+                    Prioriteetti:{" "}
+                    {{
+                      LOW: "Matala",
+                      MEDIUM: "Normaali",
+                      HIGH: "Korkea",
+                      CRITICAL: "Kriittinen",
+                    }[ticket.priority] || ticket.priority}
+                  </span>
                 </div>
               </div>
             </div>

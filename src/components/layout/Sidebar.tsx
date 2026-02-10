@@ -57,10 +57,10 @@ export function Sidebar() {
   const isBasic = plan === "BASIC";
 
   const primaryItems = [
-    { href: "/", label: "Dashboard", icon: Home },
+    { href: "/", label: "Hallintapaneeli", icon: Home },
     { href: "/dashboard/feed", label: "Tapahtumat", icon: Activity },
     ...(isBoard
-      ? [{ href: "/admin/ops", label: "Ops Board", icon: Workflow }]
+      ? [{ href: "/admin/ops", label: "Tehtävienhallinta", icon: Workflow }]
       : []),
     { href: "/maintenance/tickets", label: "Vikailmoitukset", icon: PenTool },
   ];
@@ -118,7 +118,7 @@ export function Sidebar() {
             items: [
               {
                 href: "/admin/privacy/audit",
-                label: "GDPR Audit",
+                label: "GDPR-auditointi",
                 icon: ShieldCheck,
               },
               {

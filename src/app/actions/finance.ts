@@ -45,7 +45,7 @@ export async function getFinanceAggregates(companyId: string, year: number) {
       const m = i + 1;
       const found = monthlyTrendRaw.find((r) => r.month === m);
       return {
-        month: new Date(0, i).toLocaleString("default", { month: "short" }),
+        month: new Date(0, i).toLocaleString("fi-FI", { month: "short" }),
         total: found ? Number(found.total) : 0,
       };
     });

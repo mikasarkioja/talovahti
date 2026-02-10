@@ -215,7 +215,7 @@ export function StrategyDashboard() {
         <TabsContent value="value">
           <div className="h-[400px] flex items-center justify-center">
             <p className="text-slate-500">
-              Value Intelligence view coming soon
+              Arvon kehityksen analyysi tulossa pian.
             </p>
           </div>
         </TabsContent>

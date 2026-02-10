@@ -125,9 +125,11 @@ export function KanbanBoard({
 
                     <div className="text-xs text-slate-400 font-medium">
                       {stage === "VOTING" ? (
-                        <span className="text-blue-600">Äänestys käynnissä</span>
+                        <span className="text-blue-600">
+                          Äänestys käynnissä
+                        </span>
                       ) : (
-                        <span>{init.status}</span>
+                        <span>{LABELS[init.status] || init.status}</span>
                       )}
                     </div>
                   </div>

@@ -161,20 +161,26 @@ export function OpsKanbanBoard({ items }: OpsBoardProps) {
   };
 
   const getPriorityBadge = (priority: string) => {
-    const config =
-      {
-        CRITICAL: "border-red-500/50 text-red-600 bg-red-50",
-        HIGH: "border-orange-500/50 text-orange-600 bg-orange-50",
-        MEDIUM: "border-blue-500/50 text-blue-600 bg-blue-50",
-        LOW: "border-slate-300 text-slate-500 bg-slate-50",
-      }[priority] || "border-slate-300 text-slate-500 bg-slate-50";
+    const config: Record<string, string> = {
+      CRITICAL: "border-red-500/50 text-red-600 bg-red-50",
+      HIGH: "border-orange-500/50 text-orange-600 bg-orange-50",
+      MEDIUM: "border-blue-500/50 text-blue-600 bg-blue-50",
+      LOW: "border-slate-300 text-slate-500 bg-slate-50",
+    };
+
+    const labels: Record<string, string> = {
+      CRITICAL: "KRIITTINEN",
+      HIGH: "KORKEA",
+      MEDIUM: "NORMAALI",
+      LOW: "MATALA",
+    };
 
     return (
       <Badge
         variant="outline"
-        className={`text-[10px] font-bold px-1.5 h-5 ${config}`}
+        className={`text-[10px] font-bold px-1.5 h-5 ${config[priority] || "border-slate-300 text-slate-500 bg-slate-50"}`}
       >
-        {priority}
+        {labels[priority] || priority}
       </Badge>
     );
   };
@@ -361,7 +367,11 @@ export function OpsKanbanBoard({ items }: OpsBoardProps) {
                           {new Date(item.date).toLocaleDateString("fi-FI")}
                         </span>
                         <span className="uppercase tracking-tighter opacity-50">
-                          {item.type}
+                          {{
+                            TICKET: "TIKETTI",
+                            OBSERVATION: "HAVAINTO",
+                            PROJECT: "PROJEKTI",
+                          }[item.type] || item.type}
                         </span>
                       </div>
                     </div>

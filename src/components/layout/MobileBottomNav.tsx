@@ -7,7 +7,7 @@ import { FEATURES } from "@/config/features";
 export function MobileBottomNav() {
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-200 h-16 flex items-center justify-around z-40 pb-safe">
-      <NavItem icon={<Box size={24} />} label="3D Twin" active />
+      <NavItem icon={<Box size={24} />} label="3D-malli" active />
       <div className="relative -top-6">
         <Button
           size="icon"

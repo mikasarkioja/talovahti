@@ -111,7 +111,7 @@ function TemporalHUD({ hoveredTask }: { hoveredTask: any }) {
         <div className="bg-white/95 backdrop-blur shadow-xl rounded-xl border-2 border-blue-500 p-4 w-64 text-center">
           <div className="flex items-center justify-center gap-2 text-blue-600 font-bold mb-1">
             <Calendar size={16} />
-            <span>{hoveredTask.quarter} Milestone</span>
+            <span>{hoveredTask.quarter} - Virstanpylväs</span>
           </div>
           <h3 className="font-bold text-slate-800 text-sm mb-1">
             {hoveredTask.title}
@@ -279,7 +279,7 @@ export function BuildingModel({
             className="h-8 w-8 p-0 text-xs font-bold"
             onClick={() => setSelectedFloor(null)}
           >
-            ALL
+            KAIKKI
           </Button>
           {[4, 3, 2, 1].map((f) => (
             <Button
@@ -347,7 +347,7 @@ export function BuildingModel({
           onClick={() => setXrayEnabled(!xrayEnabled)}
         >
           <Layers size={14} className="mr-2" />
-          {xrayEnabled ? "X-Ray ON" : "X-Ray"}
+          {xrayEnabled ? "Läpivalaisu PÄÄLLÄ" : "Läpivalaisu"}
         </Button>
         <Button
           size="sm"

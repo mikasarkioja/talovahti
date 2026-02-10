@@ -27,31 +27,50 @@ type MonthlyData = {
   total: number;
 };
 
+const CATEGORY_LABELS: Record<string, string> = {
+  HEATING: "Lämmitys",
+  WATER: "Vesi",
+  MAINTENANCE: "Huolto",
+  ADMIN: "Hallinto",
+  CLEANING: "Siivous",
+  ELECTRICITY: "Sähkö",
+  WASTE: "Jätehuolto",
+  REPAIR: "Korjaukset",
+  OTHER: "Muut",
+};
+
 export function ExpensesPieChart({ data }: { data: CategoryData[] }) {
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
+
+  const translatedData = data.map((d) => ({
+    ...d,
+    categoryName: CATEGORY_LABELS[d.category] || d.category,
+  }));
 
   return (
     <ResponsiveContainer width="100%" height={300}>
       <PieChart>
         <Pie
-          data={data}
+          data={translatedData}
           cx="50%"
           cy="50%"
           labelLine={false}
           label={(props: any) =>
-            `${props.name} ${((props.percent || 0) * 100).toFixed(0)}%`
+            `${props.categoryName} ${((props.percent || 0) * 100).toFixed(0)}%`
           }
           outerRadius={80}
           fill="#8884d8"
           dataKey="actual"
-          nameKey="category"
+          nameKey="categoryName"
         >
-          {data.map((entry, index) => (
+          {translatedData.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>
         <Tooltip
-          formatter={(value: any) => `${Number(value).toLocaleString()} €`}
+          formatter={(value: any) =>
+            `${Number(value).toLocaleString("fi-FI")} €`
+          }
         />
         <Legend />
       </PieChart>
@@ -67,7 +86,9 @@ export function ExpensesBarChart({ data }: { data: MonthlyData[] }) {
         <XAxis dataKey="month" />
         <YAxis />
         <Tooltip
-          formatter={(value: any) => `${Number(value).toLocaleString()} €`}
+          formatter={(value: any) =>
+            `${Number(value).toLocaleString("fi-FI")} €`
+          }
         />
         <Legend />
         <Bar
