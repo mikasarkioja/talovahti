@@ -159,8 +159,8 @@ export function BuildingModel({
   );
 
   // Get component statuses (Mocked as valuation was removed)
-  const roofStatus = "EXCELLENT";
-  const facadeStatus = "NORMAL";
+  const roofStatus: string = "EXCELLENT";
+  const facadeStatus: string = "NORMAL";
 
   // Value Heatmap: Get component ages for PKI-based coloring
   const roofAge = 15;

@@ -65,7 +65,18 @@ interface HomeInitialData {
     level: number;
     achievements: Achievement[];
   };
-  [key: string]: unknown;
+  currentUser?: any;
+  housingCompany?: any;
+  tickets?: any[];
+  initiatives?: any[];
+  invoices?: any[];
+  budgetLines?: any[];
+  fiscalConfig?: any;
+  strategicGoals?: any[];
+  finance?: any;
+  renovations?: any[];
+  observations?: any[];
+  [key: string]: any;
 }
 
 interface HomeClientProps {

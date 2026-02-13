@@ -16,8 +16,8 @@ export default function ExecutionPage() {
   const [changeCost, setChangeCost] = useState(0)
   
   // Mock Supervisor Role Check (In real app, check if currentUser is the hired supervisor)
-  const isSupervisor = currentUser?.role === 'MANAGER' || currentUser?.role === 'ADMIN' // Simulating Supervisor access
-  const isBoard = currentUser?.role === 'BOARD'
+  const isSupervisor = currentUser?.role === "ADMIN" // Simulating Supervisor access
+  const isBoard = currentUser?.role === "BOARD_MEMBER" || currentUser?.role === "ADMIN"
 
   const handlePostReport = (e: React.FormEvent) => {
     e.preventDefault()

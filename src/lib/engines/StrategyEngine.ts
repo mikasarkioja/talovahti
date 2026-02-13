@@ -21,6 +21,8 @@ interface StrategyFinance {
 }
 
 export class StrategyEngine {
+  static readonly KLOSS_CONSTANT = 1.8;
+
   /**
    * Calculates a Maintenance Backlog Score (0-100)
    * 100 = No backlog, perfect condition

@@ -34,7 +34,7 @@ export function KanbanBoard({
 }: KanbanBoardProps) {
   const [isPending, startTransition] = useTransition();
 
-  const canMove = currentUserRole === "BOARD" || currentUserRole === "MANAGER";
+  const canMove = currentUserRole === "BOARD_MEMBER" || currentUserRole === "ADMIN";
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     if (!canMove) return;

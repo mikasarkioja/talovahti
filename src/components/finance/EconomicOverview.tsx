@@ -13,7 +13,7 @@ export function EconomicOverview() {
   const { finance, currentUser } = useStore();
 
   const isBoard =
-    currentUser?.role === "BOARD" || currentUser?.role === "MANAGER";
+    currentUser?.role === "BOARD_MEMBER" || currentUser?.role === "ADMIN";
 
   // Calculations for doughnut chart visual (CSS conic-gradient)
   // Green segment: collected/paid

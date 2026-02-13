@@ -51,11 +51,11 @@ export default function DemocracyAdminPage() {
                             <XAxis type="number" />
                             <YAxis dataKey="name" type="category" width={100} tick={{fontSize: 12}} />
                             <Tooltip 
-                                formatter={(value: number | undefined, _name: string, props: { payload: { impact: number } }) => {
+                                formatter={(value: any, _name: any, props: any) => {
                                     if (value === undefined) return ["-", "-"];
                                     return [
                                         `${value} ääntä`, 
-                                        `Vastikevaikutus: ${props.payload.impact} €/m²`
+                                        `Vastikevaikutus: ${props.payload?.impact || 0} €/m²`
                                     ];
                                 }}
                             />

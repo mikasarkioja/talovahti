@@ -12,8 +12,8 @@ import { CommunityPulse } from './CommunityPulse'
 
 interface PulseItem {
     id: string
-    type: string
-    source: string
+    type: 'ALERT' | 'INFO' | 'SUCCESS'
+    source: 'LEAK' | 'SAUNA' | 'CONSTRUCTION'
     message: string
     timestamp: string
 }

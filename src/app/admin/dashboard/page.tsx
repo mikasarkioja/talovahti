@@ -120,7 +120,7 @@ export default async function AdminDashboardPage() {
               <GamificationDashboard
                 totalXP={company.boardProfile?.totalXP}
                 level={company.boardProfile?.level}
-                achievements={(company.boardProfile?.achievements as Achievement[]) || []}
+                achievements={(company.boardProfile?.achievements as unknown as Achievement[]) || []}
               />
             </RoleGate>
 

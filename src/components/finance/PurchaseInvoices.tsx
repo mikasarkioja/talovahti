@@ -29,9 +29,10 @@ interface Invoice {
   id: string;
   vendorName: string;
   amount: number;
-  description: string;
+  description?: string;
   dueDate: string | Date;
   pdfUrl?: string;
+  invoiceNumber?: string;
 }
 
 export function PurchaseInvoices() {
@@ -62,6 +63,7 @@ export function PurchaseInvoices() {
     startTransition(async () => {
       const res = await approveInvoiceAction(
         invoice.id,
+        invoice.amount,
         currentUser.housingCompanyId,
         currentUser.id,
       );
@@ -134,9 +136,11 @@ export function PurchaseInvoices() {
                         </Badge>
                       )}
                     </div>
-                    <p className="text-xs text-slate-500 italic mb-2">
-                      &quot;{invoice.description}&quot;
-                    </p>
+                    {invoice.description && (
+                      <p className="text-xs text-slate-500 italic mb-2">
+                        &quot;{invoice.description}&quot;
+                      </p>
+                    )}
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase">
                         <Clock size={12} className="text-amber-500" />

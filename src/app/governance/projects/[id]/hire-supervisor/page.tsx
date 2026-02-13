@@ -12,7 +12,7 @@ export default function HireSupervisorPage() {
   const project = projects.find(p => p.id === params.id)
   const tender = project?.tenders.find(t => t.type === 'SUPERVISOR')
   
-  const isBoard = currentUser?.role === 'BOARD' || currentUser?.role === 'MANAGER'
+  const isBoard = currentUser?.role === "BOARD_MEMBER" || currentUser?.role === "ADMIN"
 
   const handleHire = (bid: MockBid) => {
     if (!project || !tender) return

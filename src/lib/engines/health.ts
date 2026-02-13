@@ -70,13 +70,14 @@ export const HealthScoreEngine = {
 
     // Monthly expenses mock (in real app, calculate from Invoice history)
     const avgMonthlyExpenses = 12000;
-    const cashRatio = company.realTimeCash / avgMonthlyExpenses;
+    const realTimeCash = company.realTimeCash || 0;
+    const cashRatio = realTimeCash / avgMonthlyExpenses;
 
     // Score: 1.0 ratio = 50 pts, 2.0 ratio = 80 pts, 3.0+ = 100 pts
     let score = Math.min(100, Math.round(cashRatio * 30 + 20));
 
     // Bonus for no unpaid invoices
-    if (company.unpaidInvoicesCount === 0) score += 10;
+    if ((company.unpaidInvoicesCount || 0) === 0) score += 10;
 
     return Math.min(100, score);
   },

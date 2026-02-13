@@ -2,7 +2,7 @@ import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Euro, TrendingUp, Zap, AlertOctagon } from 'lucide-react'
-import { energyMath } from '@/lib/energy-math'
+// import { energyMath } from '@/lib/energy-math'
 
 // Mock ID
 const HOUSING_COMPANY_ID = 'hc-default'

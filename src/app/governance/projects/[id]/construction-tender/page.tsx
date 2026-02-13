@@ -39,7 +39,7 @@ export default function ConstructionTenderPage() {
 
   const tender = project?.tenders.find(t => t.id === activeTenderId)
   
-  const isBoard = currentUser?.role === 'BOARD' || currentUser?.role === 'MANAGER'
+  const isBoard = currentUser?.role === "BOARD_MEMBER" || currentUser?.role === "ADMIN"
 
   const handleHire = (bid: MockBid) => {
     if (!project || !tender) return

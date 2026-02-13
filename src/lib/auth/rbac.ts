@@ -42,11 +42,9 @@ export const RBAC = {
       return false;
     }
 
-    // BOARD_MEMBER / BOARD Logic
+    // BOARD_MEMBER Logic
     if (
-      user.role === "BOARD_MEMBER" ||
-      user.role === "BOARD" ||
-      user.role === "MANAGER"
+      user.role === "BOARD_MEMBER"
     ) {
       if (resourceType === "FINANCE") return true;
       if (resourceType === "TICKET") return true;

@@ -343,7 +343,6 @@ interface AppState {
   addSiteReport: (report: MockSiteReport) => void;
   updateChangeOrder: (id: string, status: ChangeOrderStatus) => void;
   addMMLSyncLog: (log: MockMMLSyncLog) => void;
-  addDocumentOrder: (order: MockDocumentOrder) => void;
   setSubscriptionPlan: (plan: SubscriptionPlan) => void;
   toggleFeature: (key: string, isEnabled: boolean) => void;
   addOrder: (order: MockOrder) => void;
@@ -362,7 +361,7 @@ export const useStore = create<AppState>((set) => ({
   currentUser: {
     id: "user-board-1",
     name: "Pekka Puheenjohtaja",
-    role: "BOARD",
+    role: "BOARD_MEMBER",
     apartmentId: "B 10",
     housingCompanyId: "company-1",
     shareCount: 150,
@@ -444,8 +443,6 @@ export const useStore = create<AppState>((set) => ({
   projects: [],
 
   mmlSyncLogs: [],
-
-  documentOrders: [],
 
   subscription: {
     id: "sub-1",
@@ -731,8 +728,6 @@ export const useStore = create<AppState>((set) => ({
     })),
   addMMLSyncLog: (log) =>
     set((state) => ({ mmlSyncLogs: [log, ...state.mmlSyncLogs] })),
-  addDocumentOrder: (order) =>
-    set((state) => ({ documentOrders: [order, ...state.documentOrders] })),
   setSubscriptionPlan: (plan) =>
     set((state) => ({ subscription: { ...state.subscription, plan } })),
   toggleFeature: (key, isEnabled) =>
