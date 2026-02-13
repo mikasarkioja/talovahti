@@ -5,10 +5,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   TrendingDown,
   ShieldAlert,
-  Droplets,
   ArrowUpRight,
   ArrowDownRight,
   Trophy,
+  CreditCard,
+  PieChart,
 } from "lucide-react";
 import {
   useStore,
@@ -82,7 +83,7 @@ function KPICard({
 }
 
 export function DashboardKPIs() {
-  const { observations, finance, tickets, renovations } = useStore();
+  const { observations, finance, tickets, renovations, housingCompany } = useStore();
 
   // Calculate Backlog Score Memoized
   const backlogScore = useMemo(() => {
@@ -105,8 +106,14 @@ export function DashboardKPIs() {
         : financialGrade === "B"
           ? "blue"
           : "amber";
-    return { financialGrade, financialColor };
-  }, [finance?.score]);
+    
+    // Kassan riittävyys (ennuste kuukausissa)
+    const avgMonthlyExpenses = 12000; // Mock average
+    const cashBalance = housingCompany?.realTimeCash || 45000;
+    const liquidityMonths = (cashBalance / avgMonthlyExpenses).toFixed(1);
+
+    return { financialGrade, financialColor, liquidityMonths };
+  }, [finance?.score, housingCompany?.realTimeCash]);
 
   // Active Alerts / Tickets Memoized
   const issuesStats = useMemo(() => {
@@ -125,7 +132,10 @@ export function DashboardKPIs() {
     return "VAATII HUOMIOTA";
   };
 
-  const healthScore = 78; // Fallback or from company data if available
+  const healthScore = housingCompany?.healthScore || 78;
+
+  // Hyväksyttävät laskut (€)
+  const totalPayable = 2450.75; // Mock total from Fennoa
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -138,11 +148,19 @@ export function DashboardKPIs() {
       />
 
       <KPICard
-        label="Vastikevalvonta"
-        value={`Arvosana: ${financialStatus.financialGrade}`}
-        subValue={`${(finance?.collectionPercentage || 100).toFixed(1)}% vastikekertymä`}
-        icon={<TrendingDown size={20} />}
-        color={financialStatus.financialColor}
+        label="Kassan riittävyys"
+        value={`${financialStatus.liquidityMonths} kk`}
+        subValue={`Kassa: ${(housingCompany?.realTimeCash || 0).toLocaleString("fi-FI")} €`}
+        icon={<PieChart size={20} />}
+        color={Number(financialStatus.liquidityMonths) < 2 ? "red" : "emerald"}
+      />
+
+      <KPICard
+        label="Hyväksyttävät laskut"
+        value={`${totalPayable.toLocaleString("fi-FI")} €`}
+        subValue="3 avointa laskua"
+        icon={<CreditCard size={20} />}
+        color={totalPayable > 5000 ? "amber" : "blue"}
       />
 
       <KPICard
@@ -151,14 +169,6 @@ export function DashboardKPIs() {
         subValue={`${issuesStats.criticalCount} kriittistä tapausta`}
         icon={<ShieldAlert size={20} />}
         color={issuesStats.criticalCount > 0 ? "red" : "slate"}
-      />
-
-      <KPICard
-        label="Yhtiölainan osuus"
-        value={`${((finance?.companyLoansTotal || 0) / 1000).toFixed(0)}k €`}
-        subValue="Lyhennykset ajan tasalla"
-        icon={<Droplets size={20} />}
-        color="blue"
       />
     </div>
   );

@@ -3,6 +3,7 @@ import { HomeClient } from "@/components/dashboard/HomeClient";
 import { getAnnualClockData } from "@/app/actions/governance";
 import { getFinanceAggregates } from "@/app/actions/finance";
 import { getHealthStatusAction } from "@/app/actions/health-actions";
+import { fetchInvoicesAction } from "@/app/actions/invoice-actions";
 import { RBAC } from "@/lib/auth/rbac";
 import { headers } from "next/headers";
 
@@ -92,6 +93,7 @@ export default async function Home(props: {
       currentYear,
     );
     const healthResult = await getHealthStatusAction(companyId);
+    const invoicesResult = await fetchInvoicesAction();
 
     // 2.5 Audit Log for Board Dashboard View
     if (
@@ -184,21 +186,34 @@ export default async function Home(props: {
               })),
               createdAt: i.createdAt,
             })),
-            invoices: company.invoices.map((inv) => ({
-              id: inv.id,
-              amount: Number(inv.amount),
-              vendorName: inv.vendorName,
-              category: inv.category,
-              status: inv.status,
-              dueDate: inv.dueDate,
-              description: inv.description,
-              externalId: inv.externalId,
-              yTunnus: inv.yTunnus,
-              projectId: inv.projectId,
-              approvedById: inv.approvedById,
-              imageUrl: inv.imageUrl,
-              createdAt: inv.createdAt,
-            })),
+            invoices: [
+              ...company.invoices.map((inv) => ({
+                id: inv.id,
+                amount: Number(inv.amount),
+                vendorName: inv.vendorName,
+                category: inv.category,
+                status: inv.status,
+                dueDate: inv.dueDate,
+                description: inv.description,
+                externalId: inv.externalId,
+                yTunnus: inv.yTunnus,
+                projectId: inv.projectId,
+                approvedById: inv.approvedById,
+                imageUrl: inv.imageUrl,
+                createdAt: inv.createdAt,
+              })),
+              ...(invoicesResult.success && invoicesResult.data
+                ? invoicesResult.data.map((inv) => ({
+                    id: inv.id,
+                    amount: inv.amount,
+                    vendorName: inv.vendorName,
+                    status: inv.status,
+                    dueDate: new Date(inv.dueDate),
+                    invoiceNumber: inv.invoiceNumber,
+                    isExternal: true,
+                  }))
+                : []),
+            ],
             budgetLines: company.budgetLines.map((bl) => ({
               id: bl.id,
               category: bl.category,

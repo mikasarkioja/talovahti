@@ -39,20 +39,10 @@ model HousingCompany {
   partners           ServicePartner[]
   residentTasks      ResidentTask[]
   resources          Resource[]
-  thermalLeaks       ThermalLeak[]
   buildingComponents BuildingComponent[]
   htjShadowRecords   HTJ_ShadowRecord[]
   htjSyncLogs        HTJ_SyncLog[]
-
-  healthScore      Int @default(70)
-  healthScoreTechnical Int @default(70)
-  healthScoreFinancial Int @default(70)
-  healthScoreAdmin     Int @default(70)
-  boardProfile     BoardProfile?
-  experiencePoints Int @default(0)
-  realTimeCash     Float @default(0)
-  unpaidInvoicesCount Int @default(0)
-  budgetRemaining  Float @default(0)
+  gdprLogs           GDPRLog[]
 
   // LOAN BROKERAGE
   financialStatements FinancialStatement[]
@@ -60,7 +50,14 @@ model HousingCompany {
   loanApplications    LoanApplication[]
   scenarios           FinancialScenario[]
   investmentGrades    InvestmentGrade[]
-  auditLogs           GDPRLog[]
+  
+  // HEALTH & GAMIFICATION
+  healthScore          Int?
+  healthScoreTechnical Int?
+  healthScoreFinancial Int?
+  healthScoreAdmin     Int?
+  healthHistory        HealthHistory[]
+  boardProfile         BoardProfile?
 
   // FINANCIAL SETTINGS
   iban                   String?
@@ -74,8 +71,6 @@ model HousingCompany {
   fiscalConfig   FiscalConfiguration?
   annualTasks    AnnualTask[]
   strategicGoals StrategicGoal[]
-
-  healthHistory  HealthHistory[]
 
   // RELATIONS
   subscription Subscription?
@@ -120,11 +115,8 @@ model Apartment {
 enum UserRole {
   RESIDENT
   BOARD_MEMBER
-  BOARD
   EXPERT
   ADMIN
-  MANAGER
-  SUPERVISOR
 }
 
 model User {
@@ -141,6 +133,10 @@ model User {
   role                    UserRole            @default(RESIDENT)
   password                String?
   canApproveFinance       Boolean             @default(false)
+  vendorId                String? // For EXPERT role, links to their vendor profile
+  vendor                  Vendor?             @relation(fields: [vendorId], references: [id])
+  expertId                String? // For EXPERT role, links to their professional profile
+  expert                  Expert?             @relation(fields: [expertId], references: [id])
   createdTickets          Ticket[]
   initiatives             Initiative[]
   supportedInitiatives    InitiativeSupport[]
@@ -154,10 +150,9 @@ model User {
   assignedTasks           ResidentTask[]
   bookings                Booking[]
   wallet                  Wallet?
-  reportedLeaks           ThermalLeak[]
   pollVotes               PollVote[]
-  auditLogs               GDPRLog[]
-  generalAuditLogs        AuditLog[]
+  gdprLogs                GDPRLog[]
+  auditLogs               AuditLog[]
   consentVersion          String? // GDPR
   deletedAt               DateTime? // Soft Delete
   createdAt               DateTime            @default(now())
@@ -166,6 +161,33 @@ model User {
   @@index([housingCompanyId])
   @@index([apartmentId])
   @@map("users")
+}
+
+model BoardProfile {
+  id               String         @id @default(cuid())
+  housingCompanyId String         @unique
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  totalXP          Int            @default(0)
+  level            Int            @default(1)
+  achievements     Json? // Store as JSONB for flexibility
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@map("board_profiles")
+}
+
+model HealthHistory {
+  id               String         @id @default(cuid())
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  score            Int
+  technicalScore   Int
+  financialScore   Int
+  adminScore       Int?
+  timestamp        DateTime       @default(now())
+
+  @@index([housingCompanyId, timestamp])
+  @@map("health_history")
 }
 
 enum SubscriptionPlan {
@@ -212,6 +234,7 @@ enum OrderType {
   CERTIFICATE
   MODULE_UNLOCK
   SUBSCRIPTION
+  EXPERT_SERVICE
 }
 
 model Order {
@@ -225,6 +248,7 @@ model Order {
   platformRevenue  Float          @default(0)
   status           OrderStatus    @default(PENDING)
   metadata         String?
+  stripeTransaction StripeTransaction?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
@@ -258,7 +282,7 @@ enum TicketCategory {
 }
 
 enum TriageLevel {
-  ROUTINE // Handled by huoltoyhtiÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¶
+  ROUTINE // Handled by huoltoyhtiö
   ESCALATED // Needs expert assessment
   CRITICAL // Immediate safety/structural risk
 }
@@ -340,6 +364,8 @@ model Observation {
   ticket           Ticket?
   projectId        String?           @unique
   project          Project?          @relation("ObservationToProject", fields: [projectId], references: [id])
+  vendorId         String? // For expert access control
+  vendor           Vendor?           @relation(fields: [vendorId], references: [id])
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
@@ -575,7 +601,7 @@ model PollOption {
 model PollVote {
   id        String     @id @default(cuid())
   pollId    String
-  poll      Poll       @relation(fields: [pollId], references: [id])
+  poll          Poll       @relation(fields: [pollId], references: [id])
   userId    String
   user      User       @relation(fields: [userId], references: [id])
   optionId  String
@@ -648,6 +674,8 @@ model Vendor {
   serviceArea  String[] // e.g., ["02100", "02200", "Espoo"]
   bids         Bid[]
   accessTokens ProjectAccessToken[]
+  users        User[]
+  observations Observation[]
 
   @@map("vendors")
 }
@@ -734,6 +762,7 @@ model MMLSyncLog {
   recordCount      Int
   timestamp        DateTime       @default(now())
 
+  @@index([housingCompanyId])
   @@map("mml_sync_logs")
 }
 
@@ -800,6 +829,7 @@ model DocumentOrder {
   updatedAt        DateTime       @updatedAt
 
   @@index([userId])
+  @@index([housingCompanyId])
   @@map("document_orders")
 }
 
@@ -952,7 +982,7 @@ model SurveyResponse {
   surveyId    String
   survey      Survey     @relation(fields: [surveyId], references: [id])
   userId      String
-  user        User       @relation(fields: [userId], references: [id])
+  user         User       @relation(fields: [userId], references: [id])
   apartmentId String?
   apartment   Apartment? @relation(fields: [apartmentId], references: [id])
   createdAt   DateTime   @default(now())
@@ -1190,24 +1220,6 @@ model Wallet {
   @@map("wallets")
 }
 
-model ThermalLeak {
-  id               String         @id @default(cuid())
-  x                Float
-  y                Float
-  z                Float
-  severity         Float
-  sector           String?
-  confirmed        Boolean        @default(false)
-  userId           String
-  user             User           @relation(fields: [userId], references: [id])
-  housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  createdAt        DateTime       @default(now())
-
-  @@index([housingCompanyId])
-  @@map("thermal_leaks")
-}
-
 enum ContractStatus {
   DRAFT
   SIGNING
@@ -1366,18 +1378,35 @@ model GDPRLog {
   id               String          @id @default(cuid())
   actorId          String
   actor            User            @relation(fields: [actorId], references: [id])
-  action           String          // READ, WRITE, DELETE, EXPORT
-  resource         String          // The entity accessed (e.g. "Invoice:123")
-  reason           String?         // Legal ground or reason for access
-  details          String?         // Technical details
+  action           String // READ, WRITE, DELETE
+  targetEntity     String // e.g. "User:123"
+  resource         String? // Specific resource accessed, e.g., "contact_info"
+  reason           String? // Justification for access, e.g., "HVAC maintenance"
+  details          String?
   ipAddress        String?
   housingCompanyId String?
   housingCompany   HousingCompany? @relation(fields: [housingCompanyId], references: [id])
   timestamp        DateTime        @default(now())
+  impactScore      Int? // For gamification engine to calculate XP
 
   @@index([housingCompanyId])
   @@index([actorId])
   @@map("gdpr_logs")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetId  String?
+  metadata  Json?
+  timestamp DateTime @default(now())
+  impactScore Int? // For gamification engine to calculate XP
+
+  @@index([userId])
+  @@index([targetId])
+  @@map("audit_logs")
 }
 
 model MonthlyFee {
@@ -1438,7 +1467,7 @@ model AnnualTask {
   housingCompanyId String
   housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
 
-  title       String // e.g., "YhtiÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¶kokous" (General Meeting)
+  title       String // e.g., "Yhtiökokous" (General Meeting)
   category    TaskCategory
   quarter     FiscalQuarter
   month       Int           @default(1)
@@ -1493,27 +1522,16 @@ model BuildingComponent {
   @@map("building_components")
 }
 
-model AuditLog {
-  id        String   @id @default(cuid())
-  action    String
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  targetId  String?
-  impactScore Int      @default(0)
-  metadata  Json?
-  timestamp DateTime @default(now())
-
-  @@index([userId])
-  @@map("audit_logs")
-}
-
 model Expert {
   id          String    @id @default(cuid())
   name        String
-  category    String // e.g. "LVI-insinÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¶ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¶ri", "Lakimies"
-  description String
-  rating      Float     @default(5.0)
-  hourlyRate  Decimal
+  email       String    @unique
+  category    String // e.g., "LVI-INSINÖÖRI", "LAKIMIES"
+  description String?
+  rating      Float     @default(0)
+  hourlyRate  Float     @default(0)
+  verified    Boolean   @default(false)
+  users       User[]
   services    Service[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -1523,11 +1541,12 @@ model Expert {
 
 model Service {
   id          String   @id @default(cuid())
-  name        String
-  description String
-  price       Decimal
   expertId    String
   expert      Expert   @relation(fields: [expertId], references: [id])
+  name        String
+  description String?
+  price       Float
+  unit        String // e.g., "hour", "project"
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -1536,39 +1555,15 @@ model Service {
 
 model StripeTransaction {
   id               String   @id @default(cuid())
-  amount           Decimal
-  commission       Decimal // 5%
-  status           String // "PENDING", "COMPLETED"
-  housingCompanyId String
-  expertId         String
-  serviceId        String
+  orderId          String   @unique
+  order            Order    @relation(fields: [orderId], references: [id])
+  stripeChargeId   String
+  amount           Float
+  currency         String
+  platformFee      Float // 5% commission
+  status           String // e.g., "succeeded", "pending"
   createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@map("stripe_transactions")
-}
-
-model HealthHistory {
-  id               String         @id @default(cuid())
-  housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  score            Int
-  technicalScore   Int
-  financialScore   Int
-  timestamp        DateTime       @default(now())
-
-  @@index([housingCompanyId])
-  @@map("health_history")
-}
-
-model BoardProfile {
-  id               String         @id @default(cuid())
-  housingCompanyId String         @unique
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  totalXP          Int            @default(0)
-  level            Int            @default(1)
-  achievements     Json?          // Array of achievement slugs/dates
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-
-  @@map("board_profiles")
 }

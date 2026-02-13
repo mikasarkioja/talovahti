@@ -7,7 +7,6 @@ export const FEATURES = {
 
   // Phase 2 - Disabled (Feature Flagged)
   SERVICE_MARKETPLACE: false, // /partners
-  AR_SCANNER_PRO: false, // /scanner
   DOCUMENT_VAULT: false, // /documents/marketplace
   STRATEGY_INSIGHTS: false, // Strategy Dashboard charts
 

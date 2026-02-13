@@ -1,12 +1,12 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import React, { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Tooltip } from 'recharts'
-import { TrendingUp, FileText, ShieldCheck, AlertTriangle, Download } from 'lucide-react'
+import { TrendingUp, AlertTriangle } from 'lucide-react'
 
 // Mock Data
 const MOCK_DATA = {
@@ -51,9 +51,6 @@ export default function InvestmentGradePage() {
                 <h1 className="text-3xl font-bold text-white tracking-tight">Investment Grade™</h1>
                 <p className="text-slate-400">Rakennuksen rahoituskelpoisuus ja arvon säilyminen.</p>
             </div>
-            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => alert("Raportti ladattu.")}>
-                <Download className="w-4 h-4 mr-2" /> Lataa Raportti (PDF)
-            </Button>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
@@ -121,7 +118,7 @@ export default function InvestmentGradePage() {
             <Card className="bg-slate-900 border-slate-800">
                 <CardHeader>
                     <CardTitle className="text-slate-200 flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5 text-blue-500" /> "Mitä jos?" -simulaattori
+                        <TrendingUp className="w-5 h-5 text-blue-500" /> &ldquo;Mitä jos?&rdquo; -simulaattori
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">

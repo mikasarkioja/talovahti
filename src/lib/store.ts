@@ -204,15 +204,6 @@ export type MockMMLSyncLog = {
   timestamp: Date;
 };
 
-export type MockDocumentOrder = {
-  id: string;
-  userId: string;
-  type: DocumentType;
-  amount: number;
-  status: OrderStatus;
-  createdAt: Date;
-};
-
 export type MockSubscription = {
   id: string;
   plan: SubscriptionPlan;
@@ -256,6 +247,8 @@ export type MockInvoice = {
   approvedById: string | null;
   imageUrl: string | null;
   createdAt: Date;
+  isExternal?: boolean; // Added for Fennoa mock
+  invoiceNumber?: string; // Added for Fennoa mock
 };
 
 export type MockBudgetLine = {
@@ -293,7 +286,14 @@ export type MockSystemAdminStats = {
 
 interface AppState {
   currentUser: MockUser | null;
-  housingCompany: { healthScore?: number } | null; // Added for health score etc.
+  housingCompany: { 
+    id: string;
+    healthScore?: number;
+    healthScoreTechnical?: number;
+    healthScoreFinancial?: number;
+    unpaidInvoicesCount?: number;
+    realTimeCash?: number;
+  } | null;
   initiatives: MockInitiative[];
   tickets: MockTicket[];
   feed: MockFeedItem[];
@@ -302,7 +302,6 @@ interface AppState {
   observations: MockObservation[];
   projects: MockProject[];
   mmlSyncLogs: MockMMLSyncLog[];
-  documentOrders: MockDocumentOrder[];
   subscription: MockSubscription;
   featureAccess: MockFeatureAccess[];
   orders: MockOrder[];
@@ -317,13 +316,6 @@ interface AppState {
   fiscalConfig: FiscalConfiguration | null;
   apartmentCount: number;
   systemStats: MockSystemAdminStats;
-  valuation: {
-    components: Array<{
-      type: string;
-      status?: string;
-      lastRenovatedYear?: number | null;
-    }>;
-  } | null;
 
   // Actions
   setCurrentUser: (user: MockUser | null) => void;

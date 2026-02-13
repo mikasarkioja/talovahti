@@ -46,10 +46,10 @@ export function GamificationDashboard({
             </CardDescription>
           </div>
           <div className="flex flex-col items-end">
-            <Badge className="bg-brand-navy text-white text-[10px] font-bold">
+            <Badge className="bg-brand-navy text-white text-xs font-black px-3 py-1 shadow-sm">
               LEVEL {level}
             </Badge>
-            <span className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-widest">
+            <span className="text-[9px] font-bold text-slate-400 mt-1.5 uppercase tracking-widest">
               Vaikutusvalta-taso
             </span>
           </div>

@@ -3,9 +3,8 @@
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import { FileDown, Send, MessageSquare } from 'lucide-react'
+import { Send, MessageSquare } from 'lucide-react'
 
 // Mock Aggregated Data
 const POLL_RESULTS = [
@@ -18,10 +17,6 @@ export default function DemocracyAdminPage() {
   const totalVotes = POLL_RESULTS.reduce((acc, curr) => acc + curr.votes, 0)
   const winner = POLL_RESULTS.reduce((prev, current) => (prev.votes > current.votes) ? prev : current)
   const winnerPercentage = Math.round((winner.votes / totalVotes) * 100)
-
-  const handleExport = () => {
-    alert("Tulokset ladattu PDF-muodossa pöytäkirjan liitteeksi.")
-  }
 
   const handleNotify = () => {
     alert("Muistutusviesti lähetetty osakkaille, jotka eivät ole vielä äänestäneet.")
@@ -37,9 +32,6 @@ export default function DemocracyAdminPage() {
             <div className="flex gap-2">
                 <Button variant="outline" onClick={handleNotify}>
                     <Send className="w-4 h-4 mr-2" /> Muistuta (24h)
-                </Button>
-                <Button onClick={handleExport} className="bg-emerald-600 hover:bg-emerald-700">
-                    <FileDown className="w-4 h-4 mr-2" /> Vie Pöytäkirjaan
                 </Button>
             </div>
         </div>
@@ -59,10 +51,13 @@ export default function DemocracyAdminPage() {
                             <XAxis type="number" />
                             <YAxis dataKey="name" type="category" width={100} tick={{fontSize: 12}} />
                             <Tooltip 
-                                formatter={(value: any, name: any, props: any) => [
-                                    `${value} ääntä`, 
-                                    `Vastikevaikutus: ${props.payload.impact} €/m²`
-                                ] as [string, string]}
+                                formatter={(value: number | undefined, _name: string, props: { payload: { impact: number } }) => {
+                                    if (value === undefined) return ["-", "-"];
+                                    return [
+                                        `${value} ääntä`, 
+                                        `Vastikevaikutus: ${props.payload.impact} €/m²`
+                                    ];
+                                }}
                             />
                             <Bar dataKey="votes" radius={[0, 4, 4, 0]}>
                                 {POLL_RESULTS.map((entry, index) => (
@@ -90,7 +85,7 @@ export default function DemocracyAdminPage() {
                         ].map((fb, i) => (
                             <div key={i} className="p-3 bg-slate-50 rounded-lg border text-sm">
                                 <div className="font-bold text-slate-700 mb-1">{fb.user}</div>
-                                <div className="text-slate-600">"{fb.text}"</div>
+                                <div className="text-slate-600">&ldquo;{fb.text}&rdquo;</div>
                             </div>
                         ))}
                     </div>

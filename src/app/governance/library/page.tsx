@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { generateMinutesMarkdown, MeetingMinutesData } from '@/lib/minutes-generator'
 import { useStore } from '@/lib/store'
 import { calculateWeightedResult } from '@/lib/voting-logic'
-import { FileText, Download, Check, Sparkles } from 'lucide-react'
+import { FileText, Sparkles } from 'lucide-react'
 
 export default function LibraryPage() {
   const { initiatives, currentUser } = useStore()
@@ -85,14 +85,6 @@ export default function LibraryPage() {
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col h-[600px]">
               <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-xl">
                 <span className="font-medium text-slate-700">Esikatselu: Luonnos</span>
-                <div className="flex gap-2">
-                  <button className="text-xs px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-1">
-                    <Check size={14} /> Allekirjoita
-                  </button>
-                  <button className="text-xs px-3 py-1.5 bg-slate-200 text-slate-700 rounded hover:bg-slate-300 flex items-center gap-1">
-                    <Download size={14} /> Lataa PDF
-                  </button>
-                </div>
               </div>
               <div className="flex-1 overflow-auto p-8 font-mono text-sm bg-white">
                 <pre className="whitespace-pre-wrap">{minutes}</pre>
@@ -102,7 +94,7 @@ export default function LibraryPage() {
             <div className="h-[600px] border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center text-slate-400">
               <div className="text-center">
                 <Sparkles size={48} className="mx-auto mb-4 text-slate-200" />
-                <p>Valitse "Luo pöytäkirja" generoidaksesi uuden luonnoksen.</p>
+                <p>Valitse &ldquo;Luo pöytäkirja&rdquo; generoidaksesi uuden luonnoksen.</p>
               </div>
             </div>
           )}

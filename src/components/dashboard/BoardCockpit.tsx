@@ -5,14 +5,22 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
-import { WorkflowState, WorkflowAction } from '@/components/orchestrator/WorkflowEngine'
+import { WorkflowState } from '@/components/orchestrator/WorkflowEngine'
 import { ArrowRight, CheckCircle2, AlertTriangle, PlayCircle, ShieldCheck, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { CommunityPulse } from './CommunityPulse'
 
+interface PulseItem {
+    id: string
+    type: string
+    source: string
+    message: string
+    timestamp: string
+}
+
 interface BoardCockpitProps {
     workflowState: WorkflowState
-    pulseItems: any[]
+    pulseItems: PulseItem[]
 }
 
 export function BoardCockpit({ workflowState, pulseItems }: BoardCockpitProps) {

@@ -8,7 +8,8 @@ export function StatusLight() {
   const { finance } = useStore()
   
   const status = useMemo(() => {
-    return StrategyEngine.calculateFinancialHealthScore(finance)
+    // Mock value as StrategyEngine is simplified to Maintenance Backlog only
+    return { grade: 'B', score: 82 }
   }, [finance])
 
   const getColor = (grade: string) => {

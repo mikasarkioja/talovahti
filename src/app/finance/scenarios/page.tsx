@@ -9,10 +9,6 @@ export default function ScenariosPage() {
   const chartData = calculate20YearPath()
   const summaries = getScenarioSummaries()
 
-  const handleExport = () => {
-    alert("PDF Generoitu: Yhtiökokousmateriaali_2026.pdf")
-  }
-
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-8">
       <header className="flex justify-between items-end">
@@ -25,12 +21,6 @@ export default function ScenariosPage() {
             Vertaile kolmea vaihtoehtoista tulevaisuutta taloyhtiölle.
           </p>
         </div>
-        <button 
-          onClick={handleExport}
-          className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2"
-        >
-          <FileText size={16} /> Luo esitys yhtiökokoukseen
-        </button>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

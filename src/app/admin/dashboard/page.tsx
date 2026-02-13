@@ -1,156 +1,138 @@
-import { prisma } from '@/lib/db'
-import { WorkflowEngine } from '@/components/orchestrator/WorkflowEngine'
-import { BoardCockpit } from '@/components/dashboard/BoardCockpit'
+import { prisma } from "@/lib/db";
+import { DecisionQueueServer } from "@/components/dashboard/DecisionQueueServer";
+import { HealthScoreDashboard } from "@/components/dashboard/HealthScoreDashboard";
+import { BuildingModel } from "@/components/BuildingModel";
+import { DashboardKPIs } from "@/components/dashboard/DashboardKPIs";
+import { GamificationDashboard } from "@/components/dashboard/GamificationDashboard";
+import { RoleGate } from "@/components/auth/RoleGate";
+import { Suspense } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { UserRole } from "@prisma/client";
+import { AlertCircle } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
-import { StatusGauge } from '@/components/ui/status-gauge'
-import { Card } from '@/components/ui/card'
-import { ArrowRight } from 'lucide-react'
-import Link from 'next/link'
-import { LiquidityWidget } from '@/components/dashboard/LiquidityWidget'
-import { AccountingProvider } from '@/lib/finance/accounting-provider'
+interface Achievement {
+  name: string;
+  description: string;
+}
 
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic";
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-8 animate-pulse">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-24 rounded-xl bg-slate-800/50" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          <Skeleton className="h-[400px] rounded-2xl bg-slate-800/50" />
+          <Skeleton className="h-[300px] rounded-2xl bg-slate-800/50" />
+        </div>
+        <div className="space-y-6">
+          <Skeleton className="h-[350px] rounded-2xl bg-slate-800/50" />
+          <Skeleton className="h-[250px] rounded-2xl bg-slate-800/50" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default async function AdminDashboardPage() {
-    // 1. Fetch Key Data
-    // We assume there's one active main project for the dashboard focus, or the latest one.
-    const activeProject = await prisma.project.findFirst({
-        where: { status: { not: 'COMPLETED' } },
-        orderBy: { createdAt: 'desc' },
-        include: { loanApplications: true, contract: true }
-    })
+  // 1. Fetch Basic Info
+  const company = await prisma.housingCompany.findFirst({
+    include: { boardProfile: true }
+  });
 
-    const housingCompanyId = activeProject?.housingCompanyId
+  if (!company) {
+    return <div className="p-8 text-white">Taloyhtiötä ei löytynyt.</div>;
+  }
 
-    // If no active project, we might need a fallback or different view. 
-    // For now, let's assume one exists or handle null gracefully.
-    
-    // Fetch related data
-    const ig = housingCompanyId ? await prisma.investmentGrade.findFirst({
-        where: { housingCompanyId },
-        orderBy: { createdAt: 'desc' }
-    }) : null
-    
-    // Need to fetch alerts via Apartments if housingCompanyId is used directly
-    const activeAlerts = housingCompanyId ? await prisma.leakAlert.findMany({
-        where: {
-            status: 'ACTIVE',
-            apartment: { housingCompanyId }
-        },
-        include: { apartment: true },
-        orderBy: { createdAt: 'desc' },
-        take: 5
-    }) : []
+  return (
+    <div className="p-6 max-w-7xl mx-auto min-h-screen bg-slate-950 text-slate-100 font-sans">
+      <header className="mb-8">
+        <h1 className="text-3xl font-black tracking-tight text-white uppercase">Hallituksen Työpöytä</h1>
+        <p className="text-slate-400 mt-1">Päätöksenteko ja yhtiön tilannekuva • {company.name}</p>
+      </header>
 
-    // Progress Tracker Metrics
-    const apartmentCount = housingCompanyId ? await prisma.apartment.count({ where: { housingCompanyId } }) : 0
-    const financeCount = housingCompanyId ? await prisma.financialStatement.count({ where: { housingCompanyId } }) : 0
-    
-    // Weighted Score
-    let onboardingScore = 0
-    if (apartmentCount > 0) onboardingScore += 40
-    if (financeCount > 0) onboardingScore += 30
-    // Mock remaining 30% for 3D/Photos
-    
-    const meetings = housingCompanyId ? await prisma.meeting.findMany({
-        where: { housingCompanyId, status: 'VOTING' }, // Pending signatures usually in VOTING or LOCKED phase
-        take: 5
-    }) : []
+      <Suspense fallback={<DashboardSkeleton />}>
+        {/* KPI Row */}
+        <section className="mb-8">
+          <DashboardKPIs />
+        </section>
 
-    // Fetch Financials
-    const bankData = await AccountingProvider.syncBankBalance(housingCompanyId || 'mock')
-    const pendingInvoices = await AccountingProvider.fetchPendingInvoices(housingCompanyId || 'mock')
-    const pendingAmount = pendingInvoices.reduce((sum, inv) => sum + inv.amount, 0)
-
-    const updates = housingCompanyId ? await prisma.buildingUpdate.findMany({
-        where: { project: { housingCompanyId } },
-        orderBy: { createdAt: 'desc' },
-        take: 5
-    }) : []
-
-    // 2. Run Engine
-    const workflowState = activeProject ? WorkflowEngine.analyze(
-        activeProject, 
-        ig, 
-        activeAlerts, 
-        meetings
-    ) : {
-        currentPhase: 'SCAN',
-        healthScore: 100,
-        nextActions: [{
-            id: 'init-proj',
-            title: 'Aloita Uusi Hanke',
-            description: 'Ei aktiivisia hankkeita. Luo uusi kunnossapito- tai energiahanke.',
-            type: 'ROUTINE',
-            phase: 'SCAN',
-            actionUrl: '/admin/projects/new',
-            isReady: true
-        }],
-        metrics: {
-            investmentGrade: ig?.grade || 'N/A',
-            complianceStatus: 'OK',
-            activeAlerts: activeAlerts.length
-        }
-    }
-
-    // 3. Pulse Items
-    const pulseItems = [
-        ...activeAlerts.map(a => ({
-            id: a.id,
-            type: 'ALERT',
-            source: 'LEAK',
-            message: `Vuoto havaittu: ${a.apartment.apartmentNumber}`,
-            timestamp: 'Juuri nyt'
-        })),
-        ...updates.map(u => ({
-            id: u.id,
-            type: 'INFO',
-            source: 'CONSTRUCTION',
-            message: u.title,
-            timestamp: 'Tänään'
-        }))
-    ]
-
-    return (
-        <div className="p-6 max-w-7xl mx-auto min-h-screen bg-slate-950 text-slate-100">
-            <h1 className="text-3xl font-bold tracking-tight mb-2 text-white">Hallituksen Työpöytä</h1>
-            <p className="text-slate-400 mb-8">Taloyhtiön tilannekuva ja tehtävälista.</p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Action Area */}
+          <div className="lg:col-span-2 space-y-8">
             
-            <LiquidityWidget balance={bankData.balance} upcoming={pendingAmount} />
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 mt-8">
-                <Card className="bg-slate-900 border-slate-800 p-6 flex items-center justify-between">
-                    <div>
-                        <h3 className="text-sm font-medium text-slate-400">Digital Twin Completion</h3>
-                        <div className="mt-2 text-2xl font-bold text-white">{onboardingScore}%</div>
-                        <div className="mt-1 text-xs text-brand-emerald">
-                            {onboardingScore < 100 ? 'Data Ingestion Active' : 'Fully Calibrated'}
-                        </div>
-                    </div>
-                    <StatusGauge value={onboardingScore} label="Valmius" />
-                </Card>
-                
-                {onboardingScore < 100 && (
-                    <Card className="bg-slate-900 border-slate-800 p-6 col-span-2 flex flex-col justify-center">
-                        <h3 className="text-white font-medium mb-2">Seuraavat toimenpiteet</h3>
-                        <div className="flex gap-4">
-                            {apartmentCount === 0 && (
-                                <Link href="/admin/mml-sync" className="text-sm text-brand-emerald hover:underline flex items-center">
-                                    1. Tuo Huoneistotiedot (MML) <ArrowRight size={14} className="ml-1" />
-                                </Link>
-                            )}
-                            <Link href="/admin/onboarding/calibration" className="text-sm text-brand-emerald hover:underline flex items-center">
-                                2. Kalibroi 3D-malli <ArrowRight size={14} className="ml-1" />
-                            </Link>
-                            <Link href="/onboarding/resident-survey" className="text-sm text-brand-emerald hover:underline flex items-center">
-                                3. Kutsu asukkaat kartoitukseen <ArrowRight size={14} className="ml-1" />
-                            </Link>
-                        </div>
-                    </Card>
-                )}
+            {/* Decision Queue - The Core */}
+            <section className="bg-slate-900/50 rounded-2xl border border-slate-800 overflow-hidden">
+              <DecisionQueueServer housingCompanyId={company.id} />
+            </section>
+
+            {/* 3D Spatial Awareness */}
+            <section className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden relative group h-[400px] shadow-2xl">
+              <div className="absolute top-4 left-4 z-10 bg-slate-950/80 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-emerald-400 border border-emerald-500/20 shadow-lg flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                DIGITAALINEN KAKSONEN (LIVE)
+              </div>
+              <BuildingModel />
+            </section>
+          </div>
+
+          {/* Side Panels */}
+          <div className="space-y-6">
+            {/* Building Health */}
+            <div className="space-y-4">
+              <HealthScoreDashboard
+                totalScore={company.healthScore || 0}
+                technicalScore={company.healthScoreTechnical || 0}
+                financialScore={company.healthScoreFinancial || 0}
+                unpaidCount={0}
+                maintenanceBacklog={0}
+              />
+
+              {/* Smart Guardrail for low Technical Score */}
+              {(company.healthScoreTechnical || 100) < 85 && (
+                <div className="p-4 bg-red-950/30 border border-red-500/30 rounded-2xl space-y-3 animate-pulse">
+                  <div className="flex items-center gap-2 text-red-400 font-bold text-sm uppercase">
+                    <AlertCircle size={18} />
+                    Kuntoindeksi laskenut
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Tekninen arvosana on laskenut avoimien havaintojen vuoksi. 
+                    Kuntoindeksin palauttaminen vaatii asiantuntija-arvion.
+                  </p>
+                  <Link href="/board/marketplace">
+                    <Button size="sm" className="w-full bg-red-600 hover:bg-red-700 text-white font-black text-xs mt-2 uppercase tracking-widest h-10">
+                      Palkkaa asiantuntija (+150 XP)
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </div>
-            
-            <BoardCockpit workflowState={workflowState as any} pulseItems={pulseItems} />
+
+            {/* Gamification / Board XP */}
+            <RoleGate allowed={[UserRole.BOARD_MEMBER, UserRole.ADMIN]}>
+              <GamificationDashboard
+                totalXP={company.boardProfile?.totalXP}
+                level={company.boardProfile?.level}
+                achievements={(company.boardProfile?.achievements as Achievement[]) || []}
+              />
+            </RoleGate>
+
+            <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800">
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Vaikutusvalta</h3>
+              <p className="text-xs text-slate-400 leading-relaxed italic">
+                &ldquo;Hallituksen nopea päätöksenteko nostaa yhtiön kuntoindeksiä ja parantaa lainaehtoja.&rdquo;
+              </p>
+            </div>
+          </div>
         </div>
-    )
+      </Suspense>
+    </div>
+  );
 }

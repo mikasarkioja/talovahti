@@ -8,7 +8,6 @@ export function middleware(request: NextRequest) {
   // Define protected routes and their corresponding feature flags
   const protectedRoutes = [
     { path: "/partners", feature: FEATURES.SERVICE_MARKETPLACE },
-    { path: "/scanner", feature: FEATURES.AR_SCANNER_PRO },
     { path: "/documents/marketplace", feature: FEATURES.DOCUMENT_VAULT },
   ];
 
@@ -39,7 +38,6 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/partners/:path*",
-    "/scanner/:path*",
     "/documents/marketplace/:path*",
   ],
 };

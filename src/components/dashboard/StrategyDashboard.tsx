@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { useStore } from "@/lib/store";
 import { StrategyEngine } from "@/lib/engines/StrategyEngine";
-import { generateBoardReport } from "@/app/actions/report";
 import {
   Card,
   CardHeader,
@@ -25,8 +24,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { FileText, Target, Activity, Euro, Zap } from "lucide-react";
-import { toast } from "sonner";
+import { Target, Activity, Euro, Zap } from "lucide-react";
 
 export function StrategyDashboard() {
   const {
@@ -36,29 +34,19 @@ export function StrategyDashboard() {
     tickets,
     strategicGoals,
     apartmentCount,
-    currentUser,
   } = useStore();
-
-  const [isGenerating, setIsGenerating] = useState(false);
 
   // 1. Calculate Metrics via Engine
   const metrics = useMemo(() => {
-    // Mock Area: 15 apts * 70m2 = 1050m2
-    const totalArea = apartmentCount * 70;
-    // Mock Consumption: 120 kWh/m2 * 1050 = 126,000 kWh
-    const estimatedConsumption = 120 * totalArea;
-
-    const energyIntensity = StrategyEngine.calculateEnergyIntensity(
-      estimatedConsumption,
-      totalArea,
-    );
     const backlogScore = StrategyEngine.calculateMaintenanceBacklogScore(
       observations,
       renovations,
       tickets,
     );
-    const financialHealth =
-      StrategyEngine.calculateFinancialHealthScore(finance);
+
+    // Mock/Other values for rest as they are no longer in StrategyEngine
+    const energyIntensity = 125.5; // Placeholder
+    const financialHealth = { grade: "B", score: 82 }; // Placeholder
 
     // Dynamic historical data based on real aggregates if available
     const chartData = finance.monthlyTrend || [
@@ -68,52 +56,10 @@ export function StrategyDashboard() {
     ];
 
     return { energyIntensity, backlogScore, financialHealth, chartData };
-  }, [finance, observations, renovations, tickets, apartmentCount]);
+  }, [finance, observations, renovations, tickets]);
 
   // 2. Mock Historical Data for Charts (Keep as fallback if needed)
   const historyData = metrics.chartData;
-
-  const handleGenerateReport = async () => {
-    setIsGenerating(true);
-    try {
-      const result = await generateBoardReport(
-        currentUser?.housingCompanyId || "default",
-      );
-      if (result.success && result.data) {
-        // Convert Base64 to Blob
-        const byteCharacters = atob(result.data);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: "application/pdf" });
-
-        // Create Download Link
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = result.filename || "kunnossapitotarveselvitys.pdf";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-
-        toast.success("Kunnossapitotarveselvitys ladattu", {
-          description: "PDF-tiedosto on tallennettu laitteellesi.",
-        });
-      } else {
-        toast.error("Raportin luonti epäonnistui", {
-          description: result.error,
-        });
-      }
-    } catch (e) {
-      console.error(e);
-      toast.error("Virhe luotaessa raporttia");
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   const getHealthColor = (grade: string) => {
     if (["A", "B"].includes(grade)) return "text-green-600";
@@ -138,10 +84,6 @@ export function StrategyDashboard() {
             Hallituksen reaaliaikainen näkymä yhtiön tilaan.
           </p>
         </div>
-        <Button onClick={handleGenerateReport} disabled={isGenerating}>
-          <FileText className="mr-2 h-4 w-4" />
-          {isGenerating ? "Luodaan..." : "Luo Kunnossapitotarveselvitys (PDF)"}
-        </Button>
       </div>
 
       {/* Top Level KPIs */}

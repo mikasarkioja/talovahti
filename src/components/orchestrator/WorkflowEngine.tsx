@@ -1,40 +1,42 @@
-import { Project, ProjectStatus, InvestmentGrade, LoanApplication, BuildingUpdate, LeakAlert, Meeting } from '@prisma/client'
+import {
+  Project,
+  InvestmentGrade,
+  LeakAlert,
+} from "@prisma/client";
 
-export type WorkflowPhase = 'SCAN' | 'OPTIMIZE' | 'FUND' | 'EXECUTE' | 'SETTLE'
+export type WorkflowPhase = "SCAN" | "OPTIMIZE" | "FUND" | "EXECUTE" | "SETTLE";
 
 export interface WorkflowState {
-    currentPhase: WorkflowPhase
-    healthScore: number // 0-100
-    nextActions: WorkflowAction[]
-    metrics: {
-        investmentGrade: string
-        complianceStatus: 'OK' | 'WARN' | 'CRITICAL'
-        activeAlerts: number
-    }
+  currentPhase: WorkflowPhase;
+  healthScore: number; // 0-100
+  nextActions: WorkflowAction[];
+  metrics: {
+    investmentGrade: string;
+    complianceStatus: "OK" | "WARN" | "CRITICAL";
+    activeAlerts: number;
+  };
 }
 
 export interface WorkflowAction {
-    id: string
-    title: string
-    description: string
-    type: 'URGENT' | 'ROUTINE' | 'OPPORTUNITY'
-    phase: WorkflowPhase
-    actionUrl: string
-    isReady: boolean
+  id: string;
+  title: string;
+  description: string;
+  type: "URGENT" | "ROUTINE" | "OPPORTUNITY";
+  phase: WorkflowPhase;
+  actionUrl: string;
+  isReady: boolean;
 }
 
 export const WorkflowEngine = {
-    analyze(
-        project: Project & { 
-            contract?: any, 
-            loanApplications?: LoanApplication[] 
-        },
-        ig: InvestmentGrade | null,
-        alerts: LeakAlert[],
-        meetings: Meeting[]
-    ): WorkflowState {
-        let phase: WorkflowPhase = 'SCAN'
-        const actions: WorkflowAction[] = []
+  analyze(
+    project: Project & {
+      contract?: { signedAt?: Date | string | null };
+    },
+    ig: InvestmentGrade | null,
+    alerts: LeakAlert[],
+  ): WorkflowState {
+    let phase: WorkflowPhase = "SCAN";
+    const actions: WorkflowAction[] = [];
 
         // 1. Determine Phase
         if (project.status === 'COMPLETED') phase = 'SETTLE'
@@ -71,31 +73,8 @@ export const WorkflowEngine = {
         }
 
         // FUND PHASE
-        if (phase === 'FUND') {
-            const hasLoan = project.loanApplications && project.loanApplications.length > 0
-            const bankReady = ig && ig.score > 75
-
-            if (!hasLoan && bankReady) {
-                actions.push({
-                    id: 'fund-loan',
-                    title: 'Kilpailuta Rahoitus',
-                    description: 'BIG-luokitus on riittävä. Hae lainatarjoukset.',
-                    type: 'ROUTINE',
-                    phase: 'FUND',
-                    actionUrl: '/admin/finance/loans',
-                    isReady: true
-                })
-            } else if (!hasLoan && !bankReady) {
-                actions.push({
-                    id: 'fund-improve',
-                    title: 'Paranna BIG-luokitusta',
-                    description: 'Luottokelpoisuus heikko. Harkitse vastikkeen korotusta.',
-                    type: 'URGENT',
-                    phase: 'FUND',
-                    actionUrl: '/admin/investment',
-                    isReady: true
-                })
-            }
+        if (phase === "FUND") {
+          // Fund phase actions removed as part of Bank Bridge pruning
         }
 
         // EXECUTE PHASE

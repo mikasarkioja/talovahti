@@ -1,17 +1,17 @@
 "use client";
-import { useStore } from "@/lib/store";
+
+import { useStore, MockInvoice, MockObservation } from "@/lib/store";
 import Link from "next/link";
 import {
   AlertCircle,
-  Vote,
-  CheckCircle2,
-  ArrowRight,
-  Zap,
   PenTool,
   Home,
   Activity,
-  Lock,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { DecisionQueue, DecisionItem } from "@/components/dashboard/DecisionQueue";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { BuildingModel } from "@/components/BuildingModel";
 import { PulseHero } from "@/components/dashboard/PulseHero";
@@ -22,19 +22,15 @@ import {
 } from "@/components/dashboard/AnnualClock";
 import { StrategyDashboard } from "@/components/dashboard/StrategyDashboard";
 import { DashboardKPIs } from "@/components/dashboard/DashboardKPIs";
-import { FennoaCashStatus } from "@/components/finance/FennoaCashStatus";
 import { HealthScoreDashboard } from "@/components/dashboard/HealthScoreDashboard";
 import { GamificationDashboard } from "@/components/dashboard/GamificationDashboard";
 import { DynastyPanel } from "@/components/dashboard/DynastyPanel";
 import { RoleGate } from "@/components/auth/RoleGate";
-import { PurchaseInvoices } from "@/components/finance/PurchaseInvoices";
-import { Guardrail } from "@/components/finance/Guardrail";
 import { TourOverlay } from "@/components/onboarding/TourOverlay";
 import { FEATURES } from "@/config/features";
 import { useState, Suspense, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -51,14 +47,34 @@ function BuildingSkeleton() {
   );
 }
 
+interface Achievement {
+  name: string;
+  description: string;
+}
+
+interface HomeInitialData {
+  health?: {
+    totalScore: number;
+    technicalScore: number;
+    financialScore: number;
+    unpaidCount: number;
+    maintenanceBacklog: number;
+  };
+  boardProfile?: {
+    totalXP: number;
+    level: number;
+    achievements: Achievement[];
+  };
+  [key: string]: unknown;
+}
+
 interface HomeClientProps {
   annualClockData: AnnualClockData;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  initialData?: any;
+  initialData?: HomeInitialData;
 }
 
 export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
-  const { currentUser, tickets, initiatives, observations, hydrate } =
+  const { currentUser, tickets, observations, hydrate, housingCompany, invoices } =
     useStore();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -75,36 +91,25 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
         description:
           "Tämä toiminnallisuus julkaistaan myöhemmässä päivityksessä.",
       });
-      // Clean up URL
       router.replace("/");
     }
   }, [searchParams, router]);
 
-  // Tour State
   const [tourStep, setTourStep] = useState(1);
   const [highlightId, setHighlightId] = useState<string | undefined>(undefined);
+  const [is3DExpanded, setIs3DExpanded] = useState(false);
 
   const isBoard =
-    currentUser?.role === "BOARD" ||
-    currentUser?.role === "MANAGER" ||
+    currentUser?.role === "BOARD_MEMBER" ||
     currentUser?.role === "ADMIN";
 
-  // Action Center Logic
-  const activePolls = initiatives.filter(
-    (i) =>
-      i.status === "VOTING" &&
-      !i.votes.some((v) => v.userId === currentUser?.id),
-  );
-  const approvalQueue = tickets.filter(
-    (t) =>
-      (t.type === "RENOVATION" && t.status === "OPEN") ||
-      (t.priority === "HIGH" && t.status === "OPEN"),
-  );
-
-  const urgentObservations = (observations || []).filter(
+  const urgentObservations = (observations as MockObservation[] || []).filter(
     (o) =>
       o.status === "OPEN" && (o.severityGrade === 1 || o.severityGrade === 2),
   );
+
+  const pendingInvoices = (invoices as MockInvoice[] || [])
+    .filter((inv) => inv.status === "PENDING" && inv.isExternal);
 
   const latestOpenTicket = (tickets || [])
     .filter((t) => t.createdById === currentUser?.id && t.status !== "CLOSED")
@@ -114,6 +119,27 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
       return dateB - dateA;
     })[0];
 
+  const decisionItems: DecisionItem[] = [
+    ...urgentObservations.map(o => ({
+      id: o.id,
+      type: "TRIAGE" as const,
+      title: o.component,
+      vendor: "Asiantuntija-arvio tarvitaan",
+      amount: 450,
+      xpReward: 150
+    })),
+    ...pendingInvoices.map((inv) => ({
+      id: inv.id,
+      type: "INVOICE" as const,
+      title: `Ostolasku #${inv.invoiceNumber || inv.id}`,
+      vendor: inv.vendorName,
+      amount: inv.amount,
+      dueDate: inv.dueDate ? new Date(inv.dueDate).toISOString().split('T')[0] : "",
+      invoiceNumber: inv.invoiceNumber,
+      xpReward: 50
+    }))
+  ];
+
   const handleApartmentClick = (id: string) => {
     if (tourStep === 3) {
       setHighlightId(id);
@@ -121,7 +147,6 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
     }
   };
 
-  // --- RESIDENT MOBILE VIEW ---
   if (!isBoard && currentUser?.role === "RESIDENT") {
     return (
       <div className="p-4 max-w-lg mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500">
@@ -212,7 +237,6 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
         />
       )}
 
-      {/* 1. Header & Quick Status */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-brand-navy tracking-tight">
@@ -225,19 +249,36 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
         <PulseHero companyId={currentUser?.housingCompanyId} />
       </header>
 
-      {/* 2. Signal Zone: KPI Dashboard */}
       <section>
         <DashboardKPIs />
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* 3. Primary Workspace: 3D Twin & Strategy */}
         <div className="lg:col-span-2 space-y-8">
-          {/* 3D Twin */}
-          <section className="bg-white rounded-2xl shadow-soft overflow-hidden border border-surface-greige/20 relative group h-[450px]">
-            <div className="absolute top-4 left-4 z-10 bg-white/80 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-brand-navy shadow-sm">
+          {isBoard && (
+            <section className="animate-in slide-in-from-left-4 duration-700 delay-150">
+              <DecisionQueue items={decisionItems} />
+            </section>
+          )}
+
+          <section className={cn(
+            "bg-white rounded-2xl shadow-soft overflow-hidden border border-surface-greige/20 relative group transition-all duration-500",
+            is3DExpanded ? "h-[700px] z-40 fixed inset-4 md:inset-8" : "h-[300px]"
+          )}>
+            <div className="absolute top-4 left-4 z-10 bg-white/80 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-brand-navy shadow-sm flex items-center gap-2">
+              <Activity size={14} className="text-brand-emerald animate-pulse" />
               Reaaliaikainen 3D-tilannekuva
             </div>
+            
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-4 right-4 z-10 bg-white/80 backdrop-blur-md rounded-full shadow-sm hover:bg-white"
+              onClick={() => setIs3DExpanded(!is3DExpanded)}
+            >
+              {is3DExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+            </Button>
+
             <Suspense fallback={<BuildingSkeleton />}>
               <BuildingModel
                 onApartmentClick={handleApartmentClick}
@@ -246,51 +287,45 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
             </Suspense>
           </section>
 
-          {/* Strategy Dashboard (Board Only) */}
-          {isBoard && (
+          {isBoard && FEATURES.STRATEGY_INSIGHTS && (
             <section>
-              {FEATURES.STRATEGY_INSIGHTS ? (
-                <StrategyDashboard />
-              ) : (
-                <Card className="border-dashed border-2 border-slate-200 bg-slate-50/50 shadow-none">
-                  <CardContent className="p-8 flex flex-col items-center justify-center text-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
-                      <Zap size={24} className="text-slate-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-slate-700">
-                        Strategianäkymä
-                      </h3>
-                      <p className="text-sm text-slate-500 mt-1 max-w-md">
-                        Taloyhtiön strateginen tilannekuva ja PTS-työkalut
-                        avautuvat Phase 2 -päivityksessä.
-                      </p>
-                    </div>
-                    <Badge variant="outline" className="mt-2 text-slate-500">
-                      Tulossa pian
-                    </Badge>
-                  </CardContent>
-                </Card>
-              )}
+              <StrategyDashboard />
             </section>
           )}
         </div>
 
-        {/* 4. Operations & Schedule */}
         <div className="space-y-6">
-          {/* Health Score Dashboard (Board Only) */}
           {isBoard && (
-            <HealthScoreDashboard
-              totalScore={initialData?.health?.totalScore}
-              technicalScore={initialData?.health?.technicalScore}
-              financialScore={initialData?.health?.financialScore}
-              unpaidCount={initialData?.health?.unpaidCount}
-              maintenanceBacklog={initialData?.health?.maintenanceBacklog}
-            />
+            <div className="space-y-4">
+              <HealthScoreDashboard
+                totalScore={housingCompany?.healthScore || initialData?.health?.totalScore || 78}
+                technicalScore={housingCompany?.healthScoreTechnical || initialData?.health?.technicalScore || 85}
+                financialScore={housingCompany?.healthScoreFinancial || initialData?.health?.financialScore || 72}
+                unpaidCount={housingCompany?.unpaidInvoicesCount || initialData?.health?.unpaidCount || 3}
+                maintenanceBacklog={initialData?.health?.maintenanceBacklog || 12000}
+              />
+              
+              {(housingCompany?.healthScoreTechnical || 100) < 85 && (
+                <div className="p-4 bg-red-50 border border-red-100 rounded-xl space-y-3 animate-pulse">
+                  <div className="flex items-center gap-2 text-red-700 font-bold text-sm">
+                    <AlertCircle size={18} />
+                    Kuntoindeksi laskenut
+                  </div>
+                  <p className="text-xs text-red-600 leading-relaxed">
+                    Tekninen arvosana on laskenut avoimien havaintojen vuoksi. 
+                    Suosittelemme asiantuntijan kutsumista tilanteen arvioimiseksi.
+                  </p>
+                  <Link href="/board/marketplace">
+                    <Button size="sm" className="w-full bg-red-600 hover:bg-red-700 text-white font-bold text-xs mt-2">
+                      Palkkaa asiantuntija tästä (+150 XP)
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </div>
           )}
 
-          {/* Gamification Dashboard (Board Only) */}
-          <RoleGate allowed={["BOARD_MEMBER", "BOARD", "MANAGER", "ADMIN"]}>
+          <RoleGate allowed={["BOARD_MEMBER", "ADMIN"]}>
             <GamificationDashboard
               totalXP={initialData?.boardProfile?.totalXP}
               level={initialData?.boardProfile?.level}
@@ -298,131 +333,12 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
             />
           </RoleGate>
 
-          {/* Fennoa Real-time Cash (Board Only) */}
-          {isBoard && <FennoaCashStatus />}
-
-          {/* Purchase Invoices Approval (Board Only) */}
-          {isBoard && <PurchaseInvoices />}
-
-          {/* Action Center (Consolidated) */}
-          <div className="bg-white rounded-xl border border-surface-greige/50 shadow-soft p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-brand-navy flex items-center gap-2">
-                <AlertCircle size={20} className="text-brand-emerald" />
-                Toimenpidejono
-              </h3>
-              <Badge
-                variant="secondary"
-                className="bg-slate-100 text-slate-600"
-              >
-                {approvalQueue.length +
-                  activePolls.length +
-                  urgentObservations.length +
-                  (isBoard ? 1 : 0)}
-              </Badge>
-            </div>
-
-            <div className="space-y-3">
-              {/* High-Value Invoice Guardrail Demo (Board Only) */}
-              {isBoard && (
-                <Guardrail
-                  amount={6240.5}
-                  title="Putkistosaneeraus (ennakko)"
-                  onApprove={() =>
-                    toast.success("Lasku hyväksytty ja siirretty maksuun.")
-                  }
-                >
-                  <div className="p-3 bg-rose-50/50 border border-rose-100 rounded-lg flex gap-3 items-start cursor-pointer hover:bg-rose-50 mb-2 group">
-                    <Lock
-                      size={16}
-                      className="text-rose-500 mt-0.5 group-hover:animate-bounce"
-                    />
-                    <div className="flex-1">
-                      <div className="flex justify-between items-center">
-                        <div className="text-[10px] font-bold text-rose-700 uppercase">
-                          Korkea Arvo - Hyväksyntä
-                        </div>
-                        <Badge
-                          variant="outline"
-                          className="text-[8px] bg-white border-rose-200 text-rose-600 font-bold px-1 h-4"
-                        >
-                          ASOYL
-                        </Badge>
-                      </div>
-                      <div className="text-sm font-medium text-brand-navy">
-                        Putkistosaneeraus (ennakko)
-                      </div>
-                      <div className="text-xs font-bold text-rose-600 mt-0.5">
-                        6 240,50 €
-                      </div>
-                    </div>
-                  </div>
-                </Guardrail>
-              )}
-
-              {/* Urgent Items Only */}
-              {isBoard &&
-                approvalQueue.slice(0, 3).map((item) => (
-                  <Link key={item.id} href="/admin/ops">
-                    <div className="p-3 bg-red-50/50 border border-red-100 rounded-lg flex gap-3 items-start cursor-pointer hover:bg-red-50 mb-2">
-                      <CheckCircle2 size={16} className="text-red-500 mt-0.5" />
-                      <div>
-                        <div className="text-[10px] font-bold text-red-700 uppercase">
-                          Hyväksyntä
-                        </div>
-                        <div className="text-sm font-medium text-brand-navy">
-                          {item.title}
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-
-              {/* Polls */}
-              {activePolls.slice(0, 2).map((poll) => (
-                <Link key={poll.id} href="/governance/voting">
-                  <div className="p-3 bg-purple-50/50 border border-purple-100 rounded-lg flex gap-3 items-start cursor-pointer hover:bg-purple-50 mb-2">
-                    <Vote size={16} className="text-purple-600 mt-0.5" />
-                    <div>
-                      <div className="text-[10px] font-bold text-purple-700 uppercase">
-                        Äänestys
-                      </div>
-                      <div className="text-sm font-medium text-brand-navy">
-                        {poll.title}
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-
-              {/* Empty State */}
-              {approvalQueue.length === 0 &&
-                activePolls.length === 0 &&
-                urgentObservations.length === 0 && (
-                  <div className="text-center py-4 text-slate-400 text-xs">
-                    Ei kriittisiä toimenpiteitä juuri nyt.
-                  </div>
-                )}
-            </div>
-
-            <Link href="/admin/ops">
-              <Button
-                variant="ghost"
-                className="w-full mt-2 text-xs text-slate-500 hover:text-brand-navy"
-              >
-                Katso kaikki tehtävät <ArrowRight size={12} className="ml-2" />
-              </Button>
-            </Link>
-          </div>
-
-          {/* Annual Clock */}
           <AnnualClock
             data={annualClockData}
             isBoard={isBoard}
             housingCompanyId={currentUser?.housingCompanyId}
           />
-
-          {/* Dynasty Monitoring (Board Only) */}
+          
           {isBoard && <DynastyPanel />}
         </div>
       </div>

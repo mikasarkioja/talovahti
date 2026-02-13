@@ -50,30 +50,29 @@ export function Sidebar() {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
 
   const isBoard =
-    currentUser?.role === "BOARD" ||
-    currentUser?.role === "MANAGER" ||
+    currentUser?.role === "BOARD_MEMBER" ||
     currentUser?.role === "ADMIN";
   const plan = subscription?.plan || "BASIC";
   const isBasic = plan === "BASIC";
 
   const primaryItems = [
     { href: "/", label: "Hallintapaneeli", icon: Home },
-    { href: "/dashboard/feed", label: "Tapahtumat", icon: Activity },
     ...(isBoard
-      ? [{ href: "/admin/ops", label: "Tehtävienhallinta", icon: Workflow }]
+      ? [
+          { href: "/finance", label: "Talous & Laskut", icon: Wallet },
+          { href: "/board/marketplace", label: "Asiantuntijat", icon: Users },
+          { href: "/admin/ops", label: "Tehtävienhallinta", icon: Workflow },
+        ]
       : []),
     { href: "/maintenance/tickets", label: "Vikailmoitukset", icon: PenTool },
   ];
 
   const secondaryGroups: MenuGroup[] = [
     {
-      title: "Asuminen",
+      title: "Hallinto & Päätöksenteko",
       items: [
-        { href: "/booking", label: "Varaukset", icon: CalendarClock },
-        { href: "/tasks", label: "Talkoot", icon: Hammer },
-        ...(FEATURES.SERVICE_MARKETPLACE
-          ? [{ href: "/partners", label: "Palvelutori", icon: Users }]
-          : []),
+        { href: "/governance/pipeline", label: "Päätösputki", icon: Gavel },
+        { href: "/governance/voting", label: "Äänestykset", icon: Vote },
       ],
     },
     {
@@ -84,14 +83,6 @@ export function Sidebar() {
           label: "PTS & Historia",
           icon: ClipboardList,
         },
-        { href: "/admin/sauna-safety", label: "Saunavahti", icon: Thermometer },
-      ],
-    },
-    {
-      title: "Talous & Strategia",
-      items: [
-        { href: "/finance", label: "Talousnäkymä", icon: Wallet },
-        { href: "/finance/scenarios", label: "Skenaariot", icon: TrendingUp },
         ...(isBoard
           ? [
               { href: "/board/roi", label: "Energia ROI", icon: LineChart },
@@ -100,15 +91,20 @@ export function Sidebar() {
                 label: "Talousanalyysi",
                 icon: LayoutDashboard,
               },
+              {
+                href: "/admin/sauna-safety",
+                label: "Saunavahti",
+                icon: Thermometer,
+              },
             ]
           : []),
       ],
     },
     {
-      title: "Hallinto",
+      title: "Asuminen",
       items: [
-        { href: "/governance/pipeline", label: "Päätösputki", icon: Gavel },
-        { href: "/governance/voting", label: "Äänestykset", icon: Vote },
+        { href: "/booking", label: "Varaukset", icon: CalendarClock },
+        { href: "/tasks", label: "Talkoot", icon: Hammer },
       ],
     },
     ...(isBoard

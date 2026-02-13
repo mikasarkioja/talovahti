@@ -22,20 +22,6 @@ interface StrategyFinance {
 
 export class StrategyEngine {
   /**
-   * Calculates Energy Intensity (E-Value approximation)
-   * @param totalConsumptionKwh Total annual energy consumption
-   * @param totalAreaM2 Total heated floor area
-   * @returns kWh/m²
-   */
-  static calculateEnergyIntensity(
-    totalConsumptionKwh: number,
-    totalAreaM2: number,
-  ): number {
-    if (totalAreaM2 === 0) return 0;
-    return Math.round((totalConsumptionKwh / totalAreaM2) * 10) / 10;
-  }
-
-  /**
    * Calculates a Maintenance Backlog Score (0-100)
    * 100 = No backlog, perfect condition
    * < 50 = Critical backlog
@@ -75,55 +61,4 @@ export class StrategyEngine {
 
     return Math.max(0, score);
   }
-
-  /**
-   * Generates a Financial Health Grade (A-E)
-   * Based on fee collection rate and relative indebtedness.
-   */
-  static calculateFinancialHealthScore(finance: StrategyFinance): {
-    grade: string;
-    score: number;
-  } {
-    // If the data is coming from getFinanceAggregates (real DB data)
-    if (finance.score) {
-      return {
-        grade: finance.score,
-        score: Math.round(finance.utilization || 0),
-      };
-    }
-
-    const collectionPercentage = finance.collectionPercentage || 0;
-    const companyLoansTotal = finance.companyLoansTotal || 0;
-
-    // Simplistic Property Value Est: 2.6M (Hardcoded for mock context)
-    const ESTIMATED_PROPERTY_VALUE = 2600000;
-    const ltv = (companyLoansTotal / ESTIMATED_PROPERTY_VALUE) * 100;
-
-    let baseScore = 0;
-
-    // Collection Impact (0-50 pts)
-    if (collectionPercentage >= 99) baseScore += 50;
-    else if (collectionPercentage >= 95) baseScore += 40;
-    else if (collectionPercentage >= 90) baseScore += 20;
-    else baseScore += 0;
-
-    // LTV Impact (0-50 pts)
-    if (ltv < 20) baseScore += 50;
-    else if (ltv < 40) baseScore += 40;
-    else if (ltv < 60) baseScore += 20;
-    else baseScore += 0;
-
-    let grade = "E";
-    if (baseScore >= 90) grade = "A";
-    else if (baseScore >= 75) grade = "B";
-    else if (baseScore >= 60) grade = "C";
-    else if (baseScore >= 40) grade = "D";
-
-    return { grade, score: baseScore };
-  }
-
-  // --- PHYSICS CONSTANTS ---
-  static readonly KLOSS_CONSTANT = 0.85; // Heat loss coefficient (W/K) per m2 envelope (mock)
-  static readonly WINTER_MODE_THRESHOLD = -5; // Degrees Celsius
-  static readonly SNOW_ALERT_THRESHOLD = 5; // cm
 }
