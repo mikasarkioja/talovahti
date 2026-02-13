@@ -3,14 +3,19 @@
 import React, { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  AlertTriangle,
   TrendingDown,
   ShieldAlert,
   Droplets,
   ArrowUpRight,
   ArrowDownRight,
+  Trophy,
 } from "lucide-react";
-import { useStore } from "@/lib/store";
+import {
+  useStore,
+  MockObservation,
+  MockTicket,
+  MockRenovation,
+} from "@/lib/store";
 import { StrategyEngine } from "@/lib/engines/StrategyEngine";
 import { cn } from "@/lib/utils";
 
@@ -82,19 +87,19 @@ export function DashboardKPIs() {
   // Calculate Backlog Score Memoized
   const backlogScore = useMemo(() => {
     return StrategyEngine.calculateMaintenanceBacklogScore(
-      observations || [],
-      renovations || [],
-      tickets || [],
+      (observations as MockObservation[]) || [],
+      (renovations as MockRenovation[]) || [],
+      (tickets as MockTicket[]) || [],
     );
   }, [observations, renovations, tickets]);
 
-  const backlogColor: "red" | "amber" | "emerald" =
+  const backlogColor: KPIProps["color"] =
     backlogScore > 15 ? "red" : backlogScore > 8 ? "amber" : "emerald";
 
   // Financial Health Memoized
   const financialStatus = useMemo(() => {
     const financialGrade = finance?.score || "B";
-    const financialColor: "emerald" | "blue" | "amber" =
+    const financialColor: KPIProps["color"] =
       financialGrade === "A"
         ? "emerald"
         : financialGrade === "B"
@@ -105,26 +110,35 @@ export function DashboardKPIs() {
 
   // Active Alerts / Tickets Memoized
   const issuesStats = useMemo(() => {
-    const activeIssuesCount = tickets.filter((t) => t.status === "OPEN").length;
-    const criticalCount = observations.filter(
+    const activeIssuesCount = (tickets as MockTicket[]).filter(
+      (t) => t.status === "OPEN",
+    ).length;
+    const criticalCount = (observations as MockObservation[]).filter(
       (o) => o.severityGrade === 1,
     ).length;
     return { activeIssuesCount, criticalCount };
   }, [tickets, observations]);
 
+  const getScoreLabel = (score: number) => {
+    if (score >= 80) return "ERINOMAINEN";
+    if (score >= 60) return "HYVÄ";
+    return "VAATII HUOMIOTA";
+  };
+
+  const healthScore = 78; // Fallback or from company data if available
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <KPICard
-        label="Kunnossapito-indeksi"
-        value={backlogScore.toFixed(1)}
-        subValue={backlogScore > 10 ? "Vaatii huomiota" : "Hyvä taso"}
-        icon={<AlertTriangle size={20} />}
-        trend={backlogScore > 10 ? "up" : "neutral"}
+        label="Kuntoindeksi"
+        value={healthScore.toString()}
+        subValue={getScoreLabel(healthScore)}
+        icon={<Trophy size={20} />}
         color={backlogColor}
       />
 
       <KPICard
-        label="Taloudellinen tila"
+        label="Vastikevalvonta"
         value={`Arvosana: ${financialStatus.financialGrade}`}
         subValue={`${(finance?.collectionPercentage || 100).toFixed(1)}% vastikekertymä`}
         icon={<TrendingDown size={20} />}

@@ -2,6 +2,9 @@ import { prisma } from "@/lib/db";
 import { HomeClient } from "@/components/dashboard/HomeClient";
 import { getAnnualClockData } from "@/app/actions/governance";
 import { getFinanceAggregates } from "@/app/actions/finance";
+import { getHealthStatusAction } from "@/app/actions/health-actions";
+import { RBAC } from "@/lib/auth/rbac";
+import { headers } from "next/headers";
 
 /**
  * UI/Feature Audit Report - Talovahti MVP
@@ -57,6 +60,7 @@ export default async function Home(props: {
         observations: {
           include: { project: true },
         },
+        boardProfile: true,
       },
     });
 
@@ -87,6 +91,25 @@ export default async function Home(props: {
       companyId,
       currentYear,
     );
+    const healthResult = await getHealthStatusAction(companyId);
+
+    // 2.5 Audit Log for Board Dashboard View
+    if (
+      user &&
+      (user.role === "BOARD" ||
+        user.role === "MANAGER" ||
+        user.role === "ADMIN")
+    ) {
+      const headerList = await headers();
+      const ip = headerList.get("x-forwarded-for") || "127.0.0.1";
+      await RBAC.auditAccess(
+        user.id,
+        "READ",
+        `HousingCompany:${companyId}`,
+        "Hallituksen päätöksenteko (Dashboard näkymä)",
+        ip,
+      );
+    }
 
     // Default empty data if fetch fails
     const annualClockData =
@@ -130,6 +153,7 @@ export default async function Home(props: {
               personalBalanceStatus: "OK",
               personalDebtShare: 0,
             },
+            housingCompany: company,
             tickets: company.tickets.map((t) => ({
               id: t.id,
               title: t.title,
@@ -187,6 +211,14 @@ export default async function Home(props: {
               : null,
             strategicGoals: company.strategicGoals,
             finance: financeData,
+            health: healthResult.success ? healthResult.data : null,
+            boardProfile:
+              user.role === "BOARD" ||
+              user.role === "BOARD_MEMBER" ||
+              user.role === "ADMIN" ||
+              user.role === "MANAGER"
+                ? company.boardProfile
+                : null,
             // Ensure MockStore required fields are present (empty arrays if not fetched)
             renovations: company.renovations.map((r) => ({
               id: r.id,

@@ -1,36 +1,37 @@
-# Cursor AI Rules - OpenTaloyhtiö OS
+1. Core Philosophy: Platform-isännöinti (Finnish)
 
-This project is a Finnish Housing Company Governance Platform. When generating code or logic, you MUST adhere to the following context and constraints.
+    Hallitusoikeudet edellä: Sovelluksen keskiössä on taloyhtiön hallitus (Board), joka tekee operatiiviset päätökset.
+    Self-Service & Guardrails: UI:n on estettävä tai varoitettava toiminnoista, jotka vaativat yhtiökokouksen päätöksen (Asunto-osakeyhtiölaki).
+    Automaatio: Kaikki mahdollinen data on haettava automaattisesti (Fennoa, Dynasty).
+    XP & Health Score: Aktiivisuus ja hyvin hoidettu kunnossapito nostavat taloyhtiön "Health Scorea".
 
-## 1. Domain Context: Finnish Housing Market
--   **Legal Framework**: All governance logic must align with *Asunto-osakeyhtiölaki* (Housing Companies Act).
-    -   *Example*: Decisions require a majority vote based on SHARES, not "one person one vote" (unless specified).
-    -   *Example*: Renovations (Kunnossapito) fall under either "Yhtiön vastuu" (Company) or "Osakkaan vastuu" (Shareholder).
--   **Construction Standards**: Use **YSE 1998** terms for contracts and supervision.
--   **Financials**:
-    -   **Hoitovastike**: Monthly maintenance fee.
-    -   **Rahoitusvastike**: Capital/Finance fee for loans.
-    -   **Lainaosuus**: Share of company debt.
+2. Technical Stack & Patterns (English)
 
-## 2. Technical Stack Constraints
--   **Next.js 16**: Use App Router (`src/app`). Prefer Server Components.
--   **Tailwind CSS v4**: Use CSS variables for theming (`--primary: #002f6c`).
--   **Zustand**: Use `src/lib/store.ts` for all client-side state. Do not use Context API for global state.
--   **Prisma**: Always update `schema.prisma` before writing business logic code.
+    Framework: Next.js 16 (App Router, src/app). Prefer Server Components.
+    Database: Supabase SSR Auth & Database. Use Prisma for all business logic (schema.prisma).
+    Styling: Tailwind CSS v4 using CSS variables (--primary: #002f6c).
+    State: Zustand (src/lib/store.ts) for client-side state. No Context API.
+    Audit Trail: All Board decisions (e.g., invoice approval) MUST be logged in the AuditLog table.
+    Feature Gating: Use <FeatureGate featureKey="..."> for subscription-based access.
 
-## 3. Language & Localization
--   **UI / User Facing**: Finnish (Professional, Formal).
-    -   *Good*: "Kunnossapitotarveselvitys"
-    -   *Bad*: "Repair Plan" or "Korjauslista"
--   **Code / Comments**: English.
-    -   Variable names: `renovationCost`, `shareCount`
-    -   NOT `remonttiHinta`, `osakeMaara`
+3. Kielistandardit ja Terminologia (Finnish)
 
-## 4. Business Logic (Revenue)
--   The platform takes **100%** of document sales revenue.
--   Subscription checks must gate features strictly (`src/lib/subscriptions.ts`).
+    UI / User Facing: Ammattimainen ja muodollinen suomi.
+        Oikein: "Kunnossapitotarveselvitys", "Isännöitsijäntodistus", "Vastikevalvonta", "Hoitovastike".
+        Väärin: "Remonttilista", "Talon paperit", "Laskuseuranta", "Kuukausimaksu".
 
-## 5. Coding Patterns
--   **Feature Gating**: Wrap premium features with `<FeatureGate featureKey="...">`.
--   **Mock Data**: When implementing new features, add realistic mock data to `src/lib/store.ts` immediately to allow UI testing.
--   **Mobile First**: All dashboards must be responsive.
+    Code / Comments: English only.
+        Variable names: renovationCost, shareCount, invoiceStatus.
+        Do NOT use Finnish in variable names (e.g., remonttiHinta).
+
+4. Juridinen Konteksti & Logiikka (Finnish)
+
+    Lainsäädäntö: Noudata Asunto-osakeyhtiölakia. Päätökset perustuvat osakkeisiin (Shares), ei "ääni per henkilö".
+    Rakentaminen: Käytä YSE 1998 -termejä urakoissa ja valvonnassa.
+    Kunnossapito: Erota selkeästi "Yhtiön vastuu" ja "Osakkaan vastuu".
+
+5. Integrations & Revenue (English)
+
+    Fennoa: API integration for invoices and cash flow.
+    Dynasty: RSS/Scraper for city planning and environment alerts.
+    Stripe: Platform takes 5% commission on expert marketplace sales and 100% on document sales.

@@ -2,6 +2,8 @@
 
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { RBAC } from "@/lib/auth/rbac";
+import { HealthScoreEngine } from "@/lib/engines/health";
 import {
   TicketPriority,
   TicketType,
@@ -235,15 +237,12 @@ export async function escalateToExpert(ticketId: string, notes?: string) {
   });
 
   // 3. Log GDPR Event
-  await prisma.gDPRLog.create({
-    data: {
-      actorId: "system", // Should be current user
-      action: "ESCALATE_TO_EXPERT",
-      targetEntity: `Observation:${obs.id}`,
-      details: `Escalated Ticket ${ticketId} to Expert Project. Notes: ${notes}`,
-      housingCompanyId: ticket.housingCompanyId,
-    },
-  });
+  await RBAC.auditAccess(
+    "system", // Should be current user
+    "WRITE",
+    `Observation:${obs.id}`,
+    "Tiketin eskalaatio asiantuntijalle",
+  );
 
   revalidatePath("/admin/ops");
   return { success: true, observationId: obs.id };
@@ -262,15 +261,12 @@ export async function assignTicketToMaintenance(ticketId: string) {
     });
 
     // Log GDPR Event
-    await prisma.gDPRLog.create({
-      data: {
-        actorId: "system",
-        action: "ASSIGN_TO_MAINTENANCE",
-        targetEntity: `Ticket:${ticketId}`,
-        details: `Ticket assigned directly to maintenance company.`,
-        housingCompanyId: "default-company-id", // Should be fetched from ticket
-      },
-    });
+    await RBAC.auditAccess(
+      "system",
+      "WRITE",
+      `Ticket:${ticketId}`,
+      "Tiketin määritys huoltoyhtiölle",
+    );
 
     revalidatePath("/admin/ops");
     return { success: true };
@@ -301,17 +297,17 @@ export async function submitTechnicalVerdict(
     });
 
     // 1. Log GDPR Event
-    await prisma.gDPRLog.create({
-      data: {
-        actorId: "expert", // Replace with real user ID
-        action: "SUBMIT_TECHNICAL_VERDICT",
-        targetEntity: `Observation:${observationId}`,
-        details: `Severity: ${data.severity}, Verdict: ${data.verdict.substring(0, 50)}...`,
-        housingCompanyId: updated.housingCompanyId,
-      },
-    });
+    await RBAC.auditAccess(
+      "expert", // Replace with real user ID
+      "WRITE",
+      `Observation:${observationId}`,
+      "Teknisen lausunnon anto",
+    );
 
-    // 2. Revalidate
+    // 2. Update Real-time Health Status
+    await HealthScoreEngine.recalculateBuildingHealth(updated.housingCompanyId);
+
+    // 3. Revalidate
     revalidatePath("/admin/ops");
     revalidatePath("/"); // Update dashboard backlog scores
 
@@ -378,7 +374,7 @@ export async function createTicket(data: {
   apartmentId?: string;
 }) {
   try {
-    const ticket = await prisma.ticket.create({
+    await prisma.ticket.create({
       data: {
         title: data.title,
         description: data.description,
@@ -393,7 +389,7 @@ export async function createTicket(data: {
 
     revalidatePath("/admin/ops");
     revalidatePath("/maintenance/tickets");
-    return { success: true, ticket };
+    return { success: true };
   } catch (error) {
     console.error("Create Ticket Error:", error);
     return { success: false, error: "Tiketin luonti epäonnistui." };
@@ -402,7 +398,7 @@ export async function createTicket(data: {
 
 export async function requestTicketInfo(ticketId: string, message: string) {
   try {
-    const ticket = await prisma.ticket.update({
+    await prisma.ticket.update({
       where: { id: ticketId },
       data: {
         status: "OPEN", // Keep it open, but maybe we could add a "PENDING_INFO" status later
@@ -411,15 +407,12 @@ export async function requestTicketInfo(ticketId: string, message: string) {
     });
 
     // In a real app, this would trigger a push notification or email to the resident
-    await prisma.gDPRLog.create({
-      data: {
-        actorId: "board", // Replace with real session user
-        action: "REQUEST_INFO",
-        targetEntity: `Ticket:${ticketId}`,
-        details: `Requested more info from resident: ${message}`,
-        housingCompanyId: ticket.housingCompanyId,
-      },
-    });
+    await RBAC.auditAccess(
+      "board", // Replace with real session user
+      "WRITE",
+      `Ticket:${ticketId}`,
+      "Lisätietopyyntö asukkaalle",
+    );
 
     revalidatePath("/admin/ops");
     revalidatePath("/maintenance/tickets");

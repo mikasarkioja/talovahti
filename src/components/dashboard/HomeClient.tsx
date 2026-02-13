@@ -10,6 +10,7 @@ import {
   PenTool,
   Home,
   Activity,
+  Lock,
 } from "lucide-react";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { BuildingModel } from "@/components/BuildingModel";
@@ -21,6 +22,13 @@ import {
 } from "@/components/dashboard/AnnualClock";
 import { StrategyDashboard } from "@/components/dashboard/StrategyDashboard";
 import { DashboardKPIs } from "@/components/dashboard/DashboardKPIs";
+import { FennoaCashStatus } from "@/components/finance/FennoaCashStatus";
+import { HealthScoreDashboard } from "@/components/dashboard/HealthScoreDashboard";
+import { GamificationDashboard } from "@/components/dashboard/GamificationDashboard";
+import { DynastyPanel } from "@/components/dashboard/DynastyPanel";
+import { RoleGate } from "@/components/auth/RoleGate";
+import { PurchaseInvoices } from "@/components/finance/PurchaseInvoices";
+import { Guardrail } from "@/components/finance/Guardrail";
 import { TourOverlay } from "@/components/onboarding/TourOverlay";
 import { FEATURES } from "@/config/features";
 import { useState, Suspense, useEffect } from "react";
@@ -270,6 +278,32 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
 
         {/* 4. Operations & Schedule */}
         <div className="space-y-6">
+          {/* Health Score Dashboard (Board Only) */}
+          {isBoard && (
+            <HealthScoreDashboard
+              totalScore={initialData?.health?.totalScore}
+              technicalScore={initialData?.health?.technicalScore}
+              financialScore={initialData?.health?.financialScore}
+              unpaidCount={initialData?.health?.unpaidCount}
+              maintenanceBacklog={initialData?.health?.maintenanceBacklog}
+            />
+          )}
+
+          {/* Gamification Dashboard (Board Only) */}
+          <RoleGate allowed={["BOARD_MEMBER", "BOARD", "MANAGER", "ADMIN"]}>
+            <GamificationDashboard
+              totalXP={initialData?.boardProfile?.totalXP}
+              level={initialData?.boardProfile?.level}
+              achievements={initialData?.boardProfile?.achievements || []}
+            />
+          </RoleGate>
+
+          {/* Fennoa Real-time Cash (Board Only) */}
+          {isBoard && <FennoaCashStatus />}
+
+          {/* Purchase Invoices Approval (Board Only) */}
+          {isBoard && <PurchaseInvoices />}
+
           {/* Action Center (Consolidated) */}
           <div className="bg-white rounded-xl border border-surface-greige/50 shadow-soft p-5">
             <div className="flex items-center justify-between mb-4">
@@ -283,11 +317,49 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
               >
                 {approvalQueue.length +
                   activePolls.length +
-                  urgentObservations.length}
+                  urgentObservations.length +
+                  (isBoard ? 1 : 0)}
               </Badge>
             </div>
 
             <div className="space-y-3">
+              {/* High-Value Invoice Guardrail Demo (Board Only) */}
+              {isBoard && (
+                <Guardrail
+                  amount={6240.5}
+                  title="Putkistosaneeraus (ennakko)"
+                  onApprove={() =>
+                    toast.success("Lasku hyväksytty ja siirretty maksuun.")
+                  }
+                >
+                  <div className="p-3 bg-rose-50/50 border border-rose-100 rounded-lg flex gap-3 items-start cursor-pointer hover:bg-rose-50 mb-2 group">
+                    <Lock
+                      size={16}
+                      className="text-rose-500 mt-0.5 group-hover:animate-bounce"
+                    />
+                    <div className="flex-1">
+                      <div className="flex justify-between items-center">
+                        <div className="text-[10px] font-bold text-rose-700 uppercase">
+                          Korkea Arvo - Hyväksyntä
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className="text-[8px] bg-white border-rose-200 text-rose-600 font-bold px-1 h-4"
+                        >
+                          ASOYL
+                        </Badge>
+                      </div>
+                      <div className="text-sm font-medium text-brand-navy">
+                        Putkistosaneeraus (ennakko)
+                      </div>
+                      <div className="text-xs font-bold text-rose-600 mt-0.5">
+                        6 240,50 €
+                      </div>
+                    </div>
+                  </div>
+                </Guardrail>
+              )}
+
               {/* Urgent Items Only */}
               {isBoard &&
                 approvalQueue.slice(0, 3).map((item) => (
@@ -349,6 +421,9 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
             isBoard={isBoard}
             housingCompanyId={currentUser?.housingCompanyId}
           />
+
+          {/* Dynasty Monitoring (Board Only) */}
+          {isBoard && <DynastyPanel />}
         </div>
       </div>
     </div>

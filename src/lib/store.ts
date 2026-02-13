@@ -88,6 +88,9 @@ export type MockFinance = {
   monthlyIncome: number;
   monthlyTarget: number;
   reserveFund: number;
+  realTimeCash: number; // Fennoa Real-time Cash
+  unpaidInvoicesCount: number;
+  budgetRemaining: number;
   energyCostDiff: number;
   collectionPercentage: number;
   companyLoansTotal: number;
@@ -290,6 +293,7 @@ export type MockSystemAdminStats = {
 
 interface AppState {
   currentUser: MockUser | null;
+  housingCompany: { healthScore?: number } | null; // Added for health score etc.
   initiatives: MockInitiative[];
   tickets: MockTicket[];
   feed: MockFeedItem[];
@@ -374,6 +378,7 @@ export const useStore = create<AppState>((set) => ({
     personalBalanceStatus: "OK",
     canApproveFinance: true,
   },
+  housingCompany: null,
 
   // ... (Existing Data)
   initiatives: [
@@ -412,6 +417,9 @@ export const useStore = create<AppState>((set) => ({
     monthlyIncome: 12500,
     monthlyTarget: 12000,
     reserveFund: 45000,
+    realTimeCash: 12450.25,
+    unpaidInvoicesCount: 3,
+    budgetRemaining: 18400.0,
     energyCostDiff: -150,
     collectionPercentage: 98.5,
     companyLoansTotal: 450000,

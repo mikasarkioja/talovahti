@@ -44,6 +44,16 @@ model HousingCompany {
   htjShadowRecords   HTJ_ShadowRecord[]
   htjSyncLogs        HTJ_SyncLog[]
 
+  healthScore      Int @default(70)
+  healthScoreTechnical Int @default(70)
+  healthScoreFinancial Int @default(70)
+  healthScoreAdmin     Int @default(70)
+  boardProfile     BoardProfile?
+  experiencePoints Int @default(0)
+  realTimeCash     Float @default(0)
+  unpaidInvoicesCount Int @default(0)
+  budgetRemaining  Float @default(0)
+
   // LOAN BROKERAGE
   financialStatements FinancialStatement[]
   shareholders        Shareholder[]
@@ -64,6 +74,8 @@ model HousingCompany {
   fiscalConfig   FiscalConfiguration?
   annualTasks    AnnualTask[]
   strategicGoals StrategicGoal[]
+
+  healthHistory  HealthHistory[]
 
   // RELATIONS
   subscription Subscription?
@@ -107,9 +119,11 @@ model Apartment {
 
 enum UserRole {
   RESIDENT
+  BOARD_MEMBER
   BOARD
-  MANAGER
+  EXPERT
   ADMIN
+  MANAGER
   SUPERVISOR
 }
 
@@ -143,6 +157,7 @@ model User {
   reportedLeaks           ThermalLeak[]
   pollVotes               PollVote[]
   auditLogs               GDPRLog[]
+  generalAuditLogs        AuditLog[]
   consentVersion          String? // GDPR
   deletedAt               DateTime? // Soft Delete
   createdAt               DateTime            @default(now())
@@ -243,7 +258,7 @@ enum TicketCategory {
 }
 
 enum TriageLevel {
-  ROUTINE // Handled by huoltoyhtiö
+  ROUTINE // Handled by huoltoyhtiÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¶
   ESCALATED // Needs expert assessment
   CRITICAL // Immediate safety/structural risk
 }
@@ -1351,9 +1366,10 @@ model GDPRLog {
   id               String          @id @default(cuid())
   actorId          String
   actor            User            @relation(fields: [actorId], references: [id])
-  action           String // READ, WRITE, DELETE
-  targetEntity     String // e.g. "User:123"
-  details          String?
+  action           String          // READ, WRITE, DELETE, EXPORT
+  resource         String          // The entity accessed (e.g. "Invoice:123")
+  reason           String?         // Legal ground or reason for access
+  details          String?         // Technical details
   ipAddress        String?
   housingCompanyId String?
   housingCompany   HousingCompany? @relation(fields: [housingCompanyId], references: [id])
@@ -1422,7 +1438,7 @@ model AnnualTask {
   housingCompanyId String
   housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
 
-  title       String // e.g., "Yhtiökokous" (General Meeting)
+  title       String // e.g., "YhtiÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¶kokous" (General Meeting)
   category    TaskCategory
   quarter     FiscalQuarter
   month       Int           @default(1)
@@ -1475,4 +1491,84 @@ model BuildingComponent {
 
   @@index([housingCompanyId])
   @@map("building_components")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  targetId  String?
+  impactScore Int      @default(0)
+  metadata  Json?
+  timestamp DateTime @default(now())
+
+  @@index([userId])
+  @@map("audit_logs")
+}
+
+model Expert {
+  id          String    @id @default(cuid())
+  name        String
+  category    String // e.g. "LVI-insinÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¶ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¶ri", "Lakimies"
+  description String
+  rating      Float     @default(5.0)
+  hourlyRate  Decimal
+  services    Service[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("experts")
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  price       Decimal
+  expertId    String
+  expert      Expert   @relation(fields: [expertId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("services")
+}
+
+model StripeTransaction {
+  id               String   @id @default(cuid())
+  amount           Decimal
+  commission       Decimal // 5%
+  status           String // "PENDING", "COMPLETED"
+  housingCompanyId String
+  expertId         String
+  serviceId        String
+  createdAt        DateTime @default(now())
+
+  @@map("stripe_transactions")
+}
+
+model HealthHistory {
+  id               String         @id @default(cuid())
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  score            Int
+  technicalScore   Int
+  financialScore   Int
+  timestamp        DateTime       @default(now())
+
+  @@index([housingCompanyId])
+  @@map("health_history")
+}
+
+model BoardProfile {
+  id               String         @id @default(cuid())
+  housingCompanyId String         @unique
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  totalXP          Int            @default(0)
+  level            Int            @default(1)
+  achievements     Json?          // Array of achievement slugs/dates
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@map("board_profiles")
 }

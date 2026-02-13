@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { TicketCategory, TriageLevel } from "@prisma/client";
 import { sendResidentUpdate } from "@/lib/notifications";
+import { RBAC } from "@/lib/auth/rbac";
 
 /**
  * Escalates a resident ticket to a formal Project/Observation
@@ -45,6 +46,15 @@ export async function escalateToExpert(ticketId: string) {
 
     revalidatePath("/admin/ops");
     await sendResidentUpdate(ticketId, "PROJECT");
+
+    // Log GDPR Event
+    await RBAC.auditAccess(
+      "system",
+      "WRITE",
+      `Observation:${observation.id}`,
+      "Tiketin eskalaatio asiantuntijalle",
+    );
+
     return { success: true, observationId: observation.id };
   } catch (error) {
     console.error("Escalation failed:", error);

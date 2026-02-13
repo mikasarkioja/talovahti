@@ -6,39 +6,37 @@
     *   `admin/`: Board & Manager views (Finance, Ops, Activation).
     *   `finance/`: Resident billing views.
     *   `api/`: Webhooks, GDPR endpoints, Cron jobs.
-    *   `mobile/`: Dedicated mobile dashboard view.
+    *   `board/`: Special board modules (Marketplace).
 *   **`src/lib`**: Core Business Logic & Infrastructure.
-    *   `engines/`: Complex calculation logic (Temporal, Strategy, Physics, Extruder).
-    *   `finance/`: Billing calculators, Accounting sync services.
-    *   `services/`: External API integrations (FMI, MML).
-    *   `three/`: 3D Geometry generation & shaders.
-    *   `auth/`: RBAC & Audit logging.
+    *   `engines/`: Complex calculation logic (Health, Gamification, Strategy, Physics).
+    *   `auth/`: RBAC, RoleGates, and GDPR Audit logging.
+    *   `services/`: External API clients (Fennoa, FMI, MML).
 *   **`src/components`**: React UI Components.
-    *   `ui/`: Shadcn/Radix primitive components.
-    *   `three/`: R3F components (BuildingTwin, Heatmap).
-    *   `dashboard/`: Business widgets (AnnualClock, PulseHero, StrategyDashboard).
-*   **`prisma`**: Database Schema & Seeds.
+    *   `auth/`: Security components (RoleGate).
+    *   `dashboard/`: Business widgets (HealthScore, Gamification, PulseHero).
+    *   `finance/`: Financial controls (Guardrail, FennoaCash).
 
 ## Key Architectural Patterns
 
 ### 1. Engine Pattern
-Complex domain logic is encapsulated in pure TypeScript classes within `src/lib`. These "Engines" are stateless where possible and easy to test.
-*   **`TemporalEngine`**: Maps calendar time to fiscal quarters and statutory deadlines (Housing Companies Act).
-*   **`StrategyEngine`**: Calculates KPIs like Financial Health Score (A-E), Maintenance Backlog, and Energy Intensity.
-*   **`BuildingPhysicsEngine`**: Translates raw weather data (FMI) into building impact alerts (e.g., Freeze/Thaw cycles, Snow Loads).
-*   **`ExtruderEngine`**: Generates 3D building geometry from 2D floor plan metadata.
+Complex domain logic is encapsulated in pure TypeScript classes within `src/lib/engines`.
+*   **`HealthScoreEngine`**: Real-time analysis of building status. Technical score (Observations weighted by severity) and Financial score (Cash-to-Expense ratio).
+*   **`GamificationEngine`**: Encapsulates board activity logic. Rewards decision speed and expert usage with XP and Achievements.
+*   **`StrategyEngine`**: Calculates long-term KPIs like Maintenance Backlog and Strategic Health Grades (A-E).
+*   **`BuildingPhysicsEngine`**: Translates Fmi weather data into real-time building impact alerts.
 
-### 2. Server Actions for Mutations
-We utilize Next.js Server Actions for form submissions and state mutations (e.g., `createRenovationNotification`, `getPulseData`). This ensures type safety and reduces client-side JavaScript.
+### 2. Role-Based Access Control (RBAC)
+User access is strictly governed by `src/lib/auth/rbac.ts`. 
+*   **`RoleGate`**: A UI component that wraps sensitive sections, ensuring Residents cannot see Board XP or Financial data.
+*   **Project Isolation**: Experts/Vendors are isolated to observations linked to their projects.
 
-### 3. Transactional Integrity
-Critical operations (like Board Activation or Invoice Generation) use `prisma.$transaction` to ensure atomicity. If any step fails (e.g., MML fetch succeeds but DB write fails), the entire operation rolls back.
+### 3. GDPR by Design
+Every sensitive operation (READ/WRITE/EXPORT) is logged via the `RBAC.auditAccess` method to the `GDPRLog` table. This provides a full audit trail for the Board and ensures compliance with EU privacy laws.
 
-### 4. Adapter Pattern
-Integrations with external systems (Fennoa, Netvisor, MML, IoT) are built behind interfaces/adapters. This allows us to switch providers or use Mock Implementations during development without changing the core application logic.
+### 4. Smart Guardrails
+Critical financial and legal actions (e.g., approving invoices > 5000€) are wrapped in the `Guardrail` component. This provides:
+*   **Regulatory Alerts**: Reminders of AsOYL (Housing Companies Act) requirements (e.g., 2/3 majority for major investments).
+*   **Motivational Guidance**: Suggestions to hire experts from the marketplace when building health is low.
 
-### 5. Privacy by Design
-Data access is governed by the `RBAC` middleware (`src/lib/auth/rbac.ts`). Sensitive operations are wrapped in `withAudit` decorators to ensure GDPR compliance.
-
-### 6. Node-Safe External Integrations
-Server-side integrations (like the FMI Weather Service) use `fast-xml-parser` instead of browser-based APIs (`DOMParser`) to ensure compatibility with the Next.js Node.js runtime.
+### 5. Transactional Integrity
+State mutations (e.g., Expert Ordering or Ticket Escalation) use `prisma.$transaction` to ensure that DB updates and Audit Logs are saved atomically.
