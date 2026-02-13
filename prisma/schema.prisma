@@ -1381,7 +1381,7 @@ model GDPRLog {
   actorId          String
   actor            User            @relation(fields: [actorId], references: [id])
   action           String // READ, WRITE, DELETE
-  targetEntity     String // e.g. "User:123"
+  targetEntity     String? // e.g. "User:123"
   resource         String? // Specific resource accessed, e.g., "contact_info"
   reason           String? // Justification for access, e.g., "HVAC maintenance"
   details          String?
