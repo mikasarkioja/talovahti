@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { InitiativeCard } from "@/components/governance/InitiativeCard";
 import { VotingClient } from "./VotingClient";
+import { UserRole } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,7 @@ export default async function GovernancePage(props: {
   // Fallback to default Board Member if no query or user not found
   if (!user && !userQuery) {
     user = await prisma.user.findFirst({
-      where: { housingCompanyId: housingCompanyId, role: "BOARD" },
+      where: { housingCompanyId: housingCompanyId, role: UserRole.BOARD_MEMBER },
     });
   }
 

@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { OrderType, OrderStatus } from "@prisma/client";
 
 interface OrderExpertParams {
   expertId: string;
@@ -23,31 +24,44 @@ export async function orderExpertAction({
   amount,
 }: OrderExpertParams) {
   try {
-    const commission = amount * 0.05;
+    const platformFee = amount * 0.05;
 
     // 1. Start Transaction
     const result = await prisma.$transaction(async (tx) => {
+      // Create Order record first
+      const order = await tx.order.create({
+        data: {
+          userId,
+          housingCompanyId,
+          type: OrderType.EXPERT_SERVICE,
+          amount,
+          platformRevenue: platformFee,
+          status: OrderStatus.PAID,
+          metadata: JSON.stringify({ expertId, expertName }),
+        },
+      });
+
       // Create Stripe Transaction record
       const transaction = await tx.stripeTransaction.create({
         data: {
+          orderId: order.id,
+          stripeChargeId: `ch_mock_${Date.now()}`,
           amount,
-          commission,
-          status: "COMPLETED",
-          housingCompanyId,
-          expertId,
-          serviceId: "DEPOSIT", // Initial deposit
+          currency: "EUR",
+          platformFee,
+          status: "succeeded",
         },
       });
 
       // 2. Add Audit Log
       await tx.auditLog.create({
         data: {
-          action: `Hallitus tilasi asiantuntijapalvelun: ${expertName}`,
+          action: "EXPERT_ORDERED",
           userId,
           targetId: expertId,
           metadata: {
             amount,
-            commission,
+            platformFee,
             expertName,
             status: "ORDERED",
           },
@@ -56,11 +70,25 @@ export async function orderExpertAction({
 
       // 3. Update XP & Health Score
       const boost = await calculateHealthBoost("EXPERT_USAGE");
+      
+      // Update Company Health
       await tx.housingCompany.update({
         where: { id: housingCompanyId },
         data: {
-          experiencePoints: { increment: boost.xp },
           healthScore: { increment: boost.health },
+        },
+      });
+
+      // Update Board XP
+      await tx.boardProfile.upsert({
+        where: { housingCompanyId },
+        create: {
+          housingCompanyId,
+          totalXP: boost.xp,
+          level: 1,
+        },
+        update: {
+          totalXP: { increment: boost.xp },
         },
       });
 

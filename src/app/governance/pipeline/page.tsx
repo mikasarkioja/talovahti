@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { KanbanBoard } from "@/components/governance/KanbanBoard";
 import { VotingClient } from "../voting/VotingClient";
+import { UserRole } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export default async function PipelinePage(props: {
   // Fallback to default Board Member
   if (!user && !userQuery) {
     user = await prisma.user.findFirst({
-      where: { housingCompanyId: housingCompanyId, role: "BOARD" },
+      where: { housingCompanyId: housingCompanyId, role: UserRole.BOARD_MEMBER },
     });
   }
 

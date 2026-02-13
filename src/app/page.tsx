@@ -6,6 +6,7 @@ import { getHealthStatusAction } from "@/app/actions/health-actions";
 import { fetchInvoicesAction } from "@/app/actions/invoice-actions";
 import { RBAC } from "@/lib/auth/rbac";
 import { headers } from "next/headers";
+import { UserRole } from "@prisma/client";
 
 /**
  * UI/Feature Audit Report - Talovahti MVP
@@ -82,7 +83,7 @@ export default async function Home(props: {
     // Fallback to default Board Member if no query or user not found
     if (!user) {
       user = await prisma.user.findFirst({
-        where: { housingCompanyId: companyId, role: "BOARD" },
+        where: { housingCompanyId: companyId, role: UserRole.BOARD_MEMBER },
         include: { apartment: true },
       });
     }
@@ -98,9 +99,8 @@ export default async function Home(props: {
     // 2.5 Audit Log for Board Dashboard View
     if (
       user &&
-      (user.role === "BOARD" ||
-        user.role === "MANAGER" ||
-        user.role === "ADMIN")
+      (user.role === UserRole.BOARD_MEMBER ||
+        user.role === UserRole.ADMIN)
     ) {
       const headerList = await headers();
       const ip = headerList.get("x-forwarded-for") || "127.0.0.1";
@@ -228,10 +228,8 @@ export default async function Home(props: {
             finance: financeData,
             health: healthResult.success ? healthResult.data : null,
             boardProfile:
-              user.role === "BOARD" ||
-              user.role === "BOARD_MEMBER" ||
-              user.role === "ADMIN" ||
-              user.role === "MANAGER"
+              user.role === UserRole.BOARD_MEMBER ||
+              user.role === UserRole.ADMIN
                 ? company.boardProfile
                 : null,
             // Ensure MockStore required fields are present (empty arrays if not fetched)

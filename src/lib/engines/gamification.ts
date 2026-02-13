@@ -9,6 +9,7 @@ interface Achievement {
 
 interface ActionMetadata {
   speedDays?: number;
+  amount?: number;
 }
 
 /**

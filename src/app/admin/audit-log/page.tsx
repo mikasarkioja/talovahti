@@ -60,7 +60,7 @@ export default async function AuditLogPage() {
         </div>
       </header>
 
-      <AuditLogClient initialLogs={logs.map(log => ({
+      <AuditLogClient initialLogs={(logs as any[]).map(log => ({
         ...log,
         timestamp: log.timestamp.toISOString()
       }))} />

@@ -10,6 +10,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { clsx } from "clsx";
+import { UserRole } from "@prisma/client";
 
 // Activity Type Definition
 type ActivityItem = {
@@ -31,7 +32,7 @@ interface ActivityFeedProps {
 export function ActivityFeed({ limit, compact }: ActivityFeedProps) {
   const { tickets, initiatives, currentUser } = useStore();
   const isBoard =
-    currentUser?.role === "BOARD" || currentUser?.role === "MANAGER";
+    currentUser?.role === UserRole.BOARD_MEMBER || currentUser?.role === UserRole.ADMIN;
 
   // Normalize Data
   const activities: ActivityItem[] = [

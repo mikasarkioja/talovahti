@@ -140,7 +140,7 @@ export function BuildingModel({
   onApartmentClick?: (id: string) => void;
   highlightId?: string;
 }) {
-  const { tickets, initiatives, valuation } = useStore();
+  const { tickets, initiatives } = useStore();
   const { currentActiveQuarter, hoveredTask } = useTemporalStore();
   const { participatedApartmentIds } = useGovernanceStore();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -158,26 +158,13 @@ export function BuildingModel({
     [],
   );
 
-  // Get component statuses
-  const roofStatus = valuation?.components.find(
-    (c: { type: string; status?: string }) => c.type === "ROOF",
-  )?.status;
-  const facadeStatus = valuation?.components.find(
-    (c: { type: string; status?: string }) => c.type === "FACADE",
-  )?.status;
+  // Get component statuses (Mocked as valuation was removed)
+  const roofStatus = "EXCELLENT";
+  const facadeStatus = "NORMAL";
 
   // Value Heatmap: Get component ages for PKI-based coloring
-  const currentYear = new Date().getFullYear();
-  const getComponentAge = (componentType: string) => {
-    const comp = valuation?.components.find(
-      (c: { type: string; lastRenovatedYear?: number | null }) =>
-        c.type === componentType,
-    );
-    if (!comp || !comp.lastRenovatedYear) return null;
-    return currentYear - comp.lastRenovatedYear;
-  };
-  const roofAge = getComponentAge("ROOF");
-  const facadeAge = getComponentAge("FACADE");
+  const roofAge = 15;
+  const facadeAge = 35;
 
   // Value Heatmap color logic: >40 years = Orange/Red, <10 years = Bright Green
   const getHeatmapColor = (age: number | null) => {

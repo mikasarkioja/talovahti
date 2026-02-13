@@ -54,7 +54,6 @@ async function main() {
     await prisma.leakAlert.deleteMany();
     await prisma.renovation.deleteMany();
     await prisma.buildingComponent.deleteMany();
-    await prisma.thermalLeak.deleteMany();
 
     await prisma.invoice.deleteMany();
     await prisma.budgetLineItem.deleteMany();
@@ -141,7 +140,7 @@ async function main() {
     data: {
       email: "pekka.puheenjohtaja@example.com",
       name: "Pekka Puheenjohtaja",
-      role: UserRole.BOARD,
+      role: UserRole.BOARD_MEMBER,
       housingCompanyId: company.id,
       apartmentId: apartments[0].id, // A 1
     },

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { Suspense } from "react";
 import { TicketsClient } from "./TicketsClient";
+import { UserRole } from "@prisma/client";
 
 // Separate Server Component to fetch data
 async function TicketsPageServer() {
@@ -11,7 +12,7 @@ async function TicketsPageServer() {
 
   const company = await prisma.housingCompany.findFirst();
   const boardUser = await prisma.user.findFirst({
-    where: { role: "BOARD", housingCompanyId: company?.id },
+    where: { role: UserRole.BOARD_MEMBER, housingCompanyId: company?.id },
   });
 
   return (

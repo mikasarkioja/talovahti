@@ -28,7 +28,7 @@ export function RoleGate({
   // Helper for checking any board-like role
   const isAllowed = allowed.some((a) => {
     if (a === "BOARD_ANY") {
-      return role === "BOARD" || role === "BOARD_MEMBER" || role === "MANAGER";
+      return role === UserRole.BOARD_MEMBER || role === UserRole.ADMIN;
     }
     return a === role;
   });

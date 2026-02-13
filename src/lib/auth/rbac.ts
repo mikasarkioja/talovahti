@@ -92,6 +92,7 @@ export const RBAC = {
       data: {
         actorId,
         action, // e.g. "READ", "EXPORT"
+        targetEntity: resource.split(":")[0] || "Unknown",
         resource, // e.g. "Invoice:123"
         reason, // e.g. "Hallituksen päätöksenteko"
         ipAddress: ip,

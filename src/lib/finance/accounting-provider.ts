@@ -55,6 +55,7 @@ export const AccountingProvider = {
         data: {
           action: "WRITE",
           actorId: userId,
+          targetEntity: "Invoice",
           resource: `Invoice:${invoiceId}`,
           reason: "APPROVE_INVOICE",
           housingCompanyId: user.housingCompanyId,

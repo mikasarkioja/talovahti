@@ -27,6 +27,7 @@ export const GDPRTools = {
       data: {
         actorId: userId, // Self-deletion or Admin
         action: "DELETE",
+        targetEntity: "User",
         resource: `User:${userId}`,
         reason: "Right to Erasure invoked",
         details: "User data anonymized and hard identifiers removed.",
@@ -70,6 +71,7 @@ export const GDPRTools = {
       data: {
         actorId: userId,
         action: "EXPORT",
+        targetEntity: "User",
         resource: `User:${userId}`,
         reason: "Right to Data Portability invoked",
         details: "Subject Access Request (SAR)",

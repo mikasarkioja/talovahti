@@ -64,6 +64,7 @@ export class SyncService {
           data: {
             actorId: actorId,
             action: "WRITE",
+            targetEntity: "HousingCompany",
             resource: `HousingCompany:${company.id}`,
             reason: "MML_SYNC_INIT",
             details: `Ingested ${apartmentData.length} apartments and ${shareholderData.length} shareholders.`,

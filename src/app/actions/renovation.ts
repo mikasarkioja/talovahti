@@ -97,6 +97,7 @@ export async function createRenovationNotification(formData: FormData) {
         data: {
           actorId: data.userId,
           action: "WRITE",
+          targetEntity: "Ticket",
           resource: `Ticket:${ticket.id}`,
           reason: "CREATE_RENOVATION_NOTIFICATION",
           details: `Submitted structural data for apartment ${data.apartmentId}`,

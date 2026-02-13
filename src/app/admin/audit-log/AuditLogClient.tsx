@@ -32,7 +32,7 @@ export interface AuditLogEntry {
     name: string | null;
     email: string | null;
   };
-  metadata: Record<string, unknown> | string | null;
+  metadata: any;
 }
 
 interface AuditLogClientProps {
