@@ -703,8 +703,9 @@ export const useStore = create<AppState>((set) => ({
             : t,
         );
         let newStatus = p.status;
-        if (p.status === "DIAGNOSIS") newStatus = "TECH_LEAD";
-        else if (p.status === "TECH_LEAD") newStatus = "CONSTRUCTION";
+        if (p.status === "DIAGNOSIS") newStatus = "PLANNING";
+        else if (p.status === "PLANNING") newStatus = "EXECUTION";
+        else if (p.status === "EXECUTION") newStatus = "CONSTRUCTION";
         return { ...p, tenders: updatedTenders, status: newStatus };
       });
       return { projects: updatedProjects };

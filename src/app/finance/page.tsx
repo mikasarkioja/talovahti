@@ -2,6 +2,7 @@ import { getFinanceAggregates } from "@/app/actions/finance";
 import { FinanceScore } from "@/components/finance/FinanceScore";
 import { BudgetMirror } from "@/components/finance/BudgetMirror";
 import { InvestmentSection } from "@/components/finance/InvestmentSection";
+import { PurchaseInvoices } from "@/components/finance/PurchaseInvoices";
 import { Wallet } from "lucide-react";
 
 // Force dynamic rendering - this page needs real-time database access
@@ -62,6 +63,9 @@ export default async function FinancePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left Column: Operational Finance */}
         <div className="space-y-8">
+          {/* Bills Waiting for Approval */}
+          <PurchaseInvoices />
+
           {/* New Strategic Gauge */}
           <FinanceScore data={financeScoreData} />
 
