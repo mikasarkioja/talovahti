@@ -95,4 +95,54 @@ export const HealthScoreEngine = {
     // Mock logic for admin health
     return 85;
   },
+
+  /**
+   * Checks if a new ticket might be part of a systemic issue.
+   */
+  async checkSystemicIssue(
+    housingCompanyId: string,
+    title: string,
+    description: string,
+  ) {
+    const searchStr = (title + " " + description).toLowerCase();
+    const keywords = [
+      "vuoto",
+      "vesivahinko",
+      "putki",
+      "viemäri",
+      "hissi",
+      "lämpö",
+    ];
+
+    const matchedKeywords = keywords.filter((k) => searchStr.includes(k));
+    if (matchedKeywords.length === 0) return null;
+
+    // Check if other tickets with similar keywords exist in the last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const similarTickets = await prisma.ticket.findMany({
+      where: {
+        housingCompanyId,
+        createdAt: { gte: thirtyDaysAgo },
+        OR: matchedKeywords.map((k) => ({
+          OR: [
+            { title: { contains: k, mode: "insensitive" } },
+            { description: { contains: k, mode: "insensitive" } },
+          ],
+        })),
+      },
+    });
+
+    if (similarTickets.length >= 2) {
+      return {
+        isSystemic: true,
+        matchingCount: similarTickets.length,
+        matchedKeywords,
+        message: `HAVAITTU SYSTEEMINEN RISKI: ${similarTickets.length} samankaltaista ilmoitusta 30 pv sisällä (${matchedKeywords.join(", ")}).`,
+      };
+    }
+
+    return null;
+  },
 };

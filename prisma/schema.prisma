@@ -123,6 +123,7 @@ model User {
   expertId                String?
   vendorId                String?
   shareholderId           String?
+  xp                      Int                 @default(0)
   renovations             Renovation[]
   auditLogs               AuditLog[]
   bookings                Booking[]
@@ -241,6 +242,8 @@ model Ticket {
   updatedAt           DateTime       @updatedAt
   observationId       String?        @unique
   unitIdentifier      String?
+  imageUrl            String?
+  accessInfo          String?
   huoltoNotes         String?
   isPublic            Boolean        @default(false)
   triageLevel         TriageLevel    @default(ROUTINE)
@@ -504,14 +507,17 @@ model PollVote {
 }
 
 model Tender {
-  id        String       @id @default(cuid())
-  projectId String
-  type      TenderType
-  status    TenderStatus @default(OPEN)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-  bids      TenderBid[]
-  project   Project      @relation(fields: [projectId], references: [id])
+  id                        String       @id @default(cuid())
+  projectId                 String
+  type                      TenderType
+  status                    TenderStatus @default(OPEN)
+  createdAt                 DateTime     @default(now())
+  updatedAt                 DateTime     @updatedAt
+  expertRecommendationId    String?
+  expertRecommendationReason String?
+  aiAnalysisSummary          String?
+  bids                      TenderBid[]
+  project                   Project      @relation(fields: [projectId], references: [id])
 
   @@index([projectId])
   @@map("tenders")
@@ -535,6 +541,11 @@ model TenderBid {
   notes             String?
   pdfUrl            String?
   isWinner          Boolean  @default(false)
+  supervisorRating  Int?
+  supervisorComments String?
+  aiScore            Float?
+  aiRiskNote         String?
+  stripeCommission   Float?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   tender            Tender   @relation(fields: [tenderId], references: [id])

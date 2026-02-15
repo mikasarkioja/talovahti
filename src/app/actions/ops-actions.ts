@@ -385,15 +385,18 @@ export async function createTicket(data: {
   description: string;
   priority: TicketPriority;
   type: TicketType;
+  category: TicketCategory;
   housingCompanyId: string;
   createdById: string;
   apartmentId?: string;
+  imageUrl?: string;
+  accessInfo?: string;
 }) {
   try {
     // 1. Fetch User and Apartment Number
     const user = await prisma.user.findUnique({
       where: { id: data.createdById },
-      select: { apartmentNumber: true },
+      select: { apartmentNumber: true, housingCompanyId: true },
     });
 
     // 2. Automated Triage Logic based on keywords
@@ -415,6 +418,19 @@ export async function createTicket(data: {
       triageLevel = TriageLevel.ESCALATED;
     }
 
+    // 2.5 Systemic Issue Check
+    const systemicRisk = await HealthScoreEngine.checkSystemicIssue(
+      data.housingCompanyId,
+      data.title,
+      data.description,
+    );
+
+    let huoltoNotes = "";
+    if (systemicRisk?.isSystemic) {
+      huoltoNotes = systemicRisk.message;
+      triageLevel = TriageLevel.CRITICAL; // Escalate if systemic
+    }
+
     // 3. Create Ticket with unitIdentifier for permanent history
     const ticket = await prisma.ticket.create({
       data: {
@@ -423,11 +439,15 @@ export async function createTicket(data: {
         priority: data.priority,
         status: "OPEN",
         type: data.type,
+        category: data.category,
         housingCompanyId: data.housingCompanyId,
         createdById: data.createdById,
         apartmentId: data.apartmentId || null,
         unitIdentifier: user?.apartmentNumber || "Yleiset tilat",
         triageLevel,
+        imageUrl: data.imageUrl,
+        accessInfo: data.accessInfo,
+        huoltoNotes: huoltoNotes || undefined,
       },
     });
 
@@ -436,12 +456,13 @@ export async function createTicket(data: {
       data.createdById,
       "WRITE",
       `Ticket:${ticket.id}`,
-      `Uusi vikailmoitus luotu kohteeseen ${user?.apartmentNumber || "Yleiset tilat"}`,
+      `Uusi vikailmoitus luotu kohteeseen ${user?.apartmentNumber || "Yleiset tilat"}. ${systemicRisk?.isSystemic ? "Systeeminen riski havaittu." : ""}`,
     );
 
     revalidatePath("/admin/ops");
     revalidatePath("/maintenance/tickets");
     revalidatePath("/admin/dashboard");
+    revalidatePath("/resident");
 
     return { success: true, ticket };
   } catch (error) {

@@ -1,6 +1,5 @@
 // src/app/resident/page.tsx
 import { prisma } from "@/lib/db";
-import { redirect } from "next/navigation";
 import {
   Bell,
   PenTool,
@@ -10,7 +9,7 @@ import {
   ChevronRight,
   ShieldCheck,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -55,7 +54,7 @@ export default async function ResidentDashboardPage(props: {
 
   // Ensure isolation: Resident can only see their own data
   // 2. Fetch User Data
-  const [tickets, bookings, volunteerTasks, announcements] = await Promise.all([
+  const [tickets, , volunteerTasks, announcements] = await Promise.all([
     prisma.ticket.findMany({
       where: { createdById: user.id },
       orderBy: { createdAt: "desc" },
@@ -172,7 +171,7 @@ export default async function ResidentDashboardPage(props: {
               <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
                 <PenTool size={14} /> Omat vikailmoitukset
               </h2>
-              <Link href="/maintenance/tickets/new">
+              <Link href="/resident/tickets/new">
                 <Button
                   variant="ghost"
                   size="sm"

@@ -12,12 +12,9 @@ import {
 } from "lucide-react";
 import { escalateToExpert } from "@/app/actions/triage-actions";
 import { approveRenovationAction } from "@/app/actions/renovation-actions";
-import { useTransition } from "react";
+import { useTransition, useState } from "react";
 import { toast } from "sonner";
 import { useStore } from "@/lib/store";
-
-import { InvoiceApprovalCard } from "./InvoiceApprovalCard";
-import { useState } from "react";
 
 export type DecisionItem = {
   id: string;
@@ -30,6 +27,7 @@ export type DecisionItem = {
   xpReward: number;
   description?: string;
   recommendation?: string;
+  huoltoNotes?: string;
 };
 
 interface DecisionQueueProps {
@@ -182,6 +180,11 @@ export function DecisionQueue({ items: initialItems }: DecisionQueueProps) {
                       <p className="text-xs text-slate-500 mt-0.5 font-medium">
                         Asiantuntija-arvio tarvitaan
                       </p>
+                      {item.huoltoNotes && (
+                        <p className="text-[10px] text-red-600 font-bold uppercase mt-1 animate-pulse">
+                          ⚠️ {item.huoltoNotes}
+                        </p>
+                      )}
                     </div>
                   </div>
 

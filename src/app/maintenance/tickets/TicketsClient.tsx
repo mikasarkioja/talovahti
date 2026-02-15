@@ -13,7 +13,7 @@ import { clsx } from "clsx";
 import { useSearchParams } from "next/navigation";
 import { createTicket } from "@/app/actions/ops-actions";
 import { toast } from "sonner";
-import { TicketPriority, TicketType } from "@prisma/client";
+import { TicketPriority, TicketType, TicketCategory } from "@prisma/client";
 
 interface Ticket {
   id: string;
@@ -128,6 +128,7 @@ export function TicketsClient({
         description,
         priority: TicketPriority.MEDIUM,
         type: TicketType.MAINTENANCE,
+        category: TicketCategory.MAINTENANCE,
         housingCompanyId: context.companyId!,
         createdById: context.userId!,
       });

@@ -76,6 +76,7 @@ export async function DecisionQueueServer({
     amount: t.triageLevel === TriageLevel.CRITICAL ? 1500 : 450, // Mocked assessment cost
     xpReward: t.triageLevel === TriageLevel.CRITICAL ? 300 : 150,
     description: t.description,
+    huoltoNotes: t.huoltoNotes || undefined,
   }));
 
   const renovationItems: DecisionItem[] = renovations.map((r) => {
