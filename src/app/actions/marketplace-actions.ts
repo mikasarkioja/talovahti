@@ -104,6 +104,7 @@ export async function orderExpertAction({
           where: { id: projectId },
           data: {
             signatureStatus: SignatureStatus.PENDING,
+            signatureUuid: signingRequest.documentId,
           }
         });
 

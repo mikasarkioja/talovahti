@@ -16,7 +16,7 @@ interface ActionMetadata {
  * GamificationEngine handles board XP and achievement logic.
  * Focuses on HOW the board manages the building.
  */
-export const GamificationEngine = {
+export const gamification = {
   /**
    * Calculates XP boost based on an audit log entry.
    * Rewards speed, expert usage, and proactive decisions.
@@ -102,5 +102,30 @@ export const GamificationEngine = {
       newLevel,
       earnedAchievement: newAchievements.length > currentAchievements.length,
     };
+  },
+
+  /**
+   * Specifically rewards the board for signing a contract.
+   * +200 XP boost for moving to the EXECUTION phase.
+   */
+  async rewardBoardForContract(housingCompanyId: string) {
+    const profile = await prisma.boardProfile.upsert({
+      where: { housingCompanyId },
+      create: { housingCompanyId, totalXP: 200, level: 1 },
+      update: {
+        totalXP: { increment: 200 },
+      },
+    });
+
+    // Check for level up
+    const newLevel = Math.floor(profile.totalXP / 1000) + 1;
+    if (newLevel > profile.level) {
+      await prisma.boardProfile.update({
+        where: { id: profile.id },
+        data: { level: newLevel },
+      });
+    }
+
+    return profile;
   },
 };

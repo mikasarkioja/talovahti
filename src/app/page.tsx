@@ -60,7 +60,10 @@ export default async function Home(props: {
         strategicGoals: true,
         renovations: true,
         observations: {
-          include: { project: true },
+          include: { project: { include: { milestones: true } } },
+        },
+        projects: {
+          include: { milestones: true, siteReports: true, changeOrders: true },
         },
         boardProfile: true,
       },
@@ -254,8 +257,40 @@ export default async function Home(props: {
               projectId: o.projectId,
               createdAt: o.createdAt,
             })),
+            projects: company.projects.map((p) => ({
+              id: p.id,
+              title: p.title,
+              type: p.type,
+              status: p.status,
+              description: p.description,
+              createdAt: p.createdAt,
+              milestones: p.milestones.map((m) => ({
+                id: m.id,
+                projectId: m.projectId,
+                title: m.title,
+                amount: m.amount,
+                dueDate: m.dueDate,
+                status: m.status,
+              })),
+              siteReports: p.siteReports.map((sr) => ({
+                id: sr.id,
+                projectId: sr.projectId,
+                authorId: sr.authorId,
+                content: sr.content,
+                timestamp: sr.createdAt,
+                imageUrl: sr.imageUrl,
+              })),
+              changeOrders: p.changeOrders.map((co) => ({
+                id: co.id,
+                projectId: co.projectId,
+                title: co.title,
+                costImpact: co.costImpact,
+                status: co.status,
+                createdAt: co.createdAt,
+              })),
+              tenders: [],
+            })),
             valuation: null, // Will be fetched client-side by ValueIntelligenceCard
-            projects: [],
             feed: [],
           }
         : null;

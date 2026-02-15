@@ -533,6 +533,7 @@ model Project {
   projectType      ProjectType?
   status           ProjectStatus        @default(DIAGNOSIS)
   signatureStatus  SignatureStatus?
+  signatureUuid    String?              @unique
   estimatedCost    Float?
   energySavingsEst Float?
   housingCompanyId String
@@ -544,6 +545,7 @@ model Project {
   changeOrders     ChangeOrder[]
   invoices         Invoice[]
   contract         LegalContract?
+  milestones       Milestone[]
   updates          BuildingUpdate[]
   scenarios        FinancialScenario[]
   loanApplications LoanApplication[]
@@ -1250,21 +1252,30 @@ model LegalContract {
   @@map("legal_contracts")
 }
 
+enum MilestoneStatus {
+  PENDING
+  PAID
+}
+
 model Milestone {
-  id         String        @id @default(cuid())
-  contractId String
-  contract   LegalContract @relation(fields: [contractId], references: [id])
+  id         String          @id @default(cuid())
+  projectId  String
+  project    Project         @relation(fields: [projectId], references: [id])
+  contractId String?
+  contract   LegalContract?  @relation(fields: [contractId], references: [id])
   title      String
   amount     Float
   dueDate    DateTime
-  isApproved Boolean       @default(false)
+  status     MilestoneStatus @default(PENDING)
+  isApproved Boolean         @default(false)
   approvedAt DateTime?
   approvedBy String?
-  isPaid     Boolean       @default(false)
+  isPaid     Boolean         @default(false)
   paidAt     DateTime?
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
 
+  @@index([projectId])
   @@index([contractId])
   @@map("milestones")
 }

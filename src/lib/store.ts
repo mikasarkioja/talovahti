@@ -27,6 +27,7 @@ import {
   FiscalConfiguration,
   StrategicGoal,
   GoalStatus,
+  MilestoneStatus,
 } from "@prisma/client";
 
 // ... (Existing Type Definitions)
@@ -185,6 +186,15 @@ export type MockChangeOrder = {
   createdAt: Date;
 };
 
+export type MockMilestone = {
+  id: string;
+  projectId: string;
+  title: string;
+  amount: number;
+  dueDate: Date;
+  status: MilestoneStatus;
+};
+
 export type MockProject = {
   id: string;
   title: string;
@@ -193,6 +203,7 @@ export type MockProject = {
   tenders: MockTender[];
   siteReports: MockSiteReport[];
   changeOrders: MockChangeOrder[];
+  milestones: MockMilestone[];
   createdAt: Date;
   description: string | null;
 };
@@ -342,6 +353,7 @@ interface AppState {
   selectWinnerBid: (projectId: string, tenderId: string, bidId: string) => void;
   addSiteReport: (report: MockSiteReport) => void;
   updateChangeOrder: (id: string, status: ChangeOrderStatus) => void;
+  updateMilestoneStatus: (projectId: string, milestoneId: string, status: MilestoneStatus) => void;
   addMMLSyncLog: (log: MockMMLSyncLog) => void;
   setSubscriptionPlan: (plan: SubscriptionPlan) => void;
   toggleFeature: (key: string, isEnabled: boolean) => void;
@@ -726,6 +738,19 @@ export const useStore = create<AppState>((set) => ({
           co.id === id ? { ...co, status } : co,
         ),
       })),
+    })),
+  updateMilestoneStatus: (projectId, milestoneId, status) =>
+    set((state) => ({
+      projects: state.projects.map((p) =>
+        p.id === projectId
+          ? {
+              ...p,
+              milestones: p.milestones.map((m) =>
+                m.id === milestoneId ? { ...m, status } : m
+              ),
+            }
+          : p
+      ),
     })),
   addMMLSyncLog: (log) =>
     set((state) => ({ mmlSyncLogs: [log, ...state.mmlSyncLogs] })),

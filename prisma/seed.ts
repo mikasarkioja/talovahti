@@ -605,6 +605,52 @@ async function main() {
     },
   });
 
+  // 12. Active Project with Milestones
+  console.log("🏗️ Creating Active Project with Milestones...");
+  await prisma.project.create({
+    data: {
+      housingCompanyId: company.id,
+      title: "Julkisivun huoltomaalaus",
+      description: "Elementtisaumojen uusiminen ja julkisivun pesu sekä maalaus.",
+      type: "FACADE",
+      status: "EXECUTION",
+      estimatedCost: 55000,
+      milestones: {
+        create: [
+          {
+            title: "Aloitusmaksu ja materiaalit",
+            amount: 15000,
+            dueDate: new Date("2026-02-01"),
+            status: "PAID",
+            isApproved: true,
+            isPaid: true,
+          },
+          {
+            title: "Pesu ja hiekkapuhallus valmis",
+            amount: 20000,
+            dueDate: new Date("2026-03-15"),
+            status: "PENDING",
+          },
+          {
+            title: "Loppumaksu ja vastaanotto",
+            amount: 20000,
+            dueDate: new Date("2026-05-01"),
+            status: "PENDING",
+          },
+        ],
+      },
+      siteReports: {
+        create: [
+          {
+            authorId: boardUser.id,
+            content: "Telineet pystytetty ja työmaa-alue rajattu.",
+            imageUrl: "https://placehold.co/600x400/png?text=Telineet",
+          },
+        ],
+      },
+    },
+  });
+
   console.log("✅ Seed completed!");
 }
 

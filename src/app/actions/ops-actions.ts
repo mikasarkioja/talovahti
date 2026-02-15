@@ -131,6 +131,7 @@ export async function getOpsBoardItems(): Promise<KanbanItem[]> {
     where: { status: { not: "COMPLETED" } },
     include: {
       observation: true,
+      milestones: true,
       _count: {
         select: { bids: true },
       },
