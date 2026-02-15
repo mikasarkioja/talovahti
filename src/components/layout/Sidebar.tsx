@@ -22,6 +22,7 @@ import {
   LineChart,
   LayoutDashboard,
   MoreHorizontal,
+  FileText,
   ChevronDown,
   ChevronRight,
   Lock,
@@ -73,6 +74,7 @@ export function Sidebar() {
       items: [
         { href: "/governance/pipeline", label: "Päätösputki", icon: Gavel },
         { href: "/governance/voting", label: "Äänestykset", icon: Vote },
+        { href: "/admin/certificate", label: "Isännöitsijäntodistus", icon: FileText },
       ],
     },
     {
@@ -154,7 +156,7 @@ export function Sidebar() {
   };
 
   return (
-    <div className="w-64 h-screen bg-brand-navy text-white flex flex-col fixed left-0 top-0 shadow-soft z-50 font-sans">
+    <div className="w-64 h-screen bg-brand-navy text-white flex flex-col fixed left-0 top-0 shadow-soft z-50 font-sans print:hidden">
       <div className="p-6 h-full flex flex-col">
         {/* Logo Area */}
         <div className="flex items-center gap-3 mb-8 flex-shrink-0">
