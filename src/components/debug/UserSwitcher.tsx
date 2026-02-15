@@ -20,13 +20,15 @@ export function UserSwitcher() {
   const { currentUser, setCurrentUser } = useStore();
   const [users, setUsers] = useState<SwitcheableUser[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
     // Only attempt to fetch in dev environment
     const isDev =
       process.env.NODE_ENV === "development" ||
-      (typeof window !== "undefined" &&
-        window.location.hostname === "localhost");
+      window.location.hostname === "localhost";
 
     if (isDev) {
       getTestUsers().then((res) => {
@@ -37,8 +39,7 @@ export function UserSwitcher() {
     }
   }, []);
 
-  // Don't render anything in production unless explicitly wanted
-  if (typeof window === "undefined") return null;
+  if (!mounted) return null;
 
   const isDev =
     process.env.NODE_ENV === "development" ||
