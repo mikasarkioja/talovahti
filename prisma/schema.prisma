@@ -520,6 +520,11 @@ enum ProjectType {
   OTHER
 }
 
+enum SignatureStatus {
+  PENDING
+  SIGNED
+}
+
 model Project {
   id               String               @id @default(cuid())
   title            String
@@ -527,6 +532,7 @@ model Project {
   type             String
   projectType      ProjectType?
   status           ProjectStatus        @default(DIAGNOSIS)
+  signatureStatus  SignatureStatus?
   estimatedCost    Float?
   energySavingsEst Float?
   housingCompanyId String
@@ -923,11 +929,6 @@ model Vote {
 enum MeetingType {
   GENERAL
   BOARD
-}
-
-enum SignatureStatus {
-  PENDING
-  SIGNED
 }
 
 model Meeting {

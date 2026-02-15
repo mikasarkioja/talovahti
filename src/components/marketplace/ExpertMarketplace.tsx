@@ -96,9 +96,15 @@ export function ExpertMarketplace() {
       if (result.success) {
         toast.success(
           expert.type === "EXPERT" 
-            ? `Valvontasopimus (KSA 2013) hyväksytty: ${expert.name}.` 
-            : `Uurakkasopimus (YSE 1998) hyväksytty: ${expert.name}.`,
-          { description: "Sopimus on allekirjoitettu digitaalisesti ja arkistoitu." }
+            ? `Sopimusluonnos (KSA 2013) luotu: ${expert.name}.` 
+            : `Urakkasopimusluonnos (YSE 1998) luotu: ${expert.name}.`,
+          { 
+            description: "Allekirjoituskutsu lähetetty. Vahva tunnistautuminen vaaditaan.",
+            action: result.signingUrl ? {
+              label: "Allekirjoita nyt",
+              onClick: () => window.open(result.signingUrl, "_blank")
+            } : undefined
+          }
         );
         
         // Move project forward if applicable
@@ -218,7 +224,7 @@ export function ExpertMarketplace() {
                   ) : (
                     <CreditCard size={14} className="mr-2" />
                   )}
-                  {expert.type === "EXPERT" ? "Tilaa valvoja" : "Tilaa urakoitsija"}
+                  {expert.type === "EXPERT" ? "Luo ja allekirjoita valvontasopimus" : "Luo ja allekirjoita urakkasopimus"}
                   <ArrowRight size={14} className="ml-auto" />
                 </Button>
             </CardFooter>
