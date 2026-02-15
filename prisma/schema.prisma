@@ -8,79 +8,66 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// --- DOMAIN ---
-
 model HousingCompany {
-  id                 String              @id @default(cuid())
-  businessId         String              @unique
-  name               String
-  address            String
-  city               String
-  postalCode         String
-  constructionYear   Int?
-  totalSqm           Float?
-  apartments         Apartment[]
-  users              User[]
-  surveys            Survey[]
-  tickets            Ticket[]
-  volunteerTasks     VolunteerTask[]
-  initiatives        Initiative[]
-  documents          MeetingDocument[]
-  meetings           Meeting[]
-  budgetLines        BudgetLineItem[]
-  renovations        Renovation[]
-  observations       Observation[]
-  investments        InvestmentOption[]
-  projects           Project[]
-  mmlSyncLogs        MMLSyncLog[]
-  documentOrders     DocumentOrder[]
-  invoices           Invoice[]
-  vendorRules        VendorRule[]
-  utilityPrices      UtilityPrice[]
-  partners           ServicePartner[]
-  resources          Resource[]
-  buildingComponents BuildingComponent[]
-  htjShadowRecords   HTJ_ShadowRecord[]
-  htjSyncLogs        HTJ_SyncLog[]
-  gdprLogs           GDPRLog[]
-
-  // LOAN BROKERAGE
-  financialStatements FinancialStatement[]
-  shareholders        Shareholder[]
-  loanApplications    LoanApplication[]
-  scenarios           FinancialScenario[]
-  investmentGrades    InvestmentGrade[]
-  
-  // HEALTH & GAMIFICATION
-  healthScore          Int?
-  healthScoreTechnical Int?
-  healthScoreFinancial Int?
-  healthScoreAdmin     Int?
-  realTimeCash         Float?
-  unpaidInvoicesCount  Int?
-  healthHistory        HealthHistory[]
-  boardProfile         BoardProfile?
-
-  // FINANCIAL SETTINGS
-  iban                   String?
-  bic                    String?
+  id                     String               @id @default(cuid())
+  businessId             String               @unique
+  name                   String
+  address                String
+  city                   String
+  postalCode             String
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  constructionYear       Int?
   accountingApiKey       String?
-  maintenanceFeePerShare Decimal      @default(4.50)
-  financeFeePerShare     Decimal      @default(0.00)
+  bic                    String?
+  iban                   String?
+  financeFeePerShare     Decimal              @default(0.00)
+  maintenanceFeePerShare Decimal              @default(4.50)
+  totalSqm               Float?
+  healthScore            Int?
+  realTimeCash           Float?
+  unpaidInvoicesCount    Int?
+  healthScoreAdmin       Int?
+  healthScoreFinancial   Int?
+  healthScoreTechnical   Int?
+  annualTasks            AnnualTask[]
+  fiscalConfig           FiscalConfiguration?
+  strategicGoals         StrategicGoal[]
+  apartments             Apartment[]
+  boardProfile           BoardProfile?
+  budgetLines            BudgetLineItem[]
+  buildingComponents     BuildingComponent[]
+  documentOrders         DocumentOrder[]
+  features               FeatureAccess[]
+  scenarios              FinancialScenario[]
+  financialStatements    FinancialStatement[]
+  gdprLogs               GDPRLog[]
+  healthHistory          HealthHistory[]
+  htjShadowRecords       HTJ_ShadowRecord[]
+  htjSyncLogs            HTJ_SyncLog[]
+  initiatives            Initiative[]
+  investmentGrades       InvestmentGrade[]
+  investments            InvestmentOption[]
+  invoices               Invoice[]
+  loanApplications       LoanApplication[]
+  documents              MeetingDocument[]
+  meetings               Meeting[]
+  mmlSyncLogs            MMLSyncLog[]
   monthlyFees            MonthlyFee[]
-
-  // TEMPORAL ENGINE
-  fiscalConfig   FiscalConfiguration?
-  annualTasks    AnnualTask[]
-  strategicGoals StrategicGoal[]
-
-  // RELATIONS
-  subscription Subscription?
-  features     FeatureAccess[]
-  orders       Order[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  observations           Observation[]
+  orders                 Order[]
+  projects               Project[]
+  renovations            Renovation[]
+  resources              Resource[]
+  partners               ServicePartner[]
+  shareholders           Shareholder[]
+  subscription           Subscription?
+  surveys                Survey[]
+  tickets                Ticket[]
+  users                  User[]
+  utilityPrices          UtilityPrice[]
+  vendorRules            VendorRule[]
+  volunteerTasks         VolunteerTask[]
 
   @@index([businessId])
   @@map("housing_companies")
@@ -89,7 +76,6 @@ model HousingCompany {
 model Apartment {
   id               String           @id @default(cuid())
   housingCompanyId String
-  housingCompany   HousingCompany   @relation(fields: [housingCompanyId], references: [id])
   apartmentNumber  String
   floor            Int?
   area             Decimal?
@@ -98,15 +84,16 @@ model Apartment {
   shareCount       Int
   waterFeeAdvance  Decimal          @default(0)
   elecFeeAdvance   Decimal          @default(0)
-  users            User[]
-  tickets          Ticket[]
-  surveyResponses  SurveyResponse[]
-  meters           Meter[]
-  leakAlerts       LeakAlert[]
-  attributes       Json?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
+  attributes       Json?
+  housingCompany   HousingCompany   @relation(fields: [housingCompanyId], references: [id])
+  leakAlerts       LeakAlert[]
+  meters           Meter[]
   fees             MonthlyFee[]
+  surveyResponses  SurveyResponse[]
+  tickets          Ticket[]
+  users            User[]
   votes            Vote[]
 
   @@unique([housingCompanyId, apartmentNumber])
@@ -114,51 +101,44 @@ model Apartment {
   @@map("apartments")
 }
 
-enum UserRole {
-  RESIDENT
-  BOARD_MEMBER
-  EXPERT
-  ADMIN
-}
-
 model User {
   id                      String              @id @default(cuid())
   email                   String              @unique
   name                    String?
-  phone                   String?
-  language                String              @default("fi")
-  notificationPreferences Json?
   housingCompanyId        String
-  housingCompany          HousingCompany      @relation(fields: [housingCompanyId], references: [id])
   apartmentId             String?
-  apartment               Apartment?          @relation(fields: [apartmentId], references: [id])
   role                    UserRole            @default(RESIDENT)
   password                String?
   canApproveFinance       Boolean             @default(false)
-  vendorId                String? // For EXPERT role, links to their vendor profile
-  vendor                  Vendor?             @relation(fields: [vendorId], references: [id])
-  expertId                String? // For EXPERT role, links to their professional profile
-  expert                  Expert?             @relation(fields: [expertId], references: [id])
-  createdTickets          Ticket[]
-  volunteerTasks       VolunteerTask[]
-  initiatives          Initiative[]
-  supportedInitiatives InitiativeSupport[]
-  surveyResponses      SurveyResponse[]
-  comments             Comment[]
-  votes                Vote[]
-  observations            Observation[]
-  documentOrders          DocumentOrder[]
-  orders                  Order[]
-  approvedInvoices        Invoice[]
-  bookings                Booking[]
-  wallet                  Wallet?
-  pollVotes               PollVote[]
-  gdprLogs                GDPRLog[]
-  auditLogs               AuditLog[]
-  consentVersion          String? // GDPR
-  deletedAt               DateTime? // Soft Delete
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
+  consentVersion          String?
+  deletedAt               DateTime?
+  language                String              @default("fi")
+  notificationPreferences Json?
+  phone                   String?
+  expertId                String?
+  vendorId                String?
+  auditLogs               AuditLog[]
+  bookings                Booking[]
+  comments                Comment[]
+  documentOrders          DocumentOrder[]
+  gdprLogs                GDPRLog[]
+  supportedInitiatives    InitiativeSupport[]
+  initiatives             Initiative[]
+  approvedInvoices        Invoice[]
+  observations            Observation[]
+  orders                  Order[]
+  pollVotes               PollVote[]
+  surveyResponses         SurveyResponse[]
+  createdTickets          Ticket[]
+  apartment               Apartment?          @relation(fields: [apartmentId], references: [id])
+  expert                  Expert?             @relation(fields: [expertId], references: [id])
+  housingCompany          HousingCompany      @relation(fields: [housingCompanyId], references: [id])
+  vendor                  Vendor?             @relation(fields: [vendorId], references: [id])
+  volunteerTasks          VolunteerTask[]
+  votes                   Vote[]
+  wallet                  Wallet?
 
   @@index([housingCompanyId])
   @@index([apartmentId])
@@ -168,12 +148,12 @@ model User {
 model BoardProfile {
   id               String         @id @default(cuid())
   housingCompanyId String         @unique
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
   totalXP          Int            @default(0)
   level            Int            @default(1)
-  achievements     Json? // Store as JSONB for flexibility
+  achievements     Json?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
 
   @@map("board_profiles")
 }
@@ -181,33 +161,20 @@ model BoardProfile {
 model HealthHistory {
   id               String         @id @default(cuid())
   housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
   score            Int
   technicalScore   Int
   financialScore   Int
-  adminScore       Int?
   timestamp        DateTime       @default(now())
+  adminScore       Int?
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
 
   @@index([housingCompanyId, timestamp])
   @@map("health_history")
 }
 
-enum SubscriptionPlan {
-  BASIC
-  PRO
-  PREMIUM
-}
-
-enum SubscriptionStatus {
-  ACTIVE
-  CANCELLED
-  PAST_DUE
-}
-
 model Subscription {
   id               String             @id @default(cuid())
   housingCompanyId String             @unique
-  housingCompany   HousingCompany     @relation(fields: [housingCompanyId], references: [id])
   plan             SubscriptionPlan   @default(BASIC)
   monthlyPrice     Float              @default(0)
   status           SubscriptionStatus @default(ACTIVE)
@@ -215,6 +182,7 @@ model Subscription {
   nextBillingDate  DateTime?
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
+  housingCompany   HousingCompany     @relation(fields: [housingCompanyId], references: [id])
 
   @@map("subscriptions")
 }
@@ -232,31 +200,1094 @@ model FeatureAccess {
   @@map("feature_access")
 }
 
+model Order {
+  id                String             @id @default(cuid())
+  userId            String
+  housingCompanyId  String
+  type              OrderType
+  amount            Float
+  platformRevenue   Float              @default(0)
+  status            OrderStatus        @default(PENDING)
+  metadata          String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  housingCompany    HousingCompany     @relation(fields: [housingCompanyId], references: [id])
+  user              User               @relation(fields: [userId], references: [id])
+  stripeTransaction StripeTransaction?
+
+  @@index([userId])
+  @@index([housingCompanyId])
+  @@map("orders")
+}
+
+model Ticket {
+  id                  String         @id @default(cuid())
+  title               String
+  description         String
+  status              TicketStatus   @default(OPEN)
+  priority            TicketPriority @default(MEDIUM)
+  type                TicketType     @default(MAINTENANCE)
+  supervisor          String?
+  housingCompanyId    String
+  apartmentId         String?
+  createdById         String
+  sentToMaintenanceAt DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  observationId       String?        @unique
+  huoltoNotes         String?
+  isPublic            Boolean        @default(false)
+  triageLevel         TriageLevel    @default(ROUTINE)
+  category            TicketCategory @default(MAINTENANCE)
+  apartment           Apartment?     @relation(fields: [apartmentId], references: [id])
+  createdBy           User           @relation(fields: [createdById], references: [id])
+  housingCompany      HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  observation         Observation?   @relation(fields: [observationId], references: [id])
+
+  @@index([housingCompanyId, status])
+  @@index([createdById])
+  @@index([category, triageLevel])
+  @@map("tickets")
+}
+
+model Renovation {
+  id               String             @id @default(cuid())
+  component        String
+  yearDone         Int?
+  plannedYear      Int?
+  cost             Float
+  expectedLifeSpan Int
+  description      String?
+  status           RenovationStatus   @default(COMPLETED)
+  housingCompanyId String
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  assessments      ExpertAssessment[]
+  housingCompany   HousingCompany     @relation(fields: [housingCompanyId], references: [id])
+
+  @@index([housingCompanyId])
+  @@map("renovations")
+}
+
+model Observation {
+  id               String            @id @default(cuid())
+  component        String
+  description      String
+  imageUrl         String?
+  status           ObservationStatus @default(OPEN)
+  location         String?
+  userId           String
+  housingCompanyId String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  boardSummary     String?
+  projectId        String?           @unique
+  severityGrade    Int?
+  technicalVerdict String?
+  vendorId         String?
+  assessment       ExpertAssessment?
+  housingCompany   HousingCompany    @relation(fields: [housingCompanyId], references: [id])
+  project          Project?          @relation("ObservationToProject", fields: [projectId], references: [id])
+  user             User              @relation(fields: [userId], references: [id])
+  vendor           Vendor?           @relation(fields: [vendorId], references: [id])
+  ticket           Ticket?
+
+  @@index([housingCompanyId])
+  @@index([userId])
+  @@map("observations")
+}
+
+model ExpertAssessment {
+  id               String           @id @default(cuid())
+  observationId    String           @unique
+  renovationId     String?
+  severityGrade    Int
+  technicalVerdict String
+  recommendedYear  Int?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  observation      Observation      @relation(fields: [observationId], references: [id])
+  renovation       Renovation?      @relation(fields: [renovationId], references: [id])
+  options          SolutionOption[]
+
+  @@map("expert_assessments")
+}
+
+model SolutionOption {
+  id                String           @id @default(cuid())
+  assessmentId      String
+  title             String
+  description       String
+  estimatedCost     Float
+  lifeSpanExtension Int
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  assessment        ExpertAssessment @relation(fields: [assessmentId], references: [id])
+
+  @@map("solution_options")
+}
+
+model BudgetLineItem {
+  id               String         @id @default(cuid())
+  category         BudgetCategory
+  budgetedAmount   Decimal
+  actualSpent      Decimal
+  year             Int
+  housingCompanyId String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+
+  @@index([housingCompanyId, year])
+  @@map("budget_line_items")
+}
+
+model Invoice {
+  id               String         @id @default(cuid())
+  externalId       String?
+  yTunnus          String?
+  vendorName       String
+  description      String?
+  amount           Decimal
+  dueDate          DateTime
+  status           InvoiceStatus  @default(PENDING)
+  category         BudgetCategory
+  projectId        String?
+  housingCompanyId String
+  approvedById     String?
+  imageUrl         String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  approvedBy       User?          @relation(fields: [approvedById], references: [id])
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  project          Project?       @relation(fields: [projectId], references: [id])
+
+  @@index([housingCompanyId, status])
+  @@index([projectId])
+  @@map("invoices")
+}
+
+model VendorRule {
+  id               String         @id @default(cuid())
+  yTunnus          String?
+  vendorName       String?
+  category         BudgetCategory
+  housingCompanyId String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+
+  @@unique([housingCompanyId, yTunnus])
+  @@map("vendor_rules")
+}
+
+model InvestmentOption {
+  id               String         @id @default(cuid())
+  title            String
+  type             InvestmentType
+  initialCost      Decimal
+  annualSavings    Decimal
+  lifespan         Int
+  energySavedKwh   Int
+  housingCompanyId String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+
+  @@index([housingCompanyId])
+  @@map("investment_options")
+}
+
+model Project {
+  id               String               @id @default(cuid())
+  title            String
+  type             String
+  projectType      ProjectType?
+  status           ProjectStatus        @default(DIAGNOSIS)
+  estimatedCost    Float?
+  energySavingsEst Float?
+  housingCompanyId String
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  description      String?
+  observationId    String?              @unique
+  signatureStatus  SignatureStatus?
+  signatureUuid    String?              @unique
+  warrantyEndDate  DateTime?
+  bids             Bid[]
+  updates          BuildingUpdate[]
+  changeOrders     ChangeOrder[]
+  scenarios        FinancialScenario[]
+  invoices         Invoice[]
+  contract         LegalContract?
+  loanApplications LoanApplication[]
+  milestones       Milestone[]
+  observation      Observation?         @relation("ObservationToProject")
+  accessTokens     ProjectAccessToken[]
+  housingCompany   HousingCompany       @relation(fields: [housingCompanyId], references: [id])
+  siteReports      SiteReport[]
+  tenders          Tender[]
+
+  @@index([housingCompanyId, status])
+  @@map("projects")
+}
+
+model BuildingUpdate {
+  id        String     @id @default(cuid())
+  projectId String
+  title     String
+  content   String
+  type      UpdateType
+  createdAt DateTime   @default(now())
+  project   Project    @relation(fields: [projectId], references: [id])
+
+  @@index([projectId, createdAt])
+  @@map("building_updates")
+}
+
+model Poll {
+  id             String       @id @default(cuid())
+  title          String
+  description    String
+  type           PollType
+  expiresAt      DateTime
+  resultsVisible Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  options        PollOption[]
+  votes          PollVote[]
+
+  @@index([expiresAt])
+  @@map("polls")
+}
+
+model PollOption {
+  id            String     @id @default(cuid())
+  pollId        String
+  label         String
+  vastikeImpact Float
+  poll          Poll       @relation(fields: [pollId], references: [id])
+  votes         PollVote[]
+
+  @@index([pollId])
+  @@map("poll_options")
+}
+
+model PollVote {
+  id        String     @id @default(cuid())
+  pollId    String
+  userId    String
+  optionId  String
+  weight    Float
+  createdAt DateTime   @default(now())
+  option    PollOption @relation(fields: [optionId], references: [id])
+  poll      Poll       @relation(fields: [pollId], references: [id])
+  user      User       @relation(fields: [userId], references: [id])
+
+  @@unique([pollId, userId])
+  @@index([pollId])
+  @@index([userId])
+  @@map("poll_votes")
+}
+
+model Tender {
+  id        String       @id @default(cuid())
+  projectId String
+  type      TenderType
+  status    TenderStatus @default(OPEN)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  bids      TenderBid[]
+  project   Project      @relation(fields: [projectId], references: [id])
+
+  @@index([projectId])
+  @@map("tenders")
+}
+
+model TenderBid {
+  id                String   @id @default(cuid())
+  tenderId          String
+  companyName       String
+  price             Float
+  startDate         DateTime
+  endDate           DateTime
+  durationDays      Int?
+  creditRating      String
+  residentRating    Float?
+  riskScore         Float?
+  warrantyYears     Int?
+  status            String   @default("RECEIVED")
+  siteVisitsPerWeek Int?
+  livePhotosEnabled Boolean  @default(false)
+  notes             String?
+  pdfUrl            String?
+  isWinner          Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  tender            Tender   @relation(fields: [tenderId], references: [id])
+
+  @@index([tenderId])
+  @@map("tender_bids")
+}
+
+model Vendor {
+  id           String               @id @default(cuid())
+  name         String
+  category     String
+  serviceArea  String[]
+  email        String?              @unique
+  bids         Bid[]
+  observations Observation[]
+  accessTokens ProjectAccessToken[]
+  users        User[]
+
+  @@map("vendors")
+}
+
+model Bid {
+  id        String    @id @default(cuid())
+  startDate DateTime
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  amount    Float
+  projectId String
+  vendorId  String
+  status    BidStatus @default(PENDING)
+  project   Project   @relation(fields: [projectId], references: [id])
+  vendor    Vendor    @relation(fields: [vendorId], references: [id])
+
+  @@index([vendorId])
+  @@index([projectId])
+  @@map("bids")
+}
+
+model ProjectAccessToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  projectId String
+  vendorId  String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  project   Project   @relation(fields: [projectId], references: [id])
+  vendor    Vendor    @relation(fields: [vendorId], references: [id])
+
+  @@index([token])
+  @@map("project_access_tokens")
+}
+
+model SiteReport {
+  id        String   @id @default(cuid())
+  projectId String
+  authorId  String
+  content   String
+  imageUrl  String?
+  timestamp DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id])
+
+  @@index([projectId])
+  @@map("site_reports")
+}
+
+model ChangeOrder {
+  id         String            @id @default(cuid())
+  projectId  String
+  title      String
+  costImpact Float
+  status     ChangeOrderStatus @default(PENDING)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  project    Project           @relation(fields: [projectId], references: [id])
+
+  @@index([projectId])
+  @@map("change_orders")
+}
+
+model MMLSyncLog {
+  id               String         @id @default(cuid())
+  housingCompanyId String
+  status           String
+  recordCount      Int
+  timestamp        DateTime       @default(now())
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+
+  @@index([housingCompanyId])
+  @@map("mml_sync_logs")
+}
+
+model HTJ_ShadowRecord {
+  id               String         @id @default(cuid())
+  housingCompanyId String
+  endpoint         String
+  businessId       String
+  rawResponse      Json
+  recordType       String
+  syncedAt         DateTime       @default(now())
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+
+  @@unique([housingCompanyId, endpoint, businessId])
+  @@index([housingCompanyId])
+  @@index([businessId])
+  @@map("htj_shadow_records")
+}
+
+model HTJ_SyncLog {
+  id                String         @id @default(cuid())
+  housingCompanyId  String
+  boardMemberId     String?
+  operation         String
+  status            String
+  recordCount       Int            @default(0)
+  piiFieldsAccessed String[]
+  errorMessage      String?
+  metadata          Json?
+  timestamp         DateTime       @default(now())
+  housingCompany    HousingCompany @relation(fields: [housingCompanyId], references: [id])
+
+  @@index([housingCompanyId])
+  @@index([boardMemberId])
+  @@index([timestamp])
+  @@map("htj_sync_logs")
+}
+
+model DocumentOrder {
+  id               String         @id @default(cuid())
+  userId           String
+  housingCompanyId String
+  type             DocumentType
+  amount           Float
+  status           OrderStatus    @default(PENDING)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  user             User           @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([housingCompanyId])
+  @@map("document_orders")
+}
+
+model Initiative {
+  id               String              @id @default(cuid())
+  title            String
+  description      String
+  affectedArea     String?
+  housingCompanyId String
+  meetingId        String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  requiredSupport  Int                 @default(10)
+  votingEndsAt     DateTime?
+  status           GovernanceStatus    @default(DRAFT)
+  userId           String
+  comments         Comment[]
+  supporters       InitiativeSupport[]
+  housingCompany   HousingCompany      @relation(fields: [housingCompanyId], references: [id])
+  meeting          Meeting?            @relation(fields: [meetingId], references: [id])
+  user             User                @relation(fields: [userId], references: [id])
+  votes            Vote[]
+
+  @@index([housingCompanyId, status])
+  @@map("initiatives")
+}
+
+model InitiativeSupport {
+  id           String     @id @default(cuid())
+  initiativeId String
+  userId       String
+  createdAt    DateTime   @default(now())
+  initiative   Initiative @relation(fields: [initiativeId], references: [id])
+  user         User       @relation(fields: [userId], references: [id])
+
+  @@unique([initiativeId, userId])
+  @@map("initiative_supports")
+}
+
+model Comment {
+  id           String     @id @default(cuid())
+  text         String
+  initiativeId String
+  userId       String
+  createdAt    DateTime   @default(now())
+  initiative   Initiative @relation(fields: [initiativeId], references: [id])
+  user         User       @relation(fields: [userId], references: [id])
+
+  @@index([initiativeId])
+  @@map("comments")
+}
+
+model Vote {
+  id           String     @id @default(cuid())
+  userId       String
+  initiativeId String
+  choice       VoteChoice
+  shares       Int
+  timestamp    DateTime   @default(now())
+  apartmentId  String
+  apartment    Apartment  @relation(fields: [apartmentId], references: [id])
+  initiative   Initiative @relation(fields: [initiativeId], references: [id])
+  user         User       @relation(fields: [userId], references: [id])
+
+  @@unique([initiativeId, apartmentId])
+  @@index([initiativeId])
+  @@index([apartmentId])
+  @@map("votes")
+}
+
+model Meeting {
+  id               String           @id @default(cuid())
+  title            String
+  type             MeetingType
+  date             DateTime
+  housingCompanyId String
+  chairmanId       String?
+  secretaryId      String?
+  scrutineerIds    String[]
+  minutesContent   String?
+  signatureStatus  SignatureStatus  @default(PENDING)
+  signedUrl        String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  status           GovernanceStatus @default(OPEN_FOR_SUPPORT)
+  initiatives      Initiative[]
+  housingCompany   HousingCompany   @relation(fields: [housingCompanyId], references: [id])
+
+  @@index([housingCompanyId, date])
+  @@map("meetings")
+}
+
+model MeetingDocument {
+  id               String         @id @default(cuid())
+  title            String
+  type             MeetingType
+  date             DateTime
+  year             Int
+  url              String
+  aiSummary        String?
+  housingCompanyId String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+
+  @@index([housingCompanyId, year])
+  @@map("meeting_documents")
+}
+
+model Survey {
+  id               String           @id @default(cuid())
+  housingCompanyId String
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  responses        SurveyResponse[]
+  housingCompany   HousingCompany   @relation(fields: [housingCompanyId], references: [id])
+
+  @@index([housingCompanyId])
+  @@map("surveys")
+}
+
+model SurveyResponse {
+  id          String     @id @default(cuid())
+  surveyId    String
+  userId      String
+  apartmentId String?
+  createdAt   DateTime   @default(now())
+  apartment   Apartment? @relation(fields: [apartmentId], references: [id])
+  survey      Survey     @relation(fields: [surveyId], references: [id])
+  user        User       @relation(fields: [userId], references: [id])
+
+  @@index([surveyId])
+  @@map("survey_responses")
+}
+
+model Meter {
+  id              String    @id @default(cuid())
+  apartmentId     String
+  type            MeterType
+  serialNumber    String
+  lastReading     Decimal
+  lastReadingDate DateTime
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  apartment       Apartment @relation(fields: [apartmentId], references: [id])
+  readings        Reading[]
+
+  @@index([apartmentId])
+  @@map("meters")
+}
+
+model Reading {
+  id        String   @id @default(cuid())
+  meterId   String
+  value     Decimal
+  date      DateTime
+  isManual  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  meter     Meter    @relation(fields: [meterId], references: [id])
+
+  @@index([meterId, date])
+  @@map("readings")
+}
+
+model UtilityPrice {
+  id               String         @id @default(cuid())
+  housingCompanyId String
+  type             MeterType
+  pricePerUnit     Decimal
+  validFrom        DateTime
+  currency         String         @default("EUR")
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+
+  @@index([housingCompanyId])
+  @@map("utility_prices")
+}
+
+model LeakAlert {
+  id                String       @id @default(cuid())
+  apartmentId       String
+  severity          LeakSeverity
+  status            LeakStatus   @default(ACTIVE)
+  triggeredBy       LeakTrigger
+  detectionMetadata String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  apartment         Apartment    @relation(fields: [apartmentId], references: [id])
+
+  @@index([apartmentId, status])
+  @@index([createdAt])
+  @@map("leak_alerts")
+}
+
+model ServicePartner {
+  id               String          @id @default(cuid())
+  name             String
+  yTunnus          String?
+  category         PartnerCategory
+  rating           Float           @default(0)
+  verified         Boolean         @default(false)
+  housingCompanyId String
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  housingCompany   HousingCompany  @relation(fields: [housingCompanyId], references: [id])
+
+  @@index([housingCompanyId, category])
+  @@map("service_partners")
+}
+
+model VolunteerTask {
+  id                 String             @id @default(cuid())
+  title              String
+  description        String
+  housingCompanyId   String
+  userId             String
+  status             ResidentTaskStatus @default(OPEN)
+  compensationAmount Float
+  rewardType         RewardType         @default(HOITOVASTIKE_CREDIT)
+  proofImageUrl      String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  housingCompany     HousingCompany     @relation(fields: [housingCompanyId], references: [id])
+  user               User               @relation(fields: [userId], references: [id])
+
+  @@index([housingCompanyId, status])
+  @@map("volunteer_tasks")
+}
+
+model Resource {
+  id                String         @id @default(cuid())
+  name              String
+  type              ResourceType
+  priceEuro         Float          @default(0)
+  priceKarma        Int            @default(0)
+  icon              String?
+  bufferTimeMinutes Int            @default(0)
+  powerRatingKw     Float          @default(0)
+  housingCompanyId  String
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  bookings          Booking[]
+  powerEvents       PowerEvent[]
+  housingCompany    HousingCompany @relation(fields: [housingCompanyId], references: [id])
+
+  @@index([housingCompanyId])
+  @@map("resources")
+}
+
+model Booking {
+  id           String        @id @default(cuid())
+  resourceId   String
+  userId       String
+  startTime    DateTime
+  endTime      DateTime
+  paymentType  PaymentType
+  status       BookingStatus @default(CONFIRMED)
+  accessCode   String?
+  isPreheating Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  resource     Resource      @relation(fields: [resourceId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
+  powerEvents  PowerEvent[]
+
+  @@index([resourceId, startTime])
+  @@index([userId])
+  @@map("bookings")
+}
+
+model PowerEvent {
+  id              String   @id @default(cuid())
+  resourceId      String
+  bookingId       String?
+  timestamp       DateTime @default(now())
+  eventType       String
+  durationMinutes Int?
+  kwhEstimated    Float?
+  costEstimated   Float?
+  booking         Booking? @relation(fields: [bookingId], references: [id])
+  resource        Resource @relation(fields: [resourceId], references: [id])
+
+  @@index([resourceId, timestamp])
+  @@map("power_events")
+}
+
+model Wallet {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  euroBalance  Float    @default(0)
+  karmaBalance Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id])
+
+  @@map("wallets")
+}
+
+model LegalContract {
+  id             String         @id @default(cuid())
+  projectId      String         @unique
+  contractorId   String
+  contractorName String
+  status         ContractStatus @default(DRAFT)
+  signedAt       DateTime?
+  fileUrl        String?
+  content        String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  project        Project        @relation(fields: [projectId], references: [id])
+  milestones     Milestone[]
+
+  @@map("legal_contracts")
+}
+
+model Milestone {
+  id         String          @id @default(cuid())
+  contractId String?
+  title      String
+  amount     Float
+  dueDate    DateTime
+  isApproved Boolean         @default(false)
+  approvedAt DateTime?
+  approvedBy String?
+  isPaid     Boolean         @default(false)
+  paidAt     DateTime?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  projectId  String
+  status     MilestoneStatus @default(PENDING)
+  contract   LegalContract?  @relation(fields: [contractId], references: [id])
+  project    Project         @relation(fields: [projectId], references: [id])
+
+  @@index([projectId])
+  @@index([contractId])
+  @@map("milestones")
+}
+
+model FinancialStatement {
+  id               String         @id @default(cuid())
+  housingCompanyId String
+  year             Int
+  revenue          Float
+  maintenanceFees  Float
+  loansTotal       Float
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+
+  @@index([housingCompanyId])
+  @@map("financial_statements")
+}
+
+model Shareholder {
+  id               String         @id @default(cuid())
+  housingCompanyId String
+  name             String
+  businessId       String?
+  shareCount       Int
+  isInstitutional  Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  deletedAt        DateTime?
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+
+  @@index([housingCompanyId])
+  @@map("shareholders")
+}
+
+model LoanApplication {
+  id               String         @id @default(cuid())
+  housingCompanyId String
+  amount           Float
+  purpose          String
+  status           LoanStatus     @default(DRAFT)
+  riskAnalysis     String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  bankName         String?
+  collateralType   String?
+  offerMargin      Float?
+  projectId        String?
+  repaymentTerm    Int?
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  project          Project?       @relation(fields: [projectId], references: [id])
+
+  @@index([housingCompanyId])
+  @@index([projectId])
+  @@map("loan_applications")
+}
+
+model CostBenchmark {
+  id                        String   @id @default(cuid())
+  category                  String   @unique
+  unitPriceM2               Float
+  expectedLifeYears         Int
+  technicalDepreciationRate Float
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@map("cost_benchmarks")
+}
+
+model FinancialScenario {
+  id                 String         @id @default(cuid())
+  housingCompanyId   String
+  title              String
+  totalLoanAmount    Float
+  interestRate       Float
+  termYears          Int
+  monthlyImpactPerM2 Float
+  isBaseline         Boolean        @default(false)
+  metadata           String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  projectId          String?
+  housingCompany     HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  project            Project?       @relation(fields: [projectId], references: [id])
+
+  @@index([housingCompanyId])
+  @@map("financial_scenarios")
+}
+
+model InvestmentGrade {
+  id               String         @id @default(cuid())
+  housingCompanyId String
+  score            Float
+  grade            String
+  pillarScores     String
+  updatedAt        DateTime       @updatedAt
+  createdAt        DateTime       @default(now())
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+
+  @@index([housingCompanyId])
+  @@map("investment_grades")
+}
+
+model GDPRLog {
+  id               String          @id @default(cuid())
+  actorId          String
+  action           String
+  details          String?
+  ipAddress        String?
+  housingCompanyId String?
+  timestamp        DateTime        @default(now())
+  reason           String?
+  resource         String?
+  impactScore      Int?
+  targetEntity     String?
+  actor            User            @relation(fields: [actorId], references: [id])
+  housingCompany   HousingCompany? @relation(fields: [housingCompanyId], references: [id])
+
+  @@index([housingCompanyId])
+  @@index([actorId])
+  @@map("gdpr_logs")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  action      String
+  userId      String
+  targetId    String?
+  metadata    Json?
+  timestamp   DateTime @default(now())
+  impactScore Int?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([targetId])
+  @@map("audit_logs")
+}
+
+model MonthlyFee {
+  id               String         @id @default(cuid())
+  housingCompanyId String
+  apartmentId      String
+  referenceNumber  String
+  amount           Decimal
+  period           DateTime
+  status           InvoiceStatus  @default(PENDING)
+  breakdown        Json?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  dueDate          DateTime
+  apartment        Apartment      @relation(fields: [apartmentId], references: [id])
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+
+  @@index([housingCompanyId, period])
+  @@index([apartmentId])
+  @@map("monthly_fees")
+}
+
+model FiscalConfiguration {
+  id               String         @id @default(cuid())
+  startMonth       Int            @default(1)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  housingCompanyId String         @unique
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+}
+
+model AnnualTask {
+  id               String         @id @default(cuid())
+  title            String
+  category         TaskCategory
+  quarter          FiscalQuarter
+  isStatutory      Boolean        @default(false)
+  description      String?
+  meshId           String?
+  completedAt      DateTime?
+  deadline         DateTime?
+  isCompleted      Boolean        @default(false)
+  month            Int            @default(1)
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+}
+
+model StrategicGoal {
+  id               String         @id @default(cuid())
+  title            String
+  targetValue      Float?
+  currentValue     Float?
+  unit             String?
+  status           GoalStatus     @default(IN_PROGRESS)
+  targetDate       DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+}
+
+model BuildingComponent {
+  id                String             @id @default(cuid())
+  meshId            String             @unique
+  name              String
+  type              String
+  responsibility    ResponsibilityType
+  housingCompanyId  String
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  estimatedCostSqm  Float?
+  expectedLifespan  Int?
+  lastRenovatedYear Int?
+  housingCompany    HousingCompany     @relation(fields: [housingCompanyId], references: [id])
+
+  @@index([housingCompanyId])
+  @@map("building_components")
+}
+
+model Expert {
+  id          String    @id @default(cuid())
+  name        String
+  category    String
+  description String?
+  rating      Float     @default(0)
+  hourlyRate  Float     @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  email       String    @unique
+  verified    Boolean   @default(false)
+  services    Service[]
+  users       User[]
+
+  @@map("experts")
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  expertId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  unit        String
+  expert      Expert   @relation(fields: [expertId], references: [id])
+
+  @@map("services")
+}
+
+model StripeTransaction {
+  id             String   @id @default(cuid())
+  amount         Float
+  status         String
+  createdAt      DateTime @default(now())
+  currency       String
+  orderId        String   @unique
+  platformFee    Float
+  stripeChargeId String
+  updatedAt      DateTime @updatedAt
+  order          Order    @relation(fields: [orderId], references: [id])
+
+  @@map("stripe_transactions")
+}
+
+enum UserRole {
+  RESIDENT
+  BOARD_MEMBER
+  EXPERT
+  ADMIN
+}
+
+enum SubscriptionPlan {
+  BASIC
+  PRO
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+}
+
 enum OrderType {
   CERTIFICATE
   MODULE_UNLOCK
   SUBSCRIPTION
   EXPERT_SERVICE
-}
-
-model Order {
-  id               String         @id @default(cuid())
-  userId           String
-  user             User           @relation(fields: [userId], references: [id])
-  housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  type             OrderType
-  amount           Float
-  platformRevenue  Float          @default(0)
-  status           OrderStatus    @default(PENDING)
-  metadata         String?
-  stripeTransaction StripeTransaction?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-
-  @@index([userId])
-  @@index([housingCompanyId])
-  @@map("orders")
 }
 
 enum TicketStatus {
@@ -279,44 +1310,14 @@ enum TicketType {
 }
 
 enum TicketCategory {
-  MAINTENANCE // Routine janitorial tasks
-  PROJECT // Major repairs requiring experts/bidding
+  MAINTENANCE
+  PROJECT
 }
 
 enum TriageLevel {
-  ROUTINE // Handled by huoltoyhtiö
-  ESCALATED // Needs expert assessment
-  CRITICAL // Immediate safety/structural risk
-}
-
-model Ticket {
-  id                  String         @id @default(cuid())
-  title               String
-  description         String
-  status              TicketStatus   @default(OPEN)
-  priority            TicketPriority @default(MEDIUM)
-  type                TicketType     @default(MAINTENANCE)
-  category            TicketCategory @default(MAINTENANCE)
-  triageLevel         TriageLevel    @default(ROUTINE)
-  huoltoNotes         String? // Feedback from the janitor/maintenance company
-  isPublic            Boolean        @default(false) // Whether residents see detailed updates
-  supervisor          String?
-  housingCompanyId    String
-  housingCompany      HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  apartmentId         String?
-  apartment           Apartment?     @relation(fields: [apartmentId], references: [id])
-  createdById         String
-  createdBy           User           @relation(fields: [createdById], references: [id])
-  sentToMaintenanceAt DateTime?
-  observationId       String?        @unique
-  observation         Observation?   @relation(fields: [observationId], references: [id])
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
-
-  @@index([housingCompanyId, status])
-  @@index([createdById])
-  @@index([category, triageLevel])
-  @@map("tickets")
+  ROUTINE
+  ESCALATED
+  CRITICAL
 }
 
 enum RenovationStatus {
@@ -324,87 +1325,10 @@ enum RenovationStatus {
   PLANNED
 }
 
-model Renovation {
-  id               String             @id @default(cuid())
-  component        String
-  yearDone         Int?
-  plannedYear      Int?
-  cost             Float
-  expectedLifeSpan Int
-  description      String?
-  status           RenovationStatus   @default(COMPLETED)
-  housingCompanyId String
-  housingCompany   HousingCompany     @relation(fields: [housingCompanyId], references: [id])
-  assessments      ExpertAssessment[]
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-
-  @@index([housingCompanyId])
-  @@map("renovations")
-}
-
 enum ObservationStatus {
   OPEN
   REVIEWED
   CLOSED
-}
-
-model Observation {
-  id               String            @id @default(cuid())
-  component        String
-  description      String
-  imageUrl         String?
-  status           ObservationStatus @default(OPEN)
-  location         String? // JSON string: {x, y, z}
-  severityGrade    Int? // 1-4: Critical, Urgent, Normal, Low
-  technicalVerdict String?
-  boardSummary     String? // Automated or expert-written summary for board
-  userId           String
-  user             User              @relation(fields: [userId], references: [id])
-  housingCompanyId String
-  housingCompany   HousingCompany    @relation(fields: [housingCompanyId], references: [id])
-  assessment       ExpertAssessment?
-  ticket           Ticket?
-  projectId        String?           @unique
-  project          Project?          @relation("ObservationToProject", fields: [projectId], references: [id])
-  vendorId         String? // For expert access control
-  vendor           Vendor?           @relation(fields: [vendorId], references: [id])
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-
-  @@index([housingCompanyId])
-  @@index([userId])
-  @@map("observations")
-}
-
-model ExpertAssessment {
-  id               String           @id @default(cuid())
-  observationId    String           @unique
-  observation      Observation      @relation(fields: [observationId], references: [id])
-  renovationId     String?
-  renovation       Renovation?      @relation(fields: [renovationId], references: [id])
-  severityGrade    Int
-  technicalVerdict String
-  recommendedYear  Int?
-  options          SolutionOption[]
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-
-  @@map("expert_assessments")
-}
-
-model SolutionOption {
-  id                String           @id @default(cuid())
-  assessmentId      String
-  assessment        ExpertAssessment @relation(fields: [assessmentId], references: [id])
-  title             String
-  description       String
-  estimatedCost     Float
-  lifeSpanExtension Int
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-
-  @@map("solution_options")
 }
 
 enum BudgetCategory {
@@ -415,65 +1339,11 @@ enum BudgetCategory {
   CLEANING
 }
 
-model BudgetLineItem {
-  id               String         @id @default(cuid())
-  category         BudgetCategory
-  budgetedAmount   Decimal
-  actualSpent      Decimal
-  year             Int
-  housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-
-  @@index([housingCompanyId, year])
-  @@map("budget_line_items")
-}
-
 enum InvoiceStatus {
   PENDING
   APPROVED
   PAID
   REJECTED
-}
-
-model Invoice {
-  id               String         @id @default(cuid())
-  externalId       String?
-  yTunnus          String?
-  vendorName       String
-  description      String?
-  amount           Decimal
-  dueDate          DateTime
-  status           InvoiceStatus  @default(PENDING)
-  category         BudgetCategory
-  projectId        String?
-  project          Project?       @relation(fields: [projectId], references: [id])
-  housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  approvedById     String?
-  approvedBy       User?          @relation(fields: [approvedById], references: [id])
-  imageUrl         String?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-
-  @@index([housingCompanyId, status])
-  @@index([projectId])
-  @@map("invoices")
-}
-
-model VendorRule {
-  id               String         @id @default(cuid())
-  yTunnus          String?
-  vendorName       String?
-  category         BudgetCategory
-  housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-
-  @@unique([housingCompanyId, yTunnus])
-  @@map("vendor_rules")
 }
 
 enum InvestmentType {
@@ -483,33 +1353,16 @@ enum InvestmentType {
   HYBRID
 }
 
-model InvestmentOption {
-  id               String         @id @default(cuid())
-  title            String
-  type             InvestmentType
-  initialCost      Decimal
-  annualSavings    Decimal
-  lifespan         Int
-  energySavedKwh   Int
-  housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-
-  @@index([housingCompanyId])
-  @@map("investment_options")
-}
-
 enum ProjectStatus {
   DIAGNOSIS
   ROI_ANALYSIS
   TENDERING
-  PLANNING
-  EXECUTION
   TECH_LEAD
   CONSTRUCTION
   WARRANTY
   COMPLETED
+  PLANNING
+  EXECUTION
 }
 
 enum ProjectType {
@@ -526,107 +1379,15 @@ enum SignatureStatus {
   SIGNED
 }
 
-model Project {
-  id               String               @id @default(cuid())
-  title            String
-  description      String?
-  type             String
-  projectType      ProjectType?
-  status           ProjectStatus        @default(DIAGNOSIS)
-  signatureStatus  SignatureStatus?
-  signatureUuid    String?              @unique
-  estimatedCost    Float?
-  energySavingsEst Float?
-  housingCompanyId String
-  housingCompany   HousingCompany       @relation(fields: [housingCompanyId], references: [id])
-  tenders          Tender[]
-  bids             Bid[]
-  accessTokens     ProjectAccessToken[]
-  siteReports      SiteReport[]
-  changeOrders     ChangeOrder[]
-  invoices         Invoice[]
-  contract         LegalContract?
-  milestones       Milestone[]
-  updates          BuildingUpdate[]
-  scenarios        FinancialScenario[]
-  loanApplications LoanApplication[]
-  observationId    String?              @unique
-  observation      Observation?         @relation("ObservationToProject")
-  warrantyEndDate  DateTime?
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
-
-  @@index([housingCompanyId, status])
-  @@map("projects")
-}
-
 enum UpdateType {
   INFO
   ALERT
   PHOTO
 }
 
-model BuildingUpdate {
-  id        String     @id @default(cuid())
-  projectId String
-  project   Project    @relation(fields: [projectId], references: [id])
-  title     String
-  content   String
-  type      UpdateType
-  createdAt DateTime   @default(now())
-
-  @@index([projectId, createdAt])
-  @@map("building_updates")
-}
-
 enum PollType {
   VOTE
   FEEDBACK
-}
-
-model Poll {
-  id             String       @id @default(cuid())
-  title          String
-  description    String
-  type           PollType
-  expiresAt      DateTime
-  resultsVisible Boolean      @default(true)
-  options        PollOption[]
-  votes          PollVote[]
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  @@index([expiresAt])
-  @@map("polls")
-}
-
-model PollOption {
-  id            String     @id @default(cuid())
-  pollId        String
-  poll          Poll       @relation(fields: [pollId], references: [id])
-  label         String
-  vastikeImpact Float
-  votes         PollVote[]
-
-  @@index([pollId])
-  @@map("poll_options")
-}
-
-model PollVote {
-  id        String     @id @default(cuid())
-  pollId    String
-  poll          Poll       @relation(fields: [pollId], references: [id])
-  userId    String
-  user      User       @relation(fields: [userId], references: [id])
-  optionId  String
-  option    PollOption @relation(fields: [optionId], references: [id])
-  weight    Float
-  createdAt DateTime   @default(now())
-
-  @@unique([pollId, userId])
-  @@index([pollId])
-  @@index([userId])
-  @@map("poll_votes")
 }
 
 enum TenderType {
@@ -640,182 +1401,16 @@ enum TenderStatus {
   CLOSED
 }
 
-model Tender {
-  id        String       @id @default(cuid())
-  projectId String
-  project   Project      @relation(fields: [projectId], references: [id])
-  type      TenderType
-  status    TenderStatus @default(OPEN)
-  bids      TenderBid[]
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-
-  @@index([projectId])
-  @@map("tenders")
-}
-
-model TenderBid {
-  id                String   @id @default(cuid())
-  tenderId          String
-  tender            Tender   @relation(fields: [tenderId], references: [id])
-  companyName       String
-  price             Float
-  startDate         DateTime
-  endDate           DateTime
-  durationDays      Int?
-  creditRating      String
-  residentRating    Float?
-  riskScore         Float?
-  warrantyYears     Int?
-  status            String   @default("RECEIVED")
-  siteVisitsPerWeek Int?
-  livePhotosEnabled Boolean  @default(false)
-  notes             String?
-  pdfUrl            String?
-  isWinner          Boolean  @default(false)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  @@index([tenderId])
-  @@map("tender_bids")
-}
-
-model Vendor {
-  id           String               @id @default(cuid())
-  name         String
-  email        String?              @unique
-  category     String // e.g., "PLUMBING"
-  serviceArea  String[] // e.g., ["02100", "02200", "Espoo"]
-  bids         Bid[]
-  accessTokens ProjectAccessToken[]
-  users        User[]
-  observations Observation[]
-
-  @@map("vendors")
-}
-
-model Bid {
-  id        String    @id @default(cuid())
-  amount    Float
-  startDate DateTime
-  notes     String?
-  status    BidStatus @default(PENDING) // PENDING, ACCEPTED, REJECTED
-  vendorId  String
-  vendor    Vendor    @relation(fields: [vendorId], references: [id])
-  projectId String
-  project   Project   @relation(fields: [projectId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([vendorId])
-  @@index([projectId])
-  @@map("bids")
-}
-
-model ProjectAccessToken {
-  id        String    @id @default(cuid())
-  token     String    @unique
-  projectId String
-  project   Project   @relation(fields: [projectId], references: [id])
-  vendorId  String
-  vendor    Vendor    @relation(fields: [vendorId], references: [id])
-  expiresAt DateTime
-  usedAt    DateTime? // Mark as used
-
-  createdAt DateTime @default(now())
-
-  @@index([token])
-  @@map("project_access_tokens")
-}
-
 enum BidStatus {
   PENDING
   ACCEPTED
   REJECTED
 }
 
-model SiteReport {
-  id        String   @id @default(cuid())
-  projectId String
-  project   Project  @relation(fields: [projectId], references: [id])
-  authorId  String
-  content   String
-  imageUrl  String?
-  timestamp DateTime @default(now())
-
-  @@index([projectId])
-  @@map("site_reports")
-}
-
 enum ChangeOrderStatus {
   PENDING
   APPROVED
   REJECTED
-}
-
-model ChangeOrder {
-  id         String            @id @default(cuid())
-  projectId  String
-  project    Project           @relation(fields: [projectId], references: [id])
-  title      String
-  costImpact Float
-  status     ChangeOrderStatus @default(PENDING)
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
-
-  @@index([projectId])
-  @@map("change_orders")
-}
-
-model MMLSyncLog {
-  id               String         @id @default(cuid())
-  housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  status           String
-  recordCount      Int
-  timestamp        DateTime       @default(now())
-
-  @@index([housingCompanyId])
-  @@map("mml_sync_logs")
-}
-
-// HTJ2 Integration - Shadow Database for MML API responses
-model HTJ_ShadowRecord {
-  id               String         @id @default(cuid())
-  housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  endpoint         String // e.g., "/yhtiot/", "/osakeryhmat/"
-  businessId       String // Y-tunnus
-  rawResponse      Json // Full JSON response from MML API
-  recordType       String // "YHTIO" | "OSAKERYHMA" | "ILMOITUS"
-  syncedAt         DateTime       @default(now())
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-
-  @@unique([housingCompanyId, endpoint, businessId])
-  @@index([housingCompanyId])
-  @@index([businessId])
-  @@map("htj_shadow_records")
-}
-
-model HTJ_SyncLog {
-  id                String         @id @default(cuid())
-  housingCompanyId  String
-  housingCompany    HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  boardMemberId     String? // User ID who initiated the sync
-  operation         String // "SYNC_YHTIO" | "SYNC_OSAKERYHMAT" | "SUBMIT_RENOVATION" | "COMPARE_DELTA"
-  status            String // "SUCCESS" | "FAILED" | "PARTIAL"
-  recordCount       Int            @default(0)
-  piiFieldsAccessed String[] // Array of PII field names accessed (GDPR compliance)
-  errorMessage      String?
-  metadata          Json? // Additional context (endpoint, request params, etc.)
-  timestamp         DateTime       @default(now())
-
-  @@index([housingCompanyId])
-  @@index([boardMemberId])
-  @@index([timestamp])
-  @@map("htj_sync_logs")
 }
 
 enum DocumentType {
@@ -830,23 +1425,6 @@ enum OrderStatus {
   DELIVERED
 }
 
-model DocumentOrder {
-  id               String         @id @default(cuid())
-  userId           String
-  user             User           @relation(fields: [userId], references: [id])
-  housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  type             DocumentType
-  amount           Float
-  status           OrderStatus    @default(PENDING)
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-
-  @@index([userId])
-  @@index([housingCompanyId])
-  @@map("document_orders")
-}
-
 enum GovernanceStatus {
   DRAFT
   OPEN_FOR_SUPPORT
@@ -856,78 +1434,10 @@ enum GovernanceStatus {
   REJECTED
 }
 
-model Initiative {
-  id               String              @id @default(cuid())
-  title            String
-  description      String
-  status           GovernanceStatus    @default(DRAFT)
-  affectedArea     String?
-  housingCompanyId String
-  housingCompany   HousingCompany      @relation(fields: [housingCompanyId], references: [id])
-  userId           String
-  user             User                @relation(fields: [userId], references: [id])
-  supporters       InitiativeSupport[]
-  votes            Vote[]
-  comments         Comment[]
-  meetingId        String?
-  meeting          Meeting?            @relation(fields: [meetingId], references: [id])
-  requiredSupport  Int                 @default(10)
-  votingEndsAt     DateTime?
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
-
-  @@index([housingCompanyId, status])
-  @@map("initiatives")
-}
-
-model InitiativeSupport {
-  id           String     @id @default(cuid())
-  initiativeId String
-  initiative   Initiative @relation(fields: [initiativeId], references: [id])
-  userId       String
-  user         User       @relation(fields: [userId], references: [id])
-  createdAt    DateTime   @default(now())
-
-  @@unique([initiativeId, userId])
-  @@map("initiative_supports")
-}
-
-model Comment {
-  id           String     @id @default(cuid())
-  text         String
-  initiativeId String
-  initiative   Initiative @relation(fields: [initiativeId], references: [id])
-  userId       String
-  user         User       @relation(fields: [userId], references: [id])
-  createdAt    DateTime   @default(now())
-
-  @@index([initiativeId])
-  @@map("comments")
-}
-
 enum VoteChoice {
   YES
   NO
   ABSTAIN
-}
-
-model Vote {
-  id           String     @id @default(cuid())
-  userId       String
-  user         User       @relation(fields: [userId], references: [id])
-  initiativeId String
-  initiative   Initiative @relation(fields: [initiativeId], references: [id])
-  choice       VoteChoice
-  shares       Int
-  timestamp    DateTime   @default(now())
-
-  apartmentId String
-  apartment   Apartment @relation(fields: [apartmentId], references: [id])
-
-  @@unique([initiativeId, apartmentId])
-  @@index([initiativeId])
-  @@index([apartmentId])
-  @@map("votes")
 }
 
 enum MeetingType {
@@ -935,120 +1445,10 @@ enum MeetingType {
   BOARD
 }
 
-model Meeting {
-  id               String           @id @default(cuid())
-  title            String
-  type             MeetingType
-  date             DateTime
-  status           GovernanceStatus @default(OPEN_FOR_SUPPORT)
-  housingCompanyId String
-  housingCompany   HousingCompany   @relation(fields: [housingCompanyId], references: [id])
-  initiatives      Initiative[]
-  chairmanId       String?
-  secretaryId      String?
-  scrutineerIds    String[]
-  minutesContent   String?
-  signatureStatus  SignatureStatus  @default(PENDING)
-  signedUrl        String?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-
-  @@index([housingCompanyId, date])
-  @@map("meetings")
-}
-
-model MeetingDocument {
-  id               String         @id @default(cuid())
-  title            String
-  type             MeetingType
-  date             DateTime
-  year             Int
-  url              String
-  aiSummary        String?
-  housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-
-  @@index([housingCompanyId, year])
-  @@map("meeting_documents")
-}
-
-model Survey {
-  id               String           @id @default(cuid())
-  housingCompanyId String
-  housingCompany   HousingCompany   @relation(fields: [housingCompanyId], references: [id])
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  responses        SurveyResponse[]
-
-  @@index([housingCompanyId])
-  @@map("surveys")
-}
-
-model SurveyResponse {
-  id          String     @id @default(cuid())
-  surveyId    String
-  survey      Survey     @relation(fields: [surveyId], references: [id])
-  userId      String
-  user         User       @relation(fields: [userId], references: [id])
-  apartmentId String?
-  apartment   Apartment? @relation(fields: [apartmentId], references: [id])
-  createdAt   DateTime   @default(now())
-
-  @@index([surveyId])
-  @@map("survey_responses")
-}
-
 enum MeterType {
   WATER_HOT
   WATER_COLD
   ELECTRICITY
-}
-
-model Meter {
-  id              String    @id @default(cuid())
-  apartmentId     String
-  apartment       Apartment @relation(fields: [apartmentId], references: [id])
-  type            MeterType
-  serialNumber    String
-  lastReading     Decimal
-  lastReadingDate DateTime
-  readings        Reading[]
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@index([apartmentId])
-  @@map("meters")
-}
-
-model Reading {
-  id        String   @id @default(cuid())
-  meterId   String
-  meter     Meter    @relation(fields: [meterId], references: [id])
-  value     Decimal
-  date      DateTime
-  isManual  Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([meterId, date])
-  @@map("readings")
-}
-
-model UtilityPrice {
-  id               String         @id @default(cuid())
-  housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  type             MeterType
-  pricePerUnit     Decimal
-  validFrom        DateTime
-  currency         String         @default("EUR")
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-
-  @@index([housingCompanyId])
-  @@map("utility_prices")
 }
 
 enum LeakSeverity {
@@ -1069,22 +1469,6 @@ enum LeakTrigger {
   DEFENDER
 }
 
-model LeakAlert {
-  id                String       @id @default(cuid())
-  apartmentId       String
-  apartment         Apartment    @relation(fields: [apartmentId], references: [id])
-  severity          LeakSeverity
-  status            LeakStatus   @default(ACTIVE)
-  triggeredBy       LeakTrigger
-  detectionMetadata String?
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-
-  @@index([apartmentId, status])
-  @@index([createdAt])
-  @@map("leak_alerts")
-}
-
 enum PartnerCategory {
   PLUMBER
   ELECTRICIAN
@@ -1092,22 +1476,6 @@ enum PartnerCategory {
   LANDSCAPER
   LOCKSMITH
   OTHER
-}
-
-model ServicePartner {
-  id               String          @id @default(cuid())
-  name             String
-  yTunnus          String?
-  category         PartnerCategory
-  rating           Float           @default(0)
-  verified         Boolean         @default(false)
-  housingCompanyId String
-  housingCompany   HousingCompany  @relation(fields: [housingCompanyId], references: [id])
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-
-  @@index([housingCompanyId, category])
-  @@map("service_partners")
 }
 
 enum ResidentTaskStatus {
@@ -1122,51 +1490,12 @@ enum RewardType {
   CASH
 }
 
-model VolunteerTask {
-  id                 String             @id @default(cuid())
-  title              String
-  description        String
-  housingCompanyId   String
-  housingCompany     HousingCompany     @relation(fields: [housingCompanyId], references: [id])
-  userId             String
-  user               User               @relation(fields: [userId], references: [id])
-  status             ResidentTaskStatus @default(OPEN)
-  compensationAmount Float
-  rewardType         RewardType         @default(HOITOVASTIKE_CREDIT)
-  proofImageUrl      String?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-
-  @@index([housingCompanyId, status])
-  @@map("volunteer_tasks")
-}
-
 enum ResourceType {
   SAUNA
   LAUNDRY
   CLUB_ROOM
   BBQ
   PARKING_GUEST
-}
-
-model Resource {
-  id                String         @id @default(cuid())
-  name              String
-  type              ResourceType
-  priceEuro         Float          @default(0)
-  priceKarma        Int            @default(0)
-  icon              String?
-  bufferTimeMinutes Int            @default(0)
-  powerRatingKw     Float          @default(0)
-  housingCompanyId  String
-  housingCompany    HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  bookings          Booking[]
-  powerEvents       PowerEvent[]
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-
-  @@index([housingCompanyId])
-  @@map("resources")
 }
 
 enum PaymentType {
@@ -1180,55 +1509,6 @@ enum BookingStatus {
   COMPLETED
 }
 
-model Booking {
-  id           String        @id @default(cuid())
-  resourceId   String
-  resource     Resource      @relation(fields: [resourceId], references: [id])
-  userId       String
-  user         User          @relation(fields: [userId], references: [id])
-  startTime    DateTime
-  endTime      DateTime
-  paymentType  PaymentType
-  status       BookingStatus @default(CONFIRMED)
-  accessCode   String?
-  isPreheating Boolean       @default(false)
-  powerEvents  PowerEvent[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-
-  @@index([resourceId, startTime])
-  @@index([userId])
-  @@map("bookings")
-}
-
-model PowerEvent {
-  id              String   @id @default(cuid())
-  resourceId      String
-  resource        Resource @relation(fields: [resourceId], references: [id])
-  bookingId       String?
-  booking         Booking? @relation(fields: [bookingId], references: [id])
-  timestamp       DateTime @default(now())
-  eventType       String
-  durationMinutes Int?
-  kwhEstimated    Float?
-  costEstimated   Float?
-
-  @@index([resourceId, timestamp])
-  @@map("power_events")
-}
-
-model Wallet {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  user         User     @relation(fields: [userId], references: [id])
-  euroBalance  Float    @default(0)
-  karmaBalance Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@map("wallets")
-}
-
 enum ContractStatus {
   DRAFT
   SIGNING
@@ -1237,217 +1517,20 @@ enum ContractStatus {
   TERMINATED
 }
 
-model LegalContract {
-  id             String         @id @default(cuid())
-  projectId      String         @unique
-  project        Project        @relation(fields: [projectId], references: [id])
-  contractorId   String
-  contractorName String
-  status         ContractStatus @default(DRAFT)
-  signedAt       DateTime?
-  fileUrl        String?
-  content        String?
-  milestones     Milestone[]
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-
-  @@map("legal_contracts")
-}
-
 enum MilestoneStatus {
   PENDING
   PAID
 }
 
-model Milestone {
-  id         String          @id @default(cuid())
-  projectId  String
-  project    Project         @relation(fields: [projectId], references: [id])
-  contractId String?
-  contract   LegalContract?  @relation(fields: [contractId], references: [id])
-  title      String
-  amount     Float
-  dueDate    DateTime
-  status     MilestoneStatus @default(PENDING)
-  isApproved Boolean         @default(false)
-  approvedAt DateTime?
-  approvedBy String?
-  isPaid     Boolean         @default(false)
-  paidAt     DateTime?
-  createdAt  DateTime        @default(now())
-  updatedAt  DateTime        @updatedAt
-
-  @@index([projectId])
-  @@index([contractId])
-  @@map("milestones")
-}
-
-model FinancialStatement {
-  id               String         @id @default(cuid())
-  housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  year             Int
-  revenue          Float
-  maintenanceFees  Float
-  loansTotal       Float
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-
-  @@index([housingCompanyId])
-  @@map("financial_statements")
-}
-
-model Shareholder {
-  id               String         @id @default(cuid())
-  housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  name             String
-  businessId       String?
-  shareCount       Int
-  isInstitutional  Boolean        @default(false)
-  deletedAt        DateTime? // Soft Delete
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-
-  @@index([housingCompanyId])
-  @@map("shareholders")
-}
-
 enum LoanStatus {
   DRAFT
   ANALYSIS
-  SUBMITTED
-  OFFER_RECEIVED
   APPROVED
   REJECTED
+  SUBMITTED
+  OFFER_RECEIVED
   ACTIVE
 }
-
-model LoanApplication {
-  id               String         @id @default(cuid())
-  housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  projectId        String?
-  project          Project?       @relation(fields: [projectId], references: [id])
-  bankName         String?
-  amount           Float
-  purpose          String
-  status           LoanStatus     @default(DRAFT)
-  riskAnalysis     String?
-  offerMargin      Float?
-  repaymentTerm    Int?
-  collateralType   String?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-
-  @@index([housingCompanyId])
-  @@index([projectId])
-  @@map("loan_applications")
-}
-
-model CostBenchmark {
-  id                        String   @id @default(cuid())
-  category                  String
-  unitPriceM2               Float
-  expectedLifeYears         Int
-  technicalDepreciationRate Float
-  createdAt                 DateTime @default(now())
-  updatedAt                 DateTime @updatedAt
-
-  @@unique([category])
-  @@map("cost_benchmarks")
-}
-
-model FinancialScenario {
-  id                 String         @id @default(cuid())
-  housingCompanyId   String
-  housingCompany     HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  title              String
-  totalLoanAmount    Float
-  interestRate       Float
-  termYears          Int
-  monthlyImpactPerM2 Float
-  projectId          String?
-  project            Project?       @relation(fields: [projectId], references: [id])
-  isBaseline         Boolean        @default(false)
-  metadata           String?
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
-
-  @@index([housingCompanyId])
-  @@map("financial_scenarios")
-}
-
-model InvestmentGrade {
-  id               String         @id @default(cuid())
-  housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  score            Float
-  grade            String
-  pillarScores     String
-  updatedAt        DateTime       @updatedAt
-  createdAt        DateTime       @default(now())
-
-  @@index([housingCompanyId])
-  @@map("investment_grades")
-}
-
-model GDPRLog {
-  id               String          @id @default(cuid())
-  actorId          String
-  actor            User            @relation(fields: [actorId], references: [id])
-  action           String // READ, WRITE, DELETE
-  targetEntity     String? // e.g. "User:123"
-  resource         String? // Specific resource accessed, e.g., "contact_info"
-  reason           String? // Justification for access, e.g., "HVAC maintenance"
-  details          String?
-  ipAddress        String?
-  housingCompanyId String?
-  housingCompany   HousingCompany? @relation(fields: [housingCompanyId], references: [id])
-  timestamp        DateTime        @default(now())
-  impactScore      Int? // For gamification engine to calculate XP
-
-  @@index([housingCompanyId])
-  @@index([actorId])
-  @@map("gdpr_logs")
-}
-
-model AuditLog {
-  id        String   @id @default(cuid())
-  action    String
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  targetId  String?
-  metadata  Json?
-  timestamp DateTime @default(now())
-  impactScore Int? // For gamification engine to calculate XP
-
-  @@index([userId])
-  @@index([targetId])
-  @@map("audit_logs")
-}
-
-model MonthlyFee {
-  id               String         @id @default(cuid())
-  housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  apartmentId      String
-  apartment        Apartment      @relation(fields: [apartmentId], references: [id])
-  referenceNumber  String
-  amount           Decimal
-  dueDate          DateTime
-  period           DateTime // The month being billed (e.g. 2026-02-01)
-  status           InvoiceStatus  @default(PENDING)
-  breakdown        Json? // { hoitovastike: 100, rahoitus: 50, water: 20 }
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-
-  @@index([housingCompanyId, period])
-  @@index([apartmentId])
-  @@map("monthly_fees")
-}
-
-// --- Temporal Engine Models ---
 
 enum FiscalQuarter {
   Q1
@@ -1457,10 +1540,10 @@ enum FiscalQuarter {
 }
 
 enum TaskCategory {
-  GOVERNANCE // Meetings, NLS filings, voting
-  MAINTENANCE // Inspections, snow removal, HVAC
-  FINANCE // Budgeting, tax, audit
-  LEGAL // Insurance, contracts
+  GOVERNANCE
+  MAINTENANCE
+  FINANCE
+  LEGAL
 }
 
 enum GoalStatus {
@@ -1470,118 +1553,8 @@ enum GoalStatus {
   CRITICAL
 }
 
-model FiscalConfiguration {
-  id               String         @id @default(cuid())
-  housingCompanyId String         @unique
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-  startMonth       Int            @default(1) // 1 = January, 7 = July (Finnish: Tilikauden alkamiskuukausi)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model AnnualTask {
-  id               String         @id @default(cuid())
-  housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-
-  title       String // e.g., "Yhtiökokous" (General Meeting)
-  category    TaskCategory
-  quarter     FiscalQuarter
-  month       Int           @default(1)
-  isStatutory Boolean       @default(false)
-  isCompleted Boolean       @default(false)
-  description String?
-
-  // Link to 3D Space
-  meshId String? // ID of the 3D mesh in the digital twin (e.g., "Roof_01")
-
-  completedAt DateTime?
-  deadline    DateTime?
-}
-
-model StrategicGoal {
-  id               String         @id @default(cuid())
-  housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
-
-  title        String // e.g., "Energy Efficiency 2030"
-  targetValue  Float?
-  currentValue Float?
-  unit         String? // e.g., "kWh/m2"
-  status       GoalStatus @default(IN_PROGRESS)
-  targetDate   DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 enum ResponsibilityType {
   COMPANY
   SHAREHOLDER
   HYBRID
-}
-
-model BuildingComponent {
-  id                String             @id @default(cuid())
-  meshId            String             @unique
-  name              String
-  type              String // e.g. "WALL", "PIPE", "FLOOR"
-  responsibility    ResponsibilityType
-  lastRenovatedYear Int? // New
-  expectedLifespan  Int? // New (years)
-  estimatedCostSqm  Float? // New (EUR/m2)
-  housingCompanyId  String
-  housingCompany    HousingCompany     @relation(fields: [housingCompanyId], references: [id])
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-
-  @@index([housingCompanyId])
-  @@map("building_components")
-}
-
-model Expert {
-  id          String    @id @default(cuid())
-  name        String
-  email       String    @unique
-  category    String // e.g., "LVI-INSINÖÖRI", "LAKIMIES"
-  description String?
-  rating      Float     @default(0)
-  hourlyRate  Float     @default(0)
-  verified    Boolean   @default(false)
-  users       User[]
-  services    Service[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  @@map("experts")
-}
-
-model Service {
-  id          String   @id @default(cuid())
-  expertId    String
-  expert      Expert   @relation(fields: [expertId], references: [id])
-  name        String
-  description String?
-  price       Float
-  unit        String // e.g., "hour", "project"
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("services")
-}
-
-model StripeTransaction {
-  id               String   @id @default(cuid())
-  orderId          String   @unique
-  order            Order    @relation(fields: [orderId], references: [id])
-  stripeChargeId   String
-  amount           Float
-  currency         String
-  platformFee      Float // 5% commission
-  status           String // e.g., "succeeded", "pending"
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  @@map("stripe_transactions")
 }
