@@ -7,7 +7,6 @@ import {
   ProjectStatus,
   ObservationStatus,
 } from "@prisma/client";
-import { gamification } from "@/lib/engines/gamification";
 import { HealthScoreEngine } from "@/lib/engines/health";
 
 /**
@@ -122,24 +121,31 @@ export async function completeProjectAction(projectId: string, userId: string) {
         });
       }
 
-      // 5. Archive linked Audit Logs
-      await tx.auditLog.updateMany({
-        where: { targetId: projectId },
+      // 5. Create Statutory Document (Permanent Archive "Freeze")
+      await tx.statutoryDocument.create({
         data: {
+          title: `Hankkeen loppudokumentaatio: ${project.title}`,
+          fileUrl: `/archives/projects/${projectId}/final_dossier.pdf`,
+          category: "Päätösasiakirja",
+          isPermanent: true,
+          housingCompanyId: project.housingCompanyId,
           metadata: {
-            push: { archiveStatus: "ARCHIVED_PERMANENT" },
+            projectId: project.id,
+            completedAt: new Date().toISOString(),
+            archivedBy: userId,
+            status: "FROZEN_PERMANENT",
           },
         },
       });
 
-      // 6. Recalculate Building Health (Technical score improves as Observation is CLOSED)
+      // Recalculate Building Health (Technical score improves as Observation is CLOSED)
       const newHealth = await HealthScoreEngine.recalculateBuildingHealth(
         project.housingCompanyId,
         tx,
       );
 
       // 7. Reward Board (+500 XP and Achievement)
-      const boardProfile = await tx.boardProfile.upsert({
+      await tx.boardProfile.upsert({
         where: { housingCompanyId: project.housingCompanyId },
         create: {
           housingCompanyId: project.housingCompanyId,

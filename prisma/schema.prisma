@@ -30,6 +30,7 @@ model HousingCompany {
   healthScoreAdmin       Int?
   healthScoreFinancial   Int?
   healthScoreTechnical   Int?
+  htjId                  String?
   annualTasks            AnnualTask[]
   fiscalConfig           FiscalConfiguration?
   strategicGoals         StrategicGoal[]
@@ -51,6 +52,7 @@ model HousingCompany {
   invoices               Invoice[]
   loanApplications       LoanApplication[]
   documents              MeetingDocument[]
+  statutoryDocuments     StatutoryDocument[]
   meetings               Meeting[]
   mmlSyncLogs            MMLSyncLog[]
   monthlyFees            MonthlyFee[]
@@ -119,6 +121,7 @@ model User {
   phone                   String?
   expertId                String?
   vendorId                String?
+  shareholderId           String?
   auditLogs               AuditLog[]
   bookings                Booking[]
   comments                Comment[]
@@ -774,6 +777,22 @@ model MeetingDocument {
 
   @@index([housingCompanyId, year])
   @@map("meeting_documents")
+}
+
+model StatutoryDocument {
+  id               String         @id @default(cuid())
+  title            String
+  fileUrl          String
+  category         String // e.g., "Yhtiöjärjestys", "Osakasluettelo", "Päätösasiakirja"
+  isPermanent      Boolean        @default(true)
+  metadata         Json?
+  housingCompanyId String
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([housingCompanyId, category])
+  @@map("statutory_documents")
 }
 
 model Survey {
