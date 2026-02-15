@@ -29,7 +29,10 @@ export default async function PipelinePage(props: {
   // Fallback to default Board Member
   if (!user && !userQuery) {
     user = await prisma.user.findFirst({
-      where: { housingCompanyId: housingCompanyId, role: UserRole.BOARD_MEMBER },
+      where: {
+        housingCompanyId: housingCompanyId,
+        role: UserRole.BOARD_MEMBER,
+      },
     });
   }
 
@@ -38,6 +41,17 @@ export default async function PipelinePage(props: {
     user = await prisma.user.findFirst({
       where: { housingCompanyId: housingCompanyId },
     });
+  }
+
+  if (
+    !user ||
+    (user.role !== UserRole.BOARD_MEMBER && user.role !== UserRole.ADMIN)
+  ) {
+    return (
+      <div className="p-20 text-center text-red-600 font-bold">
+        Pääsy evätty. Vain hallituksella on pääsy päätösputkeen.
+      </div>
+    );
   }
 
   const initiatives = await prisma.initiative.findMany({

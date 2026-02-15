@@ -152,7 +152,7 @@ export async function createInitiativeAction(params: {
  */
 export async function getUserActivity(userId: string) {
   try {
-    const [initiatives, votes, tasks] = await Promise.all([
+    const [initiatives, votes, tasks, renovations] = await Promise.all([
       prisma.initiative.findMany({
         where: { userId },
         orderBy: { createdAt: "desc" },
@@ -166,11 +166,23 @@ export async function getUserActivity(userId: string) {
         where: { userId },
         orderBy: { createdAt: "desc" },
       }),
+      prisma.renovation.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+      }),
     ]);
+
+    // GDPR Log: Shareholder accessed their own data
+    await RBAC.auditAccess(
+      userId,
+      "READ",
+      `User:${userId}:Activity`,
+      "Osakas tarkasteli omia tietojaan (Muutostyöt, Aloitteet, Talkoot)",
+    );
 
     return {
       success: true,
-      data: { initiatives, votes, tasks },
+      data: { initiatives, votes, tasks, renovations },
     };
   } catch (error) {
     console.error("Error fetching user activity:", error);

@@ -34,7 +34,13 @@ export type KanbanItem = {
   meta?: Record<string, unknown>; // Extra data for UI
 };
 
-export async function getOpsBoardItems(): Promise<KanbanItem[]> {
+export async function getOpsBoardItems(userId: string): Promise<KanbanItem[]> {
+  // 0. RBAC Check
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user || (user.role !== "BOARD_MEMBER" && user.role !== "ADMIN")) {
+    throw new Error("Pääsy evätty.");
+  }
+
   const items: KanbanItem[] = [];
 
   // 1. INBOX (Open Tickets, Not yet escalated to Expert)

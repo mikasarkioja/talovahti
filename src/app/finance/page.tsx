@@ -6,11 +6,47 @@ import { PurchaseInvoices } from "@/components/finance/PurchaseInvoices";
 import { OrderCertificate } from "@/components/finance/OrderCertificate";
 import { Wallet } from "lucide-react";
 
+import { prisma } from "@/lib/db";
+import { UserRole } from "@prisma/client";
+
 // Force dynamic rendering - this page needs real-time database access
 export const dynamic = "force-dynamic";
 
-export default async function FinancePage() {
-  const companyId = "default-company-id";
+export default async function FinancePage(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const searchParams = await props.searchParams;
+  const userQuery =
+    typeof searchParams.user === "string" ? searchParams.user : undefined;
+
+  // 1. Fetch User (Support Dev Switcher)
+  let user;
+  if (userQuery) {
+    user = await prisma.user.findFirst({
+      where: {
+        email: { contains: userQuery, mode: "insensitive" },
+      },
+    });
+  }
+
+  if (!user) {
+    user = await prisma.user.findFirst({
+      where: { role: UserRole.BOARD_MEMBER },
+    });
+  }
+
+  if (!user || (user.role !== "BOARD_MEMBER" && user.role !== "ADMIN")) {
+    return (
+      <div className="p-20 text-center space-y-4">
+        <h1 className="text-2xl font-bold text-red-600">Pääsy kielletty</h1>
+        <p className="text-slate-500">
+          Vain hallituksella on pääsy talousnäkymään.
+        </p>
+      </div>
+    );
+  }
+
+  const companyId = user.housingCompanyId;
   const currentYear = 2026;
 
   const result = await getFinanceAggregates(companyId, currentYear);

@@ -2,10 +2,12 @@
 
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { RBAC } from "@/lib/auth/rbac";
 import {
   MilestoneStatus,
   ProjectStatus,
   ObservationStatus,
+  UserRole,
 } from "@prisma/client";
 import { HealthScoreEngine } from "@/lib/engines/health";
 
@@ -22,6 +24,15 @@ export async function approveMilestoneAction(params: {
 }) {
   try {
     const { milestoneId, projectId, userId, amount, title } = params;
+
+    // 0. RBAC Check: Only BOARD_MEMBER or ADMIN can approve payments
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (
+      !user ||
+      (user.role !== UserRole.BOARD_MEMBER && user.role !== UserRole.ADMIN)
+    ) {
+      throw new Error("Vain hallituksen jäsenillä on oikeus hyväksyä maksuja.");
+    }
 
     // 1. Transactional Update
     await prisma.$transaction(async (tx) => {
@@ -91,6 +102,17 @@ export async function approveMilestoneAction(params: {
  */
 export async function completeProjectAction(projectId: string, userId: string) {
   try {
+    // 0. RBAC Check: Only BOARD_MEMBER or ADMIN can complete projects
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (
+      !user ||
+      (user.role !== UserRole.BOARD_MEMBER && user.role !== UserRole.ADMIN)
+    ) {
+      throw new Error(
+        "Vain hallituksen jäsenillä on oikeus päättää hankkeita.",
+      );
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       // 1. Find project and related data
       const project = await tx.project.findUnique({

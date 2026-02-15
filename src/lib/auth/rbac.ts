@@ -7,7 +7,8 @@ export type ResourceType =
   | "FINANCE"
   | "USER_DATA"
   | "BOARD_PROFILE"
-  | "OBSERVATION";
+  | "OBSERVATION"
+  | "RENOVATION";
 
 export const RBAC = {
   /**
@@ -30,6 +31,13 @@ export const RBAC = {
       if (resourceType === "APARTMENT") return user.apartmentId === resourceId;
       if (resourceType === "READING") return user.apartmentId === resourceId;
       if (resourceType === "USER_DATA") return actorId === resourceId;
+      if (resourceType === "RENOVATION") {
+        if (!resourceId) return true; // Can see their own list
+        const renovation = await prisma.renovation.findUnique({
+          where: { id: resourceId },
+        });
+        return renovation?.userId === actorId;
+      }
       if (resourceType === "TICKET") {
         // Can see their own tickets
         if (!resourceId) return true;

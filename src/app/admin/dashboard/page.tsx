@@ -151,12 +151,14 @@ export default async function AdminDashboardPage(props: {
             </div>
 
             {/* Legal Health Widget */}
-            <LegalHealthWidget
-              housingCompanyId={company.id}
-              actorId={user?.id || "anon"}
-              isShareholderRegisterUpToDate={true}
-              statutoryDocsCount={company._count.statutoryDocuments}
-            />
+            <RoleGate allowed={[UserRole.BOARD_MEMBER, UserRole.ADMIN]}>
+              <LegalHealthWidget
+                housingCompanyId={company.id}
+                actorId={user?.id || "anon"}
+                isShareholderRegisterUpToDate={true}
+                statutoryDocsCount={company._count.statutoryDocuments}
+              />
+            </RoleGate>
 
             {/* Gamification / Board XP */}
             <RoleGate allowed={[UserRole.BOARD_MEMBER, UserRole.ADMIN]}>

@@ -7,6 +7,7 @@ import { fetchInvoicesAction } from "@/app/actions/invoice-actions";
 import { RBAC } from "@/lib/auth/rbac";
 import { headers } from "next/headers";
 import { UserRole } from "@prisma/client";
+import { redirect } from "next/navigation";
 
 /**
  * UI/Feature Audit Report - Talovahti MVP
@@ -89,6 +90,11 @@ export default async function Home(props: {
         where: { housingCompanyId: companyId, role: UserRole.BOARD_MEMBER },
         include: { apartment: true },
       });
+    }
+
+    if (user?.role === UserRole.RESIDENT) {
+      const url = userQuery ? `/resident?user=${userQuery}` : "/resident";
+      redirect(url);
     }
 
     const clockResult = await getAnnualClockData(companyId, currentYear);

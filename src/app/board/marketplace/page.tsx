@@ -1,8 +1,40 @@
+import { prisma } from "@/lib/db";
+import { UserRole } from "@prisma/client";
 import { ExpertMarketplace } from "@/components/marketplace/ExpertMarketplace";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShieldCheck } from "lucide-react";
 
-export default function MarketplacePage() {
+export default async function MarketplacePage(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const searchParams = await props.searchParams;
+  const userQuery =
+    typeof searchParams.user === "string" ? searchParams.user : undefined;
+
+  // 1. Fetch User (Support Dev Switcher)
+  let user;
+  if (userQuery) {
+    user = await prisma.user.findFirst({
+      where: {
+        email: { contains: userQuery, mode: "insensitive" },
+      },
+    });
+  }
+
+  if (!user) {
+    user = await prisma.user.findFirst({
+      where: { role: UserRole.BOARD_MEMBER },
+    });
+  }
+
+  if (!user || (user.role !== "BOARD_MEMBER" && user.role !== "ADMIN")) {
+    return (
+      <div className="p-20 text-center text-red-600 font-bold">
+        Pääsy evätty.
+      </div>
+    );
+  }
+
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
       <header>

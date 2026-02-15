@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { UserRole } from "@prisma/client";
 import {
   Card,
   CardContent,
@@ -20,7 +21,40 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export default async function AuditLogPage() {
+export default async function AuditLogPage(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const searchParams = await props.searchParams;
+  const userQuery =
+    typeof searchParams.user === "string" ? searchParams.user : undefined;
+
+  // 1. Fetch User (Support Dev Switcher)
+  let user;
+  if (userQuery) {
+    user = await prisma.user.findFirst({
+      where: {
+        email: { contains: userQuery, mode: "insensitive" },
+      },
+    });
+  }
+
+  if (!user) {
+    user = await prisma.user.findFirst({
+      where: { role: UserRole.BOARD_MEMBER },
+    });
+  }
+
+  if (
+    !user ||
+    (user.role !== UserRole.BOARD_MEMBER && user.role !== UserRole.ADMIN)
+  ) {
+    return (
+      <div className="p-20 text-center">
+        Pääsy evätty. Vain hallituksella on pääsy tietosuojalokiin.
+      </div>
+    );
+  }
+
   const logs = await prisma.gDPRLog.findMany({
     include: { actor: true },
     orderBy: { timestamp: "desc" },

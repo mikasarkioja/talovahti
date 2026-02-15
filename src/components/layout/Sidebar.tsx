@@ -54,7 +54,11 @@ export function Sidebar() {
   const isBasic = plan === "BASIC";
 
   const primaryItems = [
-    { href: "/", label: "Hallintapaneeli", icon: Home },
+    {
+      href: currentUser?.role === "RESIDENT" ? "/resident" : "/",
+      label: "Hallintapaneeli",
+      icon: Home,
+    },
     ...(isBoard
       ? [
           { href: "/finance", label: "Talous & Laskut", icon: Wallet },
@@ -66,18 +70,26 @@ export function Sidebar() {
   ];
 
   const secondaryGroups: MenuGroup[] = [
-    {
-      title: "Hallinto & Päätöksenteko",
-      items: [
-        { href: "/governance/pipeline", label: "Päätösputki", icon: Gavel },
-        { href: "/governance/voting", label: "Äänestykset", icon: Vote },
-        {
-          href: "/admin/certificate",
-          label: "Isännöitsijäntodistus",
-          icon: FileText,
-        },
-      ],
-    },
+    ...(isBoard
+      ? [
+          {
+            title: "Hallinto & Päätöksenteko",
+            items: [
+              {
+                href: "/governance/pipeline",
+                label: "Päätösputki",
+                icon: Gavel,
+              },
+              { href: "/governance/voting", label: "Äänestykset", icon: Vote },
+              {
+                href: "/admin/certificate",
+                label: "Isännöitsijäntodistus",
+                icon: FileText,
+              },
+            ],
+          },
+        ]
+      : []),
     {
       title: "Kunnossapito",
       items: [

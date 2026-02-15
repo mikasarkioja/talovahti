@@ -9,6 +9,7 @@ import {
   Prisma,
 } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { RBAC } from "@/lib/auth/rbac";
 import { mml } from "@/lib/services/mml";
 
 export async function createRenovationNotificationAction(params: {
@@ -58,24 +59,13 @@ export async function createRenovationNotificationAction(params: {
       },
     });
 
-    // 3. Audit Log
-    await prisma.auditLog.create({
-      data: {
-        action: "RENOVATION_NOTIFICATION_SUBMITTED",
-        userId,
-        targetId: renovation.id,
-        metadata: {
-          component,
-          category,
-          triageStatus,
-          label: "Muutostyöilmoitus jätetty",
-          systemRecommendation:
-            triageStatus === RenovationTriageStatus.AUTO_APPROVE_READY
-              ? "Matalan riskin pintaremontti"
-              : "Vaatii asiantuntijatarkastuksen",
-        } as Prisma.InputJsonValue,
-      },
-    });
+    // 3. GDPR Logging
+    await RBAC.auditAccess(
+      userId,
+      "WRITE",
+      `Renovation:${renovation.id}`,
+      "Osakas päivitti muutostyöilmoitustaan",
+    );
 
     revalidatePath("/resident/renovations");
     revalidatePath("/admin/dashboard");
