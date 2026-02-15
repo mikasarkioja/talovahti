@@ -551,6 +551,7 @@ model Project {
   loanApplications LoanApplication[]
   observationId    String?              @unique
   observation      Observation?         @relation("ObservationToProject")
+  warrantyEndDate  DateTime?
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
 

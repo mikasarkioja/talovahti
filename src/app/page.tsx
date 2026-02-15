@@ -272,6 +272,7 @@ export default async function Home(props: {
                 dueDate: m.dueDate,
                 status: m.status,
               })),
+              warrantyEndDate: p.warrantyEndDate,
               siteReports: p.siteReports.map((sr) => ({
                 id: sr.id,
                 projectId: sr.projectId,

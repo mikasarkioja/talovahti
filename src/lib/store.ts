@@ -205,6 +205,7 @@ export type MockProject = {
   changeOrders: MockChangeOrder[];
   milestones: MockMilestone[];
   createdAt: Date;
+  warrantyEndDate?: Date;
   description: string | null;
 };
 
@@ -354,6 +355,7 @@ interface AppState {
   addSiteReport: (report: MockSiteReport) => void;
   updateChangeOrder: (id: string, status: ChangeOrderStatus) => void;
   updateMilestoneStatus: (projectId: string, milestoneId: string, status: MilestoneStatus) => void;
+  completeProjectInStore: (projectId: string, warrantyEndDate: Date) => void;
   addMMLSyncLog: (log: MockMMLSyncLog) => void;
   setSubscriptionPlan: (plan: SubscriptionPlan) => void;
   toggleFeature: (key: string, isEnabled: boolean) => void;
@@ -749,6 +751,14 @@ export const useStore = create<AppState>((set) => ({
                 m.id === milestoneId ? { ...m, status } : m
               ),
             }
+          : p
+      ),
+    })),
+  completeProjectInStore: (projectId, warrantyEndDate) =>
+    set((state) => ({
+      projects: state.projects.map((p) =>
+        p.id === projectId
+          ? { ...p, status: "COMPLETED" as ProjectStatus, warrantyEndDate }
           : p
       ),
     })),

@@ -21,13 +21,14 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Guardrail } from "@/components/finance/Guardrail"
-import { approveMilestoneAction } from "@/app/actions/project-actions"
+import { approveMilestoneAction, completeProjectAction } from "@/app/actions/project-actions"
 import { toast } from "sonner"
 
 export default function ExecutionPage() {
   const params = useParams()
-  const { projects, addSiteReport, updateChangeOrder, updateMilestoneStatus, currentUser, housingCompany } = useStore()
+  const { projects, addSiteReport, updateChangeOrder, updateMilestoneStatus, completeProjectInStore, currentUser, housingCompany } = useStore()
   const [isPending, startTransition] = useTransition()
+  const [isCompleting, setIsCompleting] = useState(false)
   
   const projectId = typeof params.id === 'string' ? params.id : ''
   const project = projects.find(p => p.id === projectId)
@@ -55,6 +56,8 @@ export default function ExecutionPage() {
   const progressPct = project.milestones.length > 0 
     ? Math.round((paidMilestones.length / project.milestones.length) * 100) 
     : 15; // Default mock progress
+
+  const canComplete = progressPct === 100
 
   const handlePostReport = (e: React.FormEvent) => {
     e.preventDefault()
@@ -91,6 +94,26 @@ export default function ExecutionPage() {
         });
       } else {
         toast.error(res.error || "Virhe hyväksynnässä.");
+      }
+    });
+  }
+
+  const handleCompleteProject = () => {
+    if (!currentUser || !project) return;
+    if (!confirm("Haluatko varmasti päättää urakan ja suorittaa vastaanottotarkastuksen?")) return;
+
+    setIsCompleting(true);
+    startTransition(async () => {
+      const res = await completeProjectAction(project.id, currentUser.id);
+      setIsCompleting(false);
+
+      if (res.success && res.data) {
+        completeProjectInStore(project.id, new Date(res.data.updatedProject.warrantyEndDate));
+        toast.success("Urakka päättyi!", {
+          description: res.message
+        });
+      } else {
+        toast.error(res.error || "Virhe urakan päättämisessä.");
       }
     });
   }
@@ -378,6 +401,48 @@ export default function ExecutionPage() {
                   <p className="text-lg font-black">+0,12 €/m²</p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Handover Section */}
+          <Card className="shadow-soft border-brand-emerald/20 bg-emerald-50/30">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xs font-black text-brand-emerald uppercase flex items-center gap-2">
+                <CheckCircle size={14} />
+                Vastaanottotarkastus
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                {['LVI-tarkastuspöytäkirjat', 'Sähkömittaukset', 'Painekokeet', 'Loppusiivous'].map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-[10px] font-medium text-slate-600">
+                    <div className="w-3 h-3 rounded border border-slate-300 bg-white flex items-center justify-center shrink-0">
+                      {progressPct === 100 && <CheckCircle size={10} className="text-brand-emerald" />}
+                    </div>
+                    {item}
+                  </div>
+                ))}
+              </div>
+              
+              <Button 
+                disabled={!canComplete || isCompleting || project.status === 'COMPLETED'} 
+                onClick={handleCompleteProject}
+                className={clsx(
+                  "w-full font-black py-2 rounded-xl text-[10px] uppercase transition-all h-10",
+                  canComplete && project.status !== 'COMPLETED'
+                    ? "bg-brand-emerald hover:bg-emerald-600 text-white shadow-md" 
+                    : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                )}
+              >
+                {isCompleting ? <Loader2 className="animate-spin mr-2" size={14} /> : <CheckCircle className="mr-2" size={14} />}
+                {project.status === 'COMPLETED' ? 'Urakka arkistoitu' : 'Päätä urakka ja arkistoi'}
+              </Button>
+              
+              {project.status === 'COMPLETED' && (
+                <div className="p-3 bg-white rounded-lg border border-brand-emerald/20 text-[10px] text-brand-emerald font-bold text-center">
+                  Takuuaika päättyy: {project.warrantyEndDate?.toLocaleDateString('fi-FI')}
+                </div>
+              )}
             </CardContent>
           </Card>
 

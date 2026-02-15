@@ -5,18 +5,20 @@ import { prisma } from "@/lib/db";
  * Focuses on the STATE of the asset, regardless of who managed it.
  */
 export const HealthScoreEngine = {
-  /**
-   * Recalculates all building health metrics.
-   */
-  async recalculateBuildingHealth(companyId: string) {
-    const technical = await this.calculateTechnicalScore(companyId);
-    const financial = await this.calculateFinancialScore(companyId);
+/**
+ * Recalculates all building health metrics.
+ */
+export const HealthScoreEngine = {
+  async recalculateBuildingHealth(companyId: string, tx?: any) {
+    const technical = await this.calculateTechnicalScore(companyId, tx);
+    const financial = await this.calculateFinancialScore(companyId, tx);
     const admin = await this.calculateAdminScore();
 
     const total = Math.round((technical + financial + admin) / 3);
+    const client = tx || prisma;
 
     // Save history
-    await prisma.healthHistory.create({
+    await client.healthHistory.create({
       data: {
         housingCompanyId: companyId,
         score: total,
@@ -26,7 +28,7 @@ export const HealthScoreEngine = {
     });
 
     // Update company with sub-scores
-    await prisma.housingCompany.update({
+    await client.housingCompany.update({
       where: { id: companyId },
       data: {
         healthScore: total,
@@ -42,8 +44,9 @@ export const HealthScoreEngine = {
   /**
    * Technical = 100 - (Open_Observations * Weight)
    */
-  async calculateTechnicalScore(companyId: string): Promise<number> {
-    const observations = await prisma.observation.findMany({
+  async calculateTechnicalScore(companyId: string, tx?: any): Promise<number> {
+    const client = tx || prisma;
+    const observations = await client.observation.findMany({
       where: { housingCompanyId: companyId, status: "OPEN" },
     });
 
@@ -61,8 +64,9 @@ export const HealthScoreEngine = {
   /**
    * Financial = (Cash / Monthly_Expenses) * Multiplier
    */
-  async calculateFinancialScore(companyId: string): Promise<number> {
-    const company = await prisma.housingCompany.findUnique({
+  async calculateFinancialScore(companyId: string, tx?: any): Promise<number> {
+    const client = tx || prisma;
+    const company = await client.housingCompany.findUnique({
       where: { id: companyId },
     });
 
