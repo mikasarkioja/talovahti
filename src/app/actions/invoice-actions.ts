@@ -4,22 +4,26 @@ import { fennoa } from "@/lib/services/fennoa";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { RBAC } from "@/lib/auth/rbac";
-import { GamificationEngine } from "@/lib/engines/gamification";
+import { gamification } from "@/lib/engines/gamification";
 import { HealthScoreEngine } from "@/lib/engines/health";
 
 export async function approveInvoiceAction(
-  invoiceId: string, 
+  invoiceId: string,
   amount: number,
   housingCompanyId: string,
-  userId: string
+  userId: string,
 ) {
   try {
     // 1. RBAC Check
-    const canApprove = await RBAC.canAccess(userId, "FINANCE", housingCompanyId);
+    const canApprove = await RBAC.canAccess(
+      userId,
+      "FINANCE",
+      housingCompanyId,
+    );
     if (!canApprove) {
-      return { 
-        success: false, 
-        error: "Vain hallituksen jäsenillä on oikeus hyväksyä laskuja." 
+      return {
+        success: false,
+        error: "Vain hallituksen jäsenillä on oikeus hyväksyä laskuja.",
       };
     }
 
@@ -35,40 +39,43 @@ export async function approveInvoiceAction(
             userId: userId,
             targetId: invoiceId,
             impactScore: 50, // XP Reward
-            metadata: { 
-              invoiceId, 
-              amount, 
-              timestamp: new Date().toISOString() 
-            }
-          }
+            metadata: {
+              invoiceId,
+              amount,
+              timestamp: new Date().toISOString(),
+            },
+          },
         }),
         // Optional: Update local DB invoice if it exists
         prisma.invoice.updateMany({
-          where: { 
+          where: {
             externalId: invoiceId,
-            housingCompanyId: housingCompanyId
+            housingCompanyId: housingCompanyId,
           },
-          data: { 
+          data: {
             status: "APPROVED",
-            approvedById: userId
-          }
-        })
+            approvedById: userId,
+          },
+        }),
       ]);
 
       // 4. Update XP and Health via Engines
-      await GamificationEngine.processAuditAction(userId, "INVOICE_APPROVED", {
+      await gamification.processAuditAction(userId, "INVOICE_APPROVED", {
         amount,
-        speedDays: 1 // Mock speed for now
+        speedDays: 1, // Mock speed for now
       });
       await HealthScoreEngine.recalculateBuildingHealth(housingCompanyId);
 
       revalidatePath("/");
       revalidatePath("/admin/finance");
-      
+
       return { success: true };
     }
 
-    return { success: false, error: "Laskun hyväksyntä epäonnistui Fennoassa." };
+    return {
+      success: false,
+      error: "Laskun hyväksyntä epäonnistui Fennoassa.",
+    };
   } catch (error) {
     console.error("Approve Invoice Action Error:", error);
     return { success: false, error: "Järjestelmävirhe laskun hyväksynnässä." };

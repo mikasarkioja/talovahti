@@ -13,7 +13,14 @@ export async function POST(req: NextRequest) {
 
     if (!secret) {
       console.error("VISMA_SIGN_WEBHOOK_SECRET is not set");
-      return NextResponse.json({ error: "Configuration error" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Configuration error" },
+        { status: 500 },
+      );
+    }
+
+    if (!signature) {
+      return NextResponse.json({ error: "Missing signature" }, { status: 401 });
     }
 
     // 1. Security: HMAC-SHA256 signature verification
@@ -33,32 +40,34 @@ export async function POST(req: NextRequest) {
       // Find the project first to get the housingCompanyId
       const project = await prisma.project.findUnique({
         where: { signatureUuid: documentUuid },
-        include: { 
-          housingCompany: { 
-            include: { 
-              users: { 
-                take: 1, 
-                where: { 
-                  OR: [
-                    { role: 'ADMIN' },
-                    { role: 'BOARD_MEMBER' }
-                  ]
-                } 
-              } 
-            } 
-          } 
-        }
+        include: {
+          housingCompany: {
+            include: {
+              users: {
+                take: 1,
+                where: {
+                  OR: [{ role: "ADMIN" }, { role: "BOARD_MEMBER" }],
+                },
+              },
+            },
+          },
+        },
       });
 
       if (!project) {
-        return NextResponse.json({ error: "Project not found for this UUID" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Project not found for this UUID" },
+          { status: 404 },
+        );
       }
 
       // Use a valid user from the company for the audit log, or fallback
       const actorUserId = project.housingCompany.users[0]?.id;
-      
+
       if (!actorUserId) {
-        console.warn(`No admin/board user found for company ${project.housingCompanyId} to associate with webhook audit log.`);
+        console.warn(
+          `No admin/board user found for company ${project.housingCompanyId} to associate with webhook audit log.`,
+        );
       }
 
       await prisma.$transaction(async (tx) => {
@@ -75,13 +84,13 @@ export async function POST(req: NextRequest) {
         // If no user found, we might need a fixed system user ID or handle nullable if schema allowed (it doesn't)
         // For now, we use a fallback string if no user is found, but this might fail if it's not a valid CUID
         // Better: search for ANY user in the company if no admin/board found
-        let finalUserId = actorUserId;
-        if (!finalUserId) {
-          const anyUser = await tx.user.findFirst({
-            where: { housingCompanyId: project.housingCompanyId }
-          });
-          finalUserId = anyUser?.id;
-        }
+        const finalUserId: string | undefined =
+          actorUserId ||
+          (
+            await tx.user.findFirst({
+              where: { housingCompanyId: project.housingCompanyId },
+            })
+          )?.id;
 
         if (finalUserId) {
           await tx.auditLog.create({
@@ -91,7 +100,8 @@ export async function POST(req: NextRequest) {
               targetId: project.id,
               metadata: {
                 documentUuid,
-                message: "Sopimus allekirjoitettu ja projekti siirretty toteutusvaiheeseen.",
+                message:
+                  "Sopimus allekirjoitettu ja projekti siirretty toteutusvaiheeseen.",
               },
             },
           });
@@ -107,6 +117,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error("Webhook processing failed:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

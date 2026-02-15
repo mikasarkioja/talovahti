@@ -48,7 +48,7 @@ export function VotingClient({ housingCompanyId, userId }: VotingClientProps) {
         title,
         description,
         housingCompanyId,
-        authorId: userId,
+        userId: userId,
       });
 
       if (result.success) {

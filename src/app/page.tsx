@@ -102,8 +102,7 @@ export default async function Home(props: {
     // 2.5 Audit Log for Board Dashboard View
     if (
       user &&
-      (user.role === UserRole.BOARD_MEMBER ||
-        user.role === UserRole.ADMIN)
+      (user.role === UserRole.BOARD_MEMBER || user.role === UserRole.ADMIN)
     ) {
       const headerList = await headers();
       const ip = headerList.get("x-forwarded-for") || "127.0.0.1";
@@ -179,7 +178,7 @@ export default async function Home(props: {
               title: i.title,
               description: i.description,
               status: i.status,
-              authorId: i.authorId,
+              userId: i.userId,
               votes: i.votes.map((v) => ({
                 userId: v.userId,
                 choice: v.choice,
@@ -278,7 +277,7 @@ export default async function Home(props: {
                 projectId: sr.projectId,
                 authorId: sr.authorId,
                 content: sr.content,
-                timestamp: sr.createdAt,
+                timestamp: sr.timestamp,
                 imageUrl: sr.imageUrl,
               })),
               changeOrders: p.changeOrders.map((co) => ({

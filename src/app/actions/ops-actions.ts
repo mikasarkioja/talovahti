@@ -150,6 +150,7 @@ export async function getOpsBoardItems(): Promise<KanbanItem[]> {
         {
           PLANNED: "Suunnitteilla",
           TENDERING: "Kilpailutuksessa",
+          PLANNING: "Suunnittelussa",
           EXECUTION: "Käynnissä",
           WARRANTY: "Takuuvaihe",
           COMPLETED: "Valmis",

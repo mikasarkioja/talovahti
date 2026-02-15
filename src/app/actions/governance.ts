@@ -18,7 +18,7 @@ export async function createInitiative(formData: {
   title: string;
   description: string;
   housingCompanyId: string;
-  authorId: string;
+  userId: string;
 }) {
   try {
     const initiative = await prisma.initiative.create({
@@ -26,7 +26,7 @@ export async function createInitiative(formData: {
         title: formData.title,
         description: formData.description,
         housingCompanyId: formData.housingCompanyId,
-        authorId: formData.authorId,
+        userId: formData.userId,
         status: GovernanceStatus.OPEN_FOR_SUPPORT,
       },
     });

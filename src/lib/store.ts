@@ -206,6 +206,7 @@ export type MockProject = {
   milestones: MockMilestone[];
   createdAt: Date;
   warrantyEndDate?: Date;
+  estimatedCost?: number;
   description: string | null;
 };
 
@@ -298,7 +299,7 @@ export type MockSystemAdminStats = {
 
 interface AppState {
   currentUser: MockUser | null;
-  housingCompany: { 
+  housingCompany: {
     id: string;
     healthScore?: number;
     healthScoreTechnical?: number;
@@ -354,7 +355,11 @@ interface AppState {
   selectWinnerBid: (projectId: string, tenderId: string, bidId: string) => void;
   addSiteReport: (report: MockSiteReport) => void;
   updateChangeOrder: (id: string, status: ChangeOrderStatus) => void;
-  updateMilestoneStatus: (projectId: string, milestoneId: string, status: MilestoneStatus) => void;
+  updateMilestoneStatus: (
+    projectId: string,
+    milestoneId: string,
+    status: MilestoneStatus,
+  ) => void;
   completeProjectInStore: (projectId: string, warrantyEndDate: Date) => void;
   addMMLSyncLog: (log: MockMMLSyncLog) => void;
   setSubscriptionPlan: (plan: SubscriptionPlan) => void;
@@ -748,10 +753,10 @@ export const useStore = create<AppState>((set) => ({
           ? {
               ...p,
               milestones: p.milestones.map((m) =>
-                m.id === milestoneId ? { ...m, status } : m
+                m.id === milestoneId ? { ...m, status } : m,
               ),
             }
-          : p
+          : p,
       ),
     })),
   completeProjectInStore: (projectId, warrantyEndDate) =>
@@ -759,7 +764,7 @@ export const useStore = create<AppState>((set) => ({
       projects: state.projects.map((p) =>
         p.id === projectId
           ? { ...p, status: "COMPLETED" as ProjectStatus, warrantyEndDate }
-          : p
+          : p,
       ),
     })),
   addMMLSyncLog: (log) =>

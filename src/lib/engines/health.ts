@@ -5,10 +5,10 @@ import { prisma } from "@/lib/db";
  * Focuses on the STATE of the asset, regardless of who managed it.
  */
 export const HealthScoreEngine = {
-/**
- * Recalculates all building health metrics.
- */
-export const HealthScoreEngine = {
+  /**
+   * Recalculates all building health metrics.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async recalculateBuildingHealth(companyId: string, tx?: any) {
     const technical = await this.calculateTechnicalScore(companyId, tx);
     const financial = await this.calculateFinancialScore(companyId, tx);
@@ -44,6 +44,7 @@ export const HealthScoreEngine = {
   /**
    * Technical = 100 - (Open_Observations * Weight)
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async calculateTechnicalScore(companyId: string, tx?: any): Promise<number> {
     const client = tx || prisma;
     const observations = await client.observation.findMany({
@@ -51,7 +52,7 @@ export const HealthScoreEngine = {
     });
 
     let penalty = 0;
-    observations.forEach((obs) => {
+    observations.forEach((obs: { severityGrade: number | null }) => {
       // Weight based on severity: Critical=10, Urgent=5, Routine=2
       if (obs.severityGrade === 1) penalty += 10;
       else if (obs.severityGrade === 2) penalty += 5;
@@ -64,6 +65,7 @@ export const HealthScoreEngine = {
   /**
    * Financial = (Cash / Monthly_Expenses) * Multiplier
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async calculateFinancialScore(companyId: string, tx?: any): Promise<number> {
     const client = tx || prisma;
     const company = await client.housingCompany.findUnique({

@@ -8,11 +8,14 @@ import { revalidatePath } from "next/cache";
 /**
  * Creates a Stripe Checkout session for ordering a Property Manager's Certificate.
  */
-export async function createCertificateCheckoutAction(userId: string, housingCompanyId: string) {
+export async function createCertificateCheckoutAction(
+  userId: string,
+  housingCompanyId: string,
+) {
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: { apartment: true }
+      include: { apartment: true },
     });
 
     if (!user) throw new Error("Käyttäjää ei löytynyt.");
@@ -30,8 +33,8 @@ export async function createCertificateCheckoutAction(userId: string, housingCom
       metadata: {
         userId,
         housingCompanyId,
-        type: "CERTIFICATE_ORDER"
-      }
+        type: "CERTIFICATE_ORDER",
+      },
     });
 
     // 2. Create pending Order in DB
@@ -39,13 +42,13 @@ export async function createCertificateCheckoutAction(userId: string, housingCom
       data: {
         userId,
         housingCompanyId,
-        type: OrderType.DOCUMENT_ORDER, // Assuming this exists or using generic
+        type: OrderType.CERTIFICATE,
         amount: 45.0,
         platformRevenue: 45.0, // 100% commission as requested
         status: OrderStatus.PENDING,
-        metadata: JSON.stringify({ 
+        metadata: JSON.stringify({
           product: "Isännöitsijäntodistus",
-          sessionId: checkoutSession.id 
+          sessionId: checkoutSession.id,
         }),
       },
     });

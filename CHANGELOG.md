@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased] - 2026-02-15
+
+### Added
+- **Developer User Switcher**: Created `UserSwitcher.tsx` and `dev-actions.ts` for quick switching between test users in development environments.
+- **Resident Profile & Activity**: Built a comprehensive Resident Profile page (`src/app/profile/page.tsx`) with a real-time activity feed (`MyActivity.tsx`).
+- **Data Isolation Guard**: Implemented `RBAC.ensureOwnership` helper to prevent cross-user data tampering in server actions.
+- **Resident Server Actions**: Created `resident-actions.ts` for secure handling of voting, initiative creation, and volunteer task management.
+- **GDPR Compliance**: Integrated mandatory audit logging for all resident actions (votes, tasks, initiatives) to ensure transparent data processing.
+- **VolunteerTask Model**: Added `VolunteerTask` to `schema.prisma` with mandatory `userId` relation to enforce data ownership.
+
+### Changed
+- **Initiative Schema**: Updated `Initiative` model to use `userId` (formerly `authorId`) for naming consistency across the platform.
+- **Navigation**: Integrated "Oma Profiili" into the sidebar and mobile bottom navigation for better resident accessibility.
+- **Layout**: Integrated `UserSwitcher` into the `MobileShell` for global developer access.
+
 ## [Unreleased] - 2026-02-14
 
 ### Added

@@ -308,7 +308,7 @@ async function main() {
       description:
         "Hankitaan kartoitus ja suunnitelma 11kW latausasemille kaikille autopaikoille.",
       status: GovernanceStatus.VOTING,
-      authorId: boardUser.id,
+      userId: boardUser.id,
     },
   });
 
@@ -611,7 +611,8 @@ async function main() {
     data: {
       housingCompanyId: company.id,
       title: "Julkisivun huoltomaalaus",
-      description: "Elementtisaumojen uusiminen ja julkisivun pesu sekä maalaus.",
+      description:
+        "Elementtisaumojen uusiminen ja julkisivun pesu sekä maalaus.",
       type: "FACADE",
       status: "EXECUTION",
       estimatedCost: 55000,

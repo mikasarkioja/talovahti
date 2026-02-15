@@ -7,22 +7,21 @@ import {
   Wallet,
   Building2,
   ClipboardList,
-  TrendingUp,
-  Vote,
-  ShieldCheck,
-  Settings,
-  Workflow,
-  LucideIcon,
-  Activity,
-  CalendarClock,
-  Hammer,
-  Users,
-  Database,
-  Thermometer,
   LineChart,
   LayoutDashboard,
   MoreHorizontal,
   FileText,
+  User,
+  Vote,
+  ShieldCheck,
+  Database,
+  CalendarClock,
+  Hammer,
+  Users,
+  Workflow,
+  Settings,
+  Thermometer,
+  LucideIcon,
   ChevronDown,
   ChevronRight,
   Lock,
@@ -30,7 +29,6 @@ import {
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
 import { useStore } from "@/lib/store";
-import { FEATURES } from "@/config/features";
 import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -51,8 +49,7 @@ export function Sidebar() {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
 
   const isBoard =
-    currentUser?.role === "BOARD_MEMBER" ||
-    currentUser?.role === "ADMIN";
+    currentUser?.role === "BOARD_MEMBER" || currentUser?.role === "ADMIN";
   const plan = subscription?.plan || "BASIC";
   const isBasic = plan === "BASIC";
 
@@ -74,7 +71,11 @@ export function Sidebar() {
       items: [
         { href: "/governance/pipeline", label: "Päätösputki", icon: Gavel },
         { href: "/governance/voting", label: "Äänestykset", icon: Vote },
-        { href: "/admin/certificate", label: "Isännöitsijäntodistus", icon: FileText },
+        {
+          href: "/admin/certificate",
+          label: "Isännöitsijäntodistus",
+          icon: FileText,
+        },
       ],
     },
     {
@@ -126,6 +127,11 @@ export function Sidebar() {
                 locked: isBasic,
               },
               {
+                href: "/profile",
+                label: "Oma Profiili",
+                icon: User,
+              },
+              {
                 href: "/settings/profile",
                 label: "Omat Asetukset",
                 icon: Settings,
@@ -137,6 +143,11 @@ export function Sidebar() {
           {
             title: "Asetukset",
             items: [
+              {
+                href: "/profile",
+                label: "Oma Profiili",
+                icon: User,
+              },
               {
                 href: "/settings/profile",
                 label: "Omat Asetukset",

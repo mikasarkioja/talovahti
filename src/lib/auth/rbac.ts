@@ -43,9 +43,7 @@ export const RBAC = {
     }
 
     // BOARD_MEMBER Logic
-    if (
-      user.role === "BOARD_MEMBER"
-    ) {
+    if (user.role === "BOARD_MEMBER") {
       if (resourceType === "FINANCE") return true;
       if (resourceType === "TICKET") return true;
       if (resourceType === "OBSERVATION") return true;
@@ -97,5 +95,15 @@ export const RBAC = {
         timestamp: new Date(),
       },
     });
+  },
+
+  /**
+   * Prevents cross-user data tampering.
+   * Throws an error if the user doesn't own the resource.
+   */
+  ensureOwnership(resourceUserId: string, sessionUserId: string) {
+    if (resourceUserId !== sessionUserId) {
+      throw new Error("Luvaton toimenpide: Omistajuusvaatimus ei täyty.");
+    }
   },
 };

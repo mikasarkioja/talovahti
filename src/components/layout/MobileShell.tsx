@@ -1,12 +1,14 @@
-'use client'
-import { ReactNode } from 'react'
-import { Sidebar } from './Sidebar'
-import { BottomNav } from './BottomNav'
-import { MobileHeader } from './MobileHeader'
+"use client";
+import { ReactNode } from "react";
+import { Sidebar } from "./Sidebar";
+import { BottomNav } from "./BottomNav";
+import { MobileHeader } from "./MobileHeader";
+import { UserSwitcher } from "../debug/UserSwitcher";
 
 export function MobileShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-surface-lichen flex flex-col md:flex-row">
+      <UserSwitcher />
       {/* Desktop Sidebar */}
       <div className="hidden md:block w-64 flex-shrink-0 z-50 print:hidden">
         <Sidebar />
@@ -30,5 +32,5 @@ export function MobileShell({ children }: { children: ReactNode }) {
         </div>
       </div>
     </div>
-  )
+  );
 }

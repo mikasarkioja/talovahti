@@ -23,6 +23,7 @@ model HousingCompany {
   users              User[]
   surveys            Survey[]
   tickets            Ticket[]
+  volunteerTasks     VolunteerTask[]
   initiatives        Initiative[]
   documents          MeetingDocument[]
   meetings           Meeting[]
@@ -37,7 +38,6 @@ model HousingCompany {
   vendorRules        VendorRule[]
   utilityPrices      UtilityPrice[]
   partners           ServicePartner[]
-  residentTasks      ResidentTask[]
   resources          Resource[]
   buildingComponents BuildingComponent[]
   htjShadowRecords   HTJ_ShadowRecord[]
@@ -140,16 +140,16 @@ model User {
   expertId                String? // For EXPERT role, links to their professional profile
   expert                  Expert?             @relation(fields: [expertId], references: [id])
   createdTickets          Ticket[]
-  initiatives             Initiative[]
-  supportedInitiatives    InitiativeSupport[]
-  surveyResponses         SurveyResponse[]
-  comments                Comment[]
-  votes                   Vote[]
+  volunteerTasks       VolunteerTask[]
+  initiatives          Initiative[]
+  supportedInitiatives InitiativeSupport[]
+  surveyResponses      SurveyResponse[]
+  comments             Comment[]
+  votes                Vote[]
   observations            Observation[]
   documentOrders          DocumentOrder[]
   orders                  Order[]
   approvedInvoices        Invoice[]
-  assignedTasks           ResidentTask[]
   bookings                Booking[]
   wallet                  Wallet?
   pollVotes               PollVote[]
@@ -346,6 +346,7 @@ model Renovation {
 enum ObservationStatus {
   OPEN
   REVIEWED
+  CLOSED
 }
 
 model Observation {
@@ -863,8 +864,8 @@ model Initiative {
   affectedArea     String?
   housingCompanyId String
   housingCompany   HousingCompany      @relation(fields: [housingCompanyId], references: [id])
-  authorId         String
-  author           User                @relation(fields: [authorId], references: [id])
+  userId           String
+  user             User                @relation(fields: [userId], references: [id])
   supporters       InitiativeSupport[]
   votes            Vote[]
   comments         Comment[]
@@ -1121,14 +1122,14 @@ enum RewardType {
   CASH
 }
 
-model ResidentTask {
+model VolunteerTask {
   id                 String             @id @default(cuid())
   title              String
   description        String
   housingCompanyId   String
   housingCompany     HousingCompany     @relation(fields: [housingCompanyId], references: [id])
-  assignedToId       String?
-  assignedTo         User?              @relation(fields: [assignedToId], references: [id])
+  userId             String
+  user               User               @relation(fields: [userId], references: [id])
   status             ResidentTaskStatus @default(OPEN)
   compensationAmount Float
   rewardType         RewardType         @default(HOITOVASTIKE_CREDIT)
@@ -1137,7 +1138,7 @@ model ResidentTask {
   updatedAt          DateTime           @updatedAt
 
   @@index([housingCompanyId, status])
-  @@map("resident_tasks")
+  @@map("volunteer_tasks")
 }
 
 enum ResourceType {
