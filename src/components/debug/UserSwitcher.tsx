@@ -23,10 +23,12 @@ export function UserSwitcher() {
 
   useEffect(() => {
     // Only attempt to fetch in dev environment
-    if (
+    const isDev =
       process.env.NODE_ENV === "development" ||
-      window.location.hostname === "localhost"
-    ) {
+      (typeof window !== "undefined" &&
+        window.location.hostname === "localhost");
+
+    if (isDev) {
       getTestUsers().then((res) => {
         if (res.success && res.users) {
           setUsers(res.users);
@@ -36,11 +38,13 @@ export function UserSwitcher() {
   }, []);
 
   // Don't render anything in production unless explicitly wanted
-  if (
-    process.env.NODE_ENV !== "development" &&
-    window.location.hostname !== "localhost"
-  )
-    return null;
+  if (typeof window === "undefined") return null;
+
+  const isDev =
+    process.env.NODE_ENV === "development" ||
+    window.location.hostname === "localhost";
+
+  if (!isDev) return null;
 
   return (
     <div className="fixed bottom-24 right-4 z-[9999] print:hidden">
