@@ -493,7 +493,7 @@ export async function submitRenovationToHTJ(
           component: renovation.component,
           yearDone: renovation.yearDone || undefined,
           plannedYear: renovation.plannedYear || undefined,
-          cost: renovation.cost,
+          cost: renovation.cost || 0,
           description: renovation.description || undefined,
         },
       );

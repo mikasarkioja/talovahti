@@ -82,6 +82,11 @@ export function Sidebar() {
       title: "Kunnossapito",
       items: [
         {
+          href: "/resident/renovations/new",
+          label: "Muutostyöilmoitus",
+          icon: ClipboardList,
+        },
+        {
           href: "/maintenance/history",
           label: "PTS & Historia",
           icon: ClipboardList,

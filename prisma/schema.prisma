@@ -122,6 +122,7 @@ model User {
   expertId                String?
   vendorId                String?
   shareholderId           String?
+  renovations             Renovation[]
   auditLogs               AuditLog[]
   bookings                Booking[]
   comments                Comment[]
@@ -258,17 +259,24 @@ model Renovation {
   component        String
   yearDone         Int?
   plannedYear      Int?
-  cost             Float
-  expectedLifeSpan Int
+  cost             Float?             @default(0)
+  expectedLifeSpan Int?               @default(0)
   description      String?
   status           RenovationStatus   @default(COMPLETED)
+  category         RenovationCategory @default(SURFACE)
+  contractorInfo   String?
+  schedule         String?
+  triageStatus     RenovationTriageStatus @default(PENDING)
+  userId           String?
   housingCompanyId String
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
   assessments      ExpertAssessment[]
   housingCompany   HousingCompany     @relation(fields: [housingCompanyId], references: [id])
+  user             User?              @relation(fields: [userId], references: [id])
 
   @@index([housingCompanyId])
+  @@index([userId])
   @@map("renovations")
 }
 
@@ -1342,6 +1350,22 @@ enum TriageLevel {
 enum RenovationStatus {
   COMPLETED
   PLANNED
+  PENDING
+}
+
+enum RenovationCategory {
+  LVI
+  ELECTRICAL
+  STRUCTURAL
+  SURFACE
+}
+
+enum RenovationTriageStatus {
+  PENDING
+  REQUIRES_EXPERT
+  AUTO_APPROVE_READY
+  APPROVED
+  REJECTED
 }
 
 enum ObservationStatus {

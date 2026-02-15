@@ -3,8 +3,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Hammer, AlertCircle, TrendingUp } from "lucide-react";
+import {
+  Hammer,
+  AlertCircle,
+  TrendingUp,
+  FileText,
+  CheckCircle2,
+} from "lucide-react";
 import { escalateToExpert } from "@/app/actions/triage-actions";
+import { approveRenovationAction } from "@/app/actions/renovation-actions";
 import { useTransition } from "react";
 import { toast } from "sonner";
 import { useStore } from "@/lib/store";
@@ -14,7 +21,7 @@ import { useState } from "react";
 
 export type DecisionItem = {
   id: string;
-  type: "INVOICE" | "TRIAGE";
+  type: "INVOICE" | "TRIAGE" | "RENOVATION";
   title: string;
   vendor?: string;
   amount: number;
@@ -22,6 +29,7 @@ export type DecisionItem = {
   invoiceNumber?: string;
   xpReward: number;
   description?: string;
+  recommendation?: string;
 };
 
 interface DecisionQueueProps {
@@ -54,6 +62,23 @@ export function DecisionQueue({ items: initialItems }: DecisionQueueProps) {
     });
   };
 
+  const handleRenovationApproval = (item: DecisionItem) => {
+    if (!currentUser) return;
+
+    startTransition(async () => {
+      const result = await approveRenovationAction(item.id, currentUser.id);
+
+      if (result.success) {
+        toast.success("Muutostyöilmoitus hyväksytty.", {
+          description: `Ansaitsit +${item.xpReward} XP:tä Lakisääteisestä valvonnasta.`,
+        });
+        handleOptimisticRemove(item.id);
+      } else {
+        toast.error("Hyväksyntä epäonnistui", { description: result.error });
+      }
+    });
+  };
+
   return (
     <Card className="shadow-soft border-surface-greige/20">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
@@ -61,76 +86,129 @@ export function DecisionQueue({ items: initialItems }: DecisionQueueProps) {
           <AlertCircle size={20} className="text-brand-emerald" />
           Päätösjono
         </CardTitle>
-        <Badge variant="secondary" className="bg-brand-emerald/10 text-brand-emerald border-brand-emerald/20 font-bold">
+        <Badge
+          variant="secondary"
+          className="bg-brand-emerald/10 text-brand-emerald border-brand-emerald/20 font-bold"
+        >
           {items.length} ODOTTAA
         </Badge>
       </CardHeader>
       <CardContent className="space-y-3">
         {items.length === 0 ? (
           <div className="text-center py-8 text-slate-400">
-            <p className="text-sm italic">Päätösjono on tyhjä. Kaikki ajan tasalla!</p>
+            <p className="text-sm italic">
+              Päätösjono on tyhjä. Kaikki ajan tasalla!
+            </p>
           </div>
         ) : (
           items.map((item) => {
-            if (item.type === "INVOICE") {
+            if (item.type === "RENOVATION") {
               return (
-                <InvoiceApprovalCard
+                <div
                   key={item.id}
-                  id={item.id}
-                  vendorName={item.vendor || "Tuntematon toimittaja"}
-                  amount={item.amount}
-                  dueDate={item.dueDate || ""}
-                  invoiceNumber={item.invoiceNumber || item.id}
-                  xpReward={item.xpReward}
-                  onSuccess={handleOptimisticRemove}
-                />
+                  className="group flex flex-col md:flex-row md:items-center justify-between p-4 border border-slate-100 rounded-xl bg-slate-50/50 hover:bg-white hover:shadow-md transition-all duration-300"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-full bg-blue-50 text-blue-600 border border-blue-100 shadow-sm">
+                      <FileText size={20} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-brand-navy">
+                          {item.title}
+                        </p>
+                        <Badge
+                          variant="outline"
+                          className="text-[9px] font-bold uppercase tracking-wider py-0 px-1.5 h-4"
+                        >
+                          MUUTOSTYÖ
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-emerald-600 mt-0.5 font-bold">
+                        {item.recommendation}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between md:justify-end gap-6 mt-4 md:mt-0">
+                    <div className="text-right">
+                      <div className="flex items-center justify-end gap-1 text-emerald-600 font-bold text-[10px]">
+                        <TrendingUp size={10} />+{item.xpReward} XP
+                      </div>
+                    </div>
+
+                    <Button
+                      size="sm"
+                      disabled={isPending}
+                      className="bg-brand-navy hover:bg-slate-800 text-white font-bold px-4 rounded-lg shadow-sm h-10 gap-2"
+                      onClick={() => handleRenovationApproval(item)}
+                    >
+                      {isPending ? (
+                        "Käsitellään..."
+                      ) : (
+                        <>
+                          <CheckCircle2 size={16} />
+                          Hyväksy
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
               );
             }
 
-            return (
-              <div
-                key={item.id}
-                className="group flex flex-col md:flex-row md:items-center justify-between p-4 border border-slate-100 rounded-xl bg-slate-50/50 hover:bg-white hover:shadow-md transition-all duration-300"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-full bg-amber-50 text-amber-600 border border-amber-100 shadow-sm">
-                    <Hammer size={20} />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-bold text-brand-navy">{item.title}</p>
-                      <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider py-0 px-1.5 h-4">
-                        ESKALAATIO
-                      </Badge>
+            if (item.type === "TRIAGE") {
+              return (
+                <div
+                  key={item.id}
+                  className="group flex flex-col md:flex-row md:items-center justify-between p-4 border border-slate-100 rounded-xl bg-slate-50/50 hover:bg-white hover:shadow-md transition-all duration-300"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-full bg-amber-50 text-amber-600 border border-amber-100 shadow-sm">
+                      <Hammer size={20} />
                     </div>
-                    <p className="text-xs text-slate-500 mt-0.5 font-medium">
-                      Asiantuntija-arvio tarvitaan
-                    </p>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-brand-navy">
+                          {item.title}
+                        </p>
+                        <Badge
+                          variant="outline"
+                          className="text-[9px] font-bold uppercase tracking-wider py-0 px-1.5 h-4"
+                        >
+                          ESKALAATIO
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                        Asiantuntija-arvio tarvitaan
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex items-center justify-between md:justify-end gap-6 mt-4 md:mt-0">
-                  <div className="text-right">
-                    <p className="text-lg font-black text-brand-navy leading-none">
-                      {item.amount.toLocaleString('fi-FI')} €
-                    </p>
-                    <div className="flex items-center justify-end gap-1 mt-1 text-emerald-600 font-bold text-[10px]">
-                      <TrendingUp size={10} />
-                      +{item.xpReward} XP
+                  <div className="flex items-center justify-between md:justify-end gap-6 mt-4 md:mt-0">
+                    <div className="text-right">
+                      <p className="text-lg font-black text-brand-navy leading-none">
+                        {item.amount.toLocaleString("fi-FI")} €
+                      </p>
+                      <div className="flex items-center justify-end gap-1 mt-1 text-emerald-600 font-bold text-[10px]">
+                        <TrendingUp size={10} />+{item.xpReward} XP
+                      </div>
                     </div>
+
+                    <Button
+                      size="sm"
+                      disabled={isPending}
+                      className="bg-brand-emerald hover:bg-emerald-600 text-white font-bold px-4 rounded-lg shadow-sm h-10"
+                      onClick={() => handleTriageAction(item)}
+                    >
+                      {isPending ? "Käsitellään..." : "Tilaa asiantuntija"}
+                    </Button>
                   </div>
-                  
-                  <Button 
-                    size="sm" 
-                    disabled={isPending}
-                    className="bg-brand-emerald hover:bg-emerald-600 text-white font-bold px-4 rounded-lg shadow-sm h-10"
-                    onClick={() => handleTriageAction(item)}
-                  >
-                    {isPending ? "Käsitellään..." : 'Tilaa asiantuntija'}
-                  </Button>
                 </div>
-              </div>
-            );
+              );
+            }
+
+            return null;
           })
         )}
       </CardContent>
