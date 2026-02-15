@@ -189,7 +189,7 @@ export async function janitorialCheckIn(
 ) {
   try {
     if (data.action === "RESOLVE") {
-      await prisma.ticket.update({
+      const ticket = await prisma.ticket.update({
         where: { id: ticketId },
         data: {
           status: "CLOSED",
@@ -197,6 +197,14 @@ export async function janitorialCheckIn(
           triageLevel: "ROUTINE",
         },
       });
+
+      // Audit Log for resolution
+      await RBAC.auditAccess(
+        "system", // Replace with real session user in production
+        "WRITE",
+        `Ticket:${ticketId}`,
+        `Vikailmoitus ratkaistu kohteessa ${ticket.unitIdentifier || "Yleiset tilat"}`,
+      );
     } else {
       // Escalating to Expert
       return await escalateToExpert(ticketId, data.notes);
@@ -382,7 +390,33 @@ export async function createTicket(data: {
   apartmentId?: string;
 }) {
   try {
-    await prisma.ticket.create({
+    // 1. Fetch User and Apartment Number
+    const user = await prisma.user.findUnique({
+      where: { id: data.createdById },
+      select: { apartmentNumber: true },
+    });
+
+    // 2. Automated Triage Logic based on keywords
+    let triageLevel: TriageLevel = TriageLevel.ROUTINE;
+    const criticalKeywords = [
+      "vuoto",
+      "vesivahinko",
+      "tulipalo",
+      "sähköisku",
+      "hissi",
+    ];
+    const escalatedKeywords = ["lämpö", "patteri", "lukko", "avain"];
+
+    const searchStr = (data.title + " " + data.description).toLowerCase();
+
+    if (criticalKeywords.some((k) => searchStr.includes(k))) {
+      triageLevel = TriageLevel.CRITICAL;
+    } else if (escalatedKeywords.some((k) => searchStr.includes(k))) {
+      triageLevel = TriageLevel.ESCALATED;
+    }
+
+    // 3. Create Ticket with unitIdentifier for permanent history
+    const ticket = await prisma.ticket.create({
       data: {
         title: data.title,
         description: data.description,
@@ -392,12 +426,24 @@ export async function createTicket(data: {
         housingCompanyId: data.housingCompanyId,
         createdById: data.createdById,
         apartmentId: data.apartmentId || null,
+        unitIdentifier: user?.apartmentNumber || "Yleiset tilat",
+        triageLevel,
       },
     });
 
+    // 4. Audit Log
+    await RBAC.auditAccess(
+      data.createdById,
+      "WRITE",
+      `Ticket:${ticket.id}`,
+      `Uusi vikailmoitus luotu kohteeseen ${user?.apartmentNumber || "Yleiset tilat"}`,
+    );
+
     revalidatePath("/admin/ops");
     revalidatePath("/maintenance/tickets");
-    return { success: true };
+    revalidatePath("/admin/dashboard");
+
+    return { success: true, ticket };
   } catch (error) {
     console.error("Create Ticket Error:", error);
     return { success: false, error: "Tiketin luonti epäonnistui." };

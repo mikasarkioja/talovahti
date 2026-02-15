@@ -119,6 +119,7 @@ model User {
   language                String              @default("fi")
   notificationPreferences Json?
   phone                   String?
+  apartmentNumber         String?
   expertId                String?
   vendorId                String?
   shareholderId           String?
@@ -239,6 +240,7 @@ model Ticket {
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
   observationId       String?        @unique
+  unitIdentifier      String?
   huoltoNotes         String?
   isPublic            Boolean        @default(false)
   triageLevel         TriageLevel    @default(ROUTINE)

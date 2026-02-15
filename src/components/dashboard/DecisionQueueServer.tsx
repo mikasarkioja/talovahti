@@ -71,7 +71,7 @@ export async function DecisionQueueServer({
   const triageItems: DecisionItem[] = tickets.map((t) => ({
     id: t.id,
     type: "TRIAGE" as const,
-    title: t.title,
+    title: `Vikailmoitus: ${t.title} - ${t.unitIdentifier || "Yleiset tilat"}`,
     vendor: "Huoltoeskalaatio",
     amount: t.triageLevel === TriageLevel.CRITICAL ? 1500 : 450, // Mocked assessment cost
     xpReward: t.triageLevel === TriageLevel.CRITICAL ? 300 : 150,
