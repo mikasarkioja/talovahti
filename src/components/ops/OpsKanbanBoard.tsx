@@ -8,9 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import {
   KanbanItem,
   janitorialCheckIn,
-  submitTechnicalVerdict,
   createProjectFromObservation,
   completeProject,
+  startConstructionTender,
 } from "@/app/actions/ops-actions";
 import {
   AlertCircle,
@@ -18,13 +18,15 @@ import {
   ClipboardList,
   Hammer,
   ShoppingCart,
-  UserCheck,
   Search,
   Info,
   MoreVertical,
   Box,
   Stethoscope,
   ChevronRight,
+  FileSignature,
+  ShieldAlert,
+  Brain,
 } from "lucide-react";
 import {
   Dialog,
@@ -50,52 +52,62 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 import { BoardTriageCard } from "./BoardTriageCard";
+import { BiddingModal } from "@/components/modals/BiddingModal";
 
 interface OpsBoardProps {
   items: KanbanItem[];
+  userId: string;
 }
 
 const COLUMNS = [
   {
-    id: "INBOX",
-    title: "Uudet ilmoitukset",
+    id: "TRIAGE",
+    title: "Triage",
     icon: AlertCircle,
     color: "text-red-500",
   },
   {
     id: "ASSESSMENT",
-    title: "Kuntoarvio",
+    title: "Arviointi (Valvoja)",
     icon: Search,
     color: "text-blue-500",
   },
   {
-    id: "MARKETPLACE",
-    title: "Palvelutori",
+    id: "TENDERING",
+    title: "Kilpailutus (Urakka)",
     icon: ShoppingCart,
     color: "text-purple-500",
   },
   {
+    id: "CONTRACT",
+    title: "Sopimus",
+    icon: FileSignature,
+    color: "text-indigo-500",
+  },
+  {
     id: "EXECUTION",
-    title: "Työn Alla",
+    title: "Toteutus",
     icon: Hammer,
     color: "text-orange-500",
   },
   {
-    id: "VERIFICATION",
-    title: "Tarkastus",
-    icon: UserCheck,
+    id: "ARCHIVE",
+    title: "Arkisto",
+    icon: CheckCircle2,
     color: "text-emerald-500",
   },
 ];
 
-export function OpsKanbanBoard({ items: initialItems }: OpsBoardProps) {
+export function OpsKanbanBoard({ items: initialItems, userId }: OpsBoardProps) {
   const [boardItems, setBoardItems] = useState(initialItems);
   const [activeItem, setActiveItem] = useState<KanbanItem | null>(null);
   const [dialogMode, setDialogMode] = useState<"ASSESS" | "CHECKIN" | null>(
     null,
   );
-  const [verdict, setVerdict] = useState("");
-  const [severity, setSeverity] = useState<string>("3");
+  const [selectedObservation, setSelectedObservation] = useState<{
+    id: string;
+    projectId?: string;
+  } | null>(null);
   const [huoltoNotes, setHuoltoNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -153,6 +165,24 @@ export function OpsKanbanBoard({ items: initialItems }: OpsBoardProps) {
       toast.success("Projekti luotu");
     } else {
       toast.error("Virhe luotaessa projektia");
+    }
+    setLoading(false);
+  };
+
+  const handleStartTender = async (observationId: string) => {
+    setLoading(true);
+    const result = await startConstructionTender(observationId, userId);
+    if (result.success) {
+      toast.success("AI-ohjattu RFQ luotu!", {
+        description:
+          "Valmistellaan kilpailutusta asiantuntijan lausunnon pohjalta.",
+      });
+      setSelectedObservation({
+        id: observationId,
+        projectId: result.projectId,
+      });
+    } else {
+      toast.error("Virhe kilpailutuksen aloituksessa: " + result.error);
     }
     setLoading(false);
   };
@@ -235,9 +265,9 @@ export function OpsKanbanBoard({ items: initialItems }: OpsBoardProps) {
                   ) : (
                     <Card
                       key={item.id}
-                      className={`bg-white border-slate-200 hover:border-brand-emerald/30 hover:shadow-md transition-all group relative overflow-hidden ${
-                        item.category === "PROJECT"
-                          ? "border-l-4 border-l-blue-500 shadow-sm"
+                      className={`bg-white border-slate-200 hover:border-brand-navy/30 hover:shadow-lg transition-all group relative overflow-hidden rounded-2xl ${
+                        item.category === "PROJECT" || item.type === "PROJECT"
+                          ? "border-l-4 border-l-brand-navy shadow-sm"
                           : ""
                       }`}
                     >
@@ -245,6 +275,11 @@ export function OpsKanbanBoard({ items: initialItems }: OpsBoardProps) {
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex gap-1.5 items-center">
                             {getPriorityBadge(item.priority)}
+                            {(item.meta?.apartmentNumber as string) && (
+                              <Badge className="bg-slate-100 text-slate-700 border-slate-200 text-[9px] h-5 font-bold uppercase">
+                                Asunto {item.meta?.apartmentNumber as string}
+                              </Badge>
+                            )}
                             {item.category === "PROJECT" && (
                               <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-[9px] h-5 font-bold uppercase">
                                 Projekti
@@ -378,15 +413,55 @@ export function OpsKanbanBoard({ items: initialItems }: OpsBoardProps) {
                         </p>
 
                         {item.meta?.bidCount !== undefined && (
-                          <div className="mt-3">
+                          <div className="mt-3 flex gap-2 flex-wrap">
                             <Badge
                               variant="secondary"
                               className="bg-blue-50 text-blue-600 border-blue-100 text-[10px] font-bold"
                             >
                               {item.meta.bidCount as number} tarjousta
                             </Badge>
+                            {(item.meta?.aiAnalysisSummary as string) && (
+                              <Badge className="bg-indigo-50 text-indigo-600 border-indigo-100 text-[10px] font-bold">
+                                AI-analysoitu
+                              </Badge>
+                            )}
                           </div>
                         )}
+
+                        {col.id === "ASSESSMENT" &&
+                          item.type === "OBSERVATION" && (
+                            <div className="mt-4">
+                              <Button
+                                size="sm"
+                                className="w-full bg-brand-navy hover:bg-slate-800 text-white font-black uppercase tracking-widest text-[10px] h-9 gap-2"
+                                onClick={() => handleStartTender(item.id)}
+                                disabled={loading}
+                              >
+                                <Brain size={14} />
+                                Kilpailuta urakka
+                              </Button>
+                            </div>
+                          )}
+
+                        {col.id === "EXECUTION" &&
+                          item.type === "PROJECT" &&
+                          item.meta?.signatureStatus !== "SIGNED" && (
+                            <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-xl flex items-start gap-2">
+                              <ShieldAlert
+                                size={16}
+                                className="text-red-600 shrink-0 mt-0.5"
+                              />
+                              <div>
+                                <p className="text-[10px] font-black uppercase text-red-600">
+                                  Guardrail-varoitus
+                                </p>
+                                <p className="text-[9px] text-red-700 font-medium italic leading-tight">
+                                  YSE 1998 -sopimusta ei ole vielä
+                                  allekirjoitettu.
+                                </p>
+                              </div>
+                            </div>
+                          )}
                       </CardHeader>
 
                       <div className="px-4 pb-4 mt-2">
@@ -471,6 +546,14 @@ export function OpsKanbanBoard({ items: initialItems }: OpsBoardProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bidding Modal */}
+      <BiddingModal
+        observationId={selectedObservation?.id || null}
+        projectId={selectedObservation?.projectId || null}
+        userId={userId}
+        onClose={() => setSelectedObservation(null)}
+      />
     </div>
   );
 }

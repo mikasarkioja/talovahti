@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { Tender, TenderBid, TenderStatus } from "@prisma/client";
+import { Tender, TenderBid } from "@prisma/client";
 import {
   CheckCircle2,
   Star,
@@ -24,6 +24,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { selectWinningBid, runAIAnalysis } from "@/app/actions/tender-actions";
+import { acceptBidAction } from "@/app/actions/contract-actions";
 import { Brain, ShieldAlert, Loader2 } from "lucide-react";
 
 interface Props {
@@ -58,6 +59,7 @@ export function BiddingComparisonUI({ tender, userId }: Props) {
   const handleSelectBid = async (bidId: string) => {
     setIsPending(true);
     try {
+      // 1. Mark as selected (Preliminary decision)
       const res = await selectWinningBid({
         tenderId: tender.id,
         bidId,
@@ -66,11 +68,25 @@ export function BiddingComparisonUI({ tender, userId }: Props) {
       });
 
       if (res.success) {
-        toast.success("Tarjous valittu!", {
-          description:
-            "Digitaalinen allekirjoitusprosessi käynnistetty (Visma Sign). +100 XP ansaittu hyvästä hallintotavasta.",
+        // 2. Formally accept and generate contract
+        const acceptRes = await acceptBidAction({
+          tenderId: tender.id,
+          bidId,
+          userId,
         });
-        setSelectedBidId(bidId);
+
+        if (acceptRes.success) {
+          toast.success("Tarjous valittu ja sopimus luotu!", {
+            description:
+              "YSE 1998 -sopimus on lähetetty urakoitsijalle allekirjoitettavaksi. +100 XP ansaittu.",
+          });
+          setSelectedBidId(bidId);
+          if (acceptRes.magicLink) {
+            console.log("Contract Magic Link:", acceptRes.magicLink);
+          }
+        } else {
+          toast.error(acceptRes.error || "Sopimuksen luonti epäonnistui.");
+        }
       } else {
         toast.error(res.error || "Valinta epäonnistui.");
       }
@@ -248,9 +264,10 @@ export function BiddingComparisonUI({ tender, userId }: Props) {
                 <div className="flex items-center gap-2 text-slate-500 font-medium">
                   <Clock size={14} />
                   <span>
-                    {bid.durationDays
-                      ? `${Math.round(bid.durationDays / 30)} kk`
-                      : "N/A"}
+                    {bid.durationText ||
+                      (bid.durationDays
+                        ? `${Math.round(bid.durationDays / 30)} kk`
+                        : "N/A")}
                   </span>
                 </div>
               </TableCell>

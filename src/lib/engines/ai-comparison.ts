@@ -61,4 +61,38 @@ export const AIComparisonEngine = {
 
     return { summary, results: analysisResults };
   },
+
+  /**
+   * Generates a professional RFP summary based on an expert's observation.
+   */
+  async getAiRfpSummary(observationId: string) {
+    const observation = await prisma.observation.findUnique({
+      where: { id: observationId },
+      include: { assessment: true },
+    });
+
+    if (!observation) throw new Error("Observation not found");
+
+    const category = observation.component;
+    const verdict =
+      observation.technicalVerdict ||
+      observation.assessment?.technicalVerdict ||
+      "Ei määritelty";
+
+    // Mocking LLM RFP generation
+    return `
+URAKKAPYYNTÖ: ${category.toUpperCase()}
+KOHTEEN KUVAUS:
+Taloyhtiössä on havaittu tarve korjaukselle kohteessa "${category}". 
+Teknisen asiantuntijan arvio: "${verdict}".
+
+VAATIMUKSET:
+- Työ on suoritettava YSE 1998 mukaisesti.
+- Urakoitsijalla on oltava voimassa olevat vastuuvakuutukset.
+- Referenssit vastaavista kohteista katsotaan eduksi.
+
+PYYDETTY TOIMENPIDE:
+Toimittakaa kiinteähintainen tarjous sisältäen materiaalit, työn ja mahdolliset lisäkulut.
+    `.trim();
+  },
 };

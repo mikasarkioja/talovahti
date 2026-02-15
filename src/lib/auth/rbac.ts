@@ -97,6 +97,12 @@ export const RBAC = {
     reason: string,
     ip?: string,
   ) {
+    // Fetch user for apartment context if available
+    const user = await prisma.user.findUnique({
+      where: { id: actorId },
+      select: { apartmentNumber: true },
+    });
+
     await prisma.gDPRLog.create({
       data: {
         actorId,
@@ -115,7 +121,11 @@ export const RBAC = {
         userId: actorId,
         action: `${action}:${resource.split(":")[0]}`,
         targetId: resource.split(":")[1] || null,
-        metadata: { reason, resource },
+        metadata: {
+          reason,
+          resource,
+          apartmentNumber: user?.apartmentNumber || "N/A",
+        },
       },
     });
   },

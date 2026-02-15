@@ -426,6 +426,7 @@ model Project {
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
   description      String?
+  unitIdentifier   String?
   observationId    String?              @unique
   signatureStatus  SignatureStatus?
   signatureUuid    String?              @unique
@@ -443,6 +444,7 @@ model Project {
   housingCompany   HousingCompany       @relation(fields: [housingCompanyId], references: [id])
   siteReports      SiteReport[]
   tenders          Tender[]
+  bidInvitations   BidInvitation[]
 
   @@index([housingCompanyId, status])
   @@map("projects")
@@ -526,12 +528,14 @@ model Tender {
 model TenderBid {
   id                String   @id @default(cuid())
   tenderId          String
+  vendorId          String?
   companyName       String
   price             Float
-  startDate         DateTime
-  endDate           DateTime
+  startDate         DateTime @default(now())
+  endDate           DateTime @default(now())
   durationDays      Int?
-  creditRating      String
+  durationText      String?
+  creditRating      String   @default("A")
   residentRating    Float?
   riskScore         Float?
   warrantyYears     Int?
@@ -549,8 +553,10 @@ model TenderBid {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   tender            Tender   @relation(fields: [tenderId], references: [id])
+  vendor            Vendor?  @relation(fields: [vendorId], references: [id])
 
   @@index([tenderId])
+  @@index([vendorId])
   @@map("tender_bids")
 }
 
@@ -561,8 +567,10 @@ model Vendor {
   serviceArea  String[]
   email        String?              @unique
   bids         Bid[]
+  tenderBids   TenderBid[]
   observations Observation[]
   accessTokens ProjectAccessToken[]
+  bidInvitations BidInvitation[]
   users        User[]
 
   @@map("vendors")
@@ -584,6 +592,22 @@ model Bid {
   @@index([vendorId])
   @@index([projectId])
   @@map("bids")
+}
+
+model BidInvitation {
+  id        String    @id @default(cuid())
+  projectId String
+  vendorId  String
+  token     String    @unique
+  sentAt    DateTime  @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
+  project   Project   @relation(fields: [projectId], references: [id])
+  vendor    Vendor    @relation(fields: [vendorId], references: [id])
+
+  @@index([projectId])
+  @@index([vendorId])
+  @@map("bid_invitations")
 }
 
 model ProjectAccessToken {
@@ -1413,8 +1437,11 @@ enum ProjectStatus {
   DIAGNOSIS
   ROI_ANALYSIS
   TENDERING
+  MARKETPLACE
+  BIDDING
   TECH_LEAD
   CONSTRUCTION
+  CONTRACT
   WARRANTY
   COMPLETED
   PLANNING

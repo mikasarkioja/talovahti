@@ -48,7 +48,7 @@ export default async function OpsPage(props: {
       </header>
 
       <div className="flex-1 -mx-8 px-8 overflow-hidden">
-        <OpsKanbanBoard items={items} />
+        <OpsKanbanBoard items={items} userId={user.id} />
       </div>
     </div>
   );

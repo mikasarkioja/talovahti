@@ -128,4 +128,76 @@ export const gamification = {
 
     return profile;
   },
+
+  /**
+   * Rewards the board for initiating a competitive tender.
+   * +150 XP boost for "Hankkeen valmistelusta".
+   */
+  async rewardBoardForProjectPrep(housingCompanyId: string) {
+    const profile = await prisma.boardProfile.upsert({
+      where: { housingCompanyId },
+      create: { housingCompanyId, totalXP: 150, level: 1 },
+      update: {
+        totalXP: { increment: 150 },
+      },
+    });
+
+    // Check for level up
+    const newTotalXP = profile.totalXP + 150;
+    const newLevel = Math.floor(newTotalXP / 1000) + 1;
+
+    await prisma.boardProfile.update({
+      where: { id: profile.id },
+      data: { level: newLevel },
+    });
+
+    return profile;
+  },
+
+  /**
+   * Rewards the board for completing a project.
+   * +500 XP boost and "Hanke valmis" achievement.
+   */
+  async rewardBoardForProjectCompletion(housingCompanyId: string) {
+    const profile = await prisma.boardProfile.upsert({
+      where: { housingCompanyId },
+      create: {
+        housingCompanyId,
+        totalXP: 500,
+        level: 1,
+        achievements: [
+          {
+            slug: "project-completed",
+            name: "Hanke valmis",
+            description:
+              "Hallitus on vienyt rakennushankkeen onnistuneesti loppuun.",
+            date: new Date(),
+          },
+        ],
+      },
+      update: {
+        totalXP: { increment: 500 },
+        achievements: {
+          push: {
+            slug: "project-completed",
+            name: "Hanke valmis",
+            description:
+              "Hallitus on vienyt rakennushankkeen onnistuneesti loppuun.",
+            date: new Date(),
+          },
+        },
+      },
+    });
+
+    // Check for level up
+    const newLevel = Math.floor(profile.totalXP / 1000) + 1;
+    if (newLevel > profile.level) {
+      await prisma.boardProfile.update({
+        where: { id: profile.id },
+        data: { level: newLevel },
+      });
+    }
+
+    return profile;
+  },
 };

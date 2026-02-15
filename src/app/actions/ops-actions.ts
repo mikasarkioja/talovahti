@@ -9,7 +9,11 @@ import {
   TicketType,
   TicketCategory,
   TriageLevel,
+  ProjectStatus,
 } from "@prisma/client";
+import { AIComparisonEngine } from "@/lib/engines/ai-comparison";
+import { gamification } from "@/lib/engines/gamification";
+import { ExpertMarketplace } from "@/lib/engines/expert-marketplace";
 
 export type KanbanItem = {
   id: string;
@@ -22,12 +26,13 @@ export type KanbanItem = {
   huoltoNotes?: string | null;
   apartmentId?: string | null;
   stage:
-    | "INBOX"
+    | "TRIAGE"
     | "ASSESSMENT"
-    | "MARKETPLACE"
+    | "TENDERING"
+    | "CONTRACT"
     | "EXECUTION"
     | "VERIFICATION"
-    | "DONE";
+    | "ARCHIVE";
   priority: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
   type: "TICKET" | "OBSERVATION" | "PROJECT";
   date: Date;
@@ -65,7 +70,7 @@ export async function getOpsBoardItems(userId: string): Promise<KanbanItem[]> {
       triageLevel: t.triageLevel,
       huoltoNotes: t.huoltoNotes,
       apartmentId: t.apartmentId,
-      stage: "INBOX",
+      stage: "TRIAGE",
       priority: t.priority as KanbanItem["priority"],
       type: "TICKET",
       date: t.createdAt,
@@ -73,6 +78,7 @@ export async function getOpsBoardItems(userId: string): Promise<KanbanItem[]> {
         hasLocation: !!t.apartment?.attributes,
         locationData: t.apartment?.attributes,
         isPublic: t.isPublic,
+        apartmentNumber: t.createdBy.apartmentNumber,
       },
     }),
   );
@@ -99,12 +105,15 @@ export async function getOpsBoardItems(userId: string): Promise<KanbanItem[]> {
       priority: t.priority as KanbanItem["priority"],
       type: "TICKET",
       date: t.createdAt,
+      meta: {
+        apartmentNumber: t.createdBy.apartmentNumber,
+      },
     }),
   );
 
   const observations = await prisma.observation.findMany({
     where: { status: { in: ["OPEN", "REVIEWED"] } },
-    include: { ticket: true },
+    include: { ticket: true, user: true },
   });
 
   observations.forEach((o) => {
@@ -116,7 +125,7 @@ export async function getOpsBoardItems(userId: string): Promise<KanbanItem[]> {
       title: o.component,
       subtitle: hasVerdict ? "Asiantuntija arvioinut" : "Odottaa arviota",
       status: o.status,
-      stage: hasVerdict ? "MARKETPLACE" : "ASSESSMENT",
+      stage: hasVerdict ? "TENDERING" : "ASSESSMENT",
       priority:
         o.severityGrade === 1
           ? "CRITICAL"
@@ -128,16 +137,21 @@ export async function getOpsBoardItems(userId: string): Promise<KanbanItem[]> {
       meta: {
         verdict: o.technicalVerdict,
         hasLocation: !!o.location,
+        apartmentNumber: o.user.apartmentNumber,
       },
     });
   });
 
-  // 3. EXECUTION (Active Projects)
+  // 3. EXECUTION & ARCHIVE (Active and Completed Projects)
   const projects = await prisma.project.findMany({
-    where: { status: { not: "COMPLETED" } },
+    where: { status: { not: "PLANNING" } },
     include: {
       observation: true,
       milestones: true,
+      tenders: {
+        where: { type: "CONSTRUCTION" },
+        take: 1,
+      },
       _count: {
         select: { bids: true },
       },
@@ -146,8 +160,20 @@ export async function getOpsBoardItems(userId: string): Promise<KanbanItem[]> {
 
   projects.forEach((p) => {
     let stage: KanbanItem["stage"] = "EXECUTION";
-    if (p.status === "TENDERING") stage = "MARKETPLACE";
+    if (
+      p.status === "MARKETPLACE" ||
+      p.status === "BIDDING" ||
+      p.status === "TENDERING"
+    )
+      stage = "TENDERING";
+    if (p.status === "DIAGNOSIS" || p.status === "ROI_ANALYSIS")
+      stage = "ASSESSMENT";
     if (p.status === "WARRANTY") stage = "VERIFICATION";
+    if (p.status === "COMPLETED") stage = "ARCHIVE";
+
+    // Add CONTRACT stage logic
+    if (p.status === "CONTRACT" || p.signatureStatus === "PENDING")
+      stage = "CONTRACT";
 
     items.push({
       id: p.id,
@@ -156,11 +182,14 @@ export async function getOpsBoardItems(userId: string): Promise<KanbanItem[]> {
         {
           PLANNED: "Suunnitteilla",
           TENDERING: "Kilpailutuksessa",
+          MARKETPLACE: "Kilpailutuksessa",
+          BIDDING: "Tarjousvaihe",
           PLANNING: "Suunnittelussa",
           EXECUTION: "Käynnissä",
           WARRANTY: "Takuuvaihe",
           COMPLETED: "Valmis",
           CONSTRUCTION: "Rakennusvaihe",
+          CONTRACT: "Sopimusvaihe",
           DIAGNOSIS: "Kuntoarvio",
           ROI_ANALYSIS: "Analyysi",
           TECH_LEAD: "Suunnittelussa",
@@ -174,6 +203,8 @@ export async function getOpsBoardItems(userId: string): Promise<KanbanItem[]> {
       meta: {
         bidCount: p._count.bids,
         hasLocation: !!p.observation?.location,
+        signatureStatus: p.signatureStatus,
+        aiAnalysisSummary: p.tenders[0]?.aiAnalysisSummary,
       },
     });
   });
@@ -378,6 +409,202 @@ export async function completeProject(projectId: string) {
   });
   revalidatePath("/admin/ops");
   return { success: true };
+}
+
+/**
+ * Transition action: Starts a construction tender (MARKETPLACE).
+ * Triggers AI RFQ generation and rewards board with +150 XP.
+ */
+export async function startConstructionTender(
+  observationId: string,
+  userId: string,
+) {
+  try {
+    const observation = await prisma.observation.findUnique({
+      where: { id: observationId },
+      include: { housingCompany: true, ticket: true },
+    });
+
+    if (!observation) throw new Error("Havaintoa ei löytynyt.");
+
+    // 1. Create or Update Project
+    let project = await prisma.project.findUnique({
+      where: { observationId: observationId },
+    });
+
+    if (!project) {
+      project = await prisma.project.create({
+        data: {
+          title: `Urakka: ${observation.component}`,
+          type: "CONSTRUCTION",
+          status: "MARKETPLACE",
+          observationId: observationId,
+          housingCompanyId: observation.housingCompanyId,
+          unitIdentifier: observation.ticket?.unitIdentifier || "Yleiset tilat",
+          tenders: {
+            create: {
+              type: "CONSTRUCTION",
+              status: "OPEN",
+            },
+          },
+        },
+      });
+    } else {
+      await prisma.project.update({
+        where: { id: project.id },
+        data: {
+          status: "MARKETPLACE",
+          unitIdentifier:
+            observation.ticket?.unitIdentifier ||
+            project.unitIdentifier ||
+            "Yleiset tilat",
+        },
+      });
+      // Ensure tender exists
+      const existingTender = await prisma.tender.findFirst({
+        where: { projectId: project.id, type: "CONSTRUCTION" },
+      });
+      if (!existingTender) {
+        await prisma.tender.create({
+          data: {
+            projectId: project.id,
+            type: "CONSTRUCTION",
+            status: "OPEN",
+          },
+        });
+      }
+    }
+
+    // 2. AI RFQ Generation
+    const rfqSummary = await AIComparisonEngine.getAiRfpSummary(observationId);
+
+    // Update project with description from AI
+    await prisma.project.update({
+      where: { id: project.id },
+      data: { description: rfqSummary },
+    });
+
+    // 3. XP Reward
+    await gamification.rewardBoardForProjectPrep(observation.housingCompanyId);
+
+    // 4. Audit Log
+    await RBAC.auditAccess(
+      userId,
+      "WRITE",
+      `Project:${project.id}`,
+      `Hallitus käynnisti urakkakilpailutuksen asunnon ${observation.ticket?.unitIdentifier || "Yleiset tilat"} vikailmoituksen pohjalta. Hallitukselle annettu +150 XP.`,
+    );
+
+    revalidatePath("/admin/ops");
+    return { success: true, projectId: project.id, rfqSummary };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Tuntematon virhe",
+    };
+  }
+}
+
+/**
+ * Action Hook: Sends bid invitations to matched vendors.
+ */
+export async function sendBidInvitations(data: {
+  projectId: string;
+  vendorIds: string[];
+  userId: string;
+}) {
+  try {
+    const project = await prisma.project.findUnique({
+      where: { id: data.projectId },
+      include: { housingCompany: true },
+    });
+
+    if (!project) throw new Error("Projektia ei löytynyt.");
+
+    // 1. Create BidInvitations and Magic Links
+    const invitations = [];
+    for (const vendorId of data.vendorIds) {
+      const token = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // 14 days
+
+      // If vendorId starts with 'v', it's a mock ID from ExpertMarketplace,
+      // in real app we'd need to create the vendor or have them in DB.
+      // For this demo, we'll try to find or create a placeholder vendor if it doesn't exist.
+      let vendor;
+      if (vendorId.startsWith("v")) {
+        vendor = await prisma.vendor.findFirst({
+          where: { name: { contains: vendorId } },
+        });
+        if (!vendor) {
+          vendor = await prisma.vendor.create({
+            data: {
+              name: `Marketplace Vendor ${vendorId}`,
+              category: "CONSTRUCTION",
+            },
+          });
+        }
+      } else {
+        vendor = await prisma.vendor.findUnique({ where: { id: vendorId } });
+      }
+
+      if (vendor) {
+        await prisma.bidInvitation.create({
+          data: {
+            projectId: data.projectId,
+            vendorId: vendor.id,
+            token,
+            expiresAt,
+          },
+        });
+        invitations.push({
+          vendorName: vendor.name,
+          magicLink: `/bid/${token}`,
+        });
+      }
+    }
+
+    // 2. Update Project Status to BIDDING
+    await prisma.project.update({
+      where: { id: data.projectId },
+      data: { status: "BIDDING" },
+    });
+
+    // 3. Audit Log
+    await RBAC.auditAccess(
+      data.userId,
+      "WRITE",
+      `Project:${data.projectId}`,
+      `Tarjouspyynnöt lähetetty ${invitations.length} urakoitsijalle. Projektin tila: BIDDING.`,
+    );
+
+    revalidatePath("/admin/ops");
+    return { success: true, invitations };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Tuntematon virhe",
+    };
+  }
+}
+
+/**
+ * Fetches matching vendors for an observation.
+ */
+export async function getMatchingVendors(observationId: string) {
+  try {
+    const observation = await prisma.observation.findUnique({
+      where: { id: observationId },
+    });
+    if (!observation) throw new Error("Havaintoa ei löytynyt.");
+
+    const vendors = await ExpertMarketplace.getMatchingVendors(
+      observation.component,
+    );
+    return { success: true, vendors };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Tuntematon virhe";
+    return { success: false, error: message };
+  }
 }
 
 export async function createTicket(data: {

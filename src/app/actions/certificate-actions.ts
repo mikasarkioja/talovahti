@@ -1,61 +1,83 @@
+// src/app/actions/certificate-actions.ts
 "use server";
 
-import { stripe } from "@/lib/services/stripe";
 import { prisma } from "@/lib/db";
-import { OrderType, OrderStatus } from "@prisma/client";
-import { revalidatePath } from "next/cache";
+import { stripe } from "@/lib/services/stripe";
+import { RBAC } from "@/lib/auth/rbac";
 
 /**
- * Creates a Stripe Checkout session for ordering a Property Manager's Certificate.
+ * Creates a Stripe checkout session for an apartment certificate (Isännöitsijäntodistus).
  */
 export async function createCertificateCheckoutAction(
   userId: string,
-  housingCompanyId: string,
+  companyId: string,
 ) {
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: { apartment: true },
+      select: { apartmentNumber: true, email: true },
     });
 
     if (!user) throw new Error("Käyttäjää ei löytynyt.");
 
-    const amount = 4500; // 45.00 EUR in cents
-
-    // 1. Create Checkout Session (Mock)
-    const baseUrl = process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
-    const checkoutSession = await stripe.createCheckoutSession({
+    const session = await stripe.createCheckoutSession({
       userId,
-      amount,
-      productName: "Isännöitsijäntodistus - Reaaliaikainen",
-      successUrl: `${baseUrl}/admin/certificate?session_id={CHECKOUT_SESSION_ID}&user=${user.email}`,
-      cancelUrl: `${baseUrl}/finance`,
+      amount: 4500, // 45.00 EUR in cents
+      productName: `Isännöitsijäntodistus - Asunto ${user.apartmentNumber || "N/A"}`,
       metadata: {
+        type: "CERTIFICATE",
         userId,
-        housingCompanyId,
-        type: "CERTIFICATE_ORDER",
+        companyId,
+        apartmentNumber: user.apartmentNumber || "N/A",
       },
+      successUrl: `${process.env.NEXT_PUBLIC_APP_URL}/resident?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL}/resident?canceled=true`,
     });
 
-    // 2. Create pending Order in DB
-    await prisma.order.create({
-      data: {
-        userId,
-        housingCompanyId,
-        type: OrderType.CERTIFICATE,
-        amount: 45.0,
-        platformRevenue: 45.0, // 100% commission as requested
-        status: OrderStatus.PENDING,
-        metadata: JSON.stringify({
-          product: "Isännöitsijäntodistus",
-          sessionId: checkoutSession.id,
-        }),
-      },
-    });
+    // Log the order attempt
+    await RBAC.auditAccess(
+      userId,
+      "READ",
+      `HousingCompany:${companyId}:Certificate`,
+      `Isännöitsijäntodistuksen tilaus aloitettu asunnolle ${user.apartmentNumber || "N/A"}`,
+    );
 
-    return { success: true, url: checkoutSession.url };
+    return { success: true, url: session.url };
   } catch (error) {
     console.error("Certificate Checkout Error:", error);
-    return { success: false, error: "Maksutapahtuman aloitus epäonnistui." };
+    return { success: false, error: "Tilauksen luonti epäonnistui." };
+  }
+}
+
+/**
+ * Finalizes a contract after bid selection (moved from old snippet and corrected)
+ * Note: Real logic is now handled in contract-actions.ts but kept for compatibility
+ */
+export async function finalizeContract(bidId: string, userId: string) {
+  try {
+    const bid = await prisma.tenderBid.findUnique({
+      where: { id: bidId },
+      include: {
+        tender: { include: { project: true } },
+        vendor: true,
+      },
+    });
+
+    if (!bid) throw new Error("Tarjousta ei löytynyt");
+
+    // Logic now handled in contract-actions.ts
+    // This is a placeholder for any certificate-related finalization if needed
+
+    await RBAC.auditAccess(
+      userId,
+      "WRITE",
+      `Tender:${bid.tenderId}`,
+      `Sopimusprosessi aloitettu tarjoukselle ${bidId}`,
+    );
+
+    return { success: true };
+  } catch (error) {
+    console.error("Finalize Contract Error:", error);
+    return { success: false, error: "Sopimuksen vahvistus epäonnistui." };
   }
 }

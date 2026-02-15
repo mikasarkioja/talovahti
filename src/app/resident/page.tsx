@@ -106,7 +106,7 @@ export default async function ResidentDashboardPage(props: {
               Oma asunto
             </p>
             <p className="text-sm font-bold text-slate-900">
-              {user.apartmentId || "Ei määritetty"}
+              {user.apartmentNumber || "Ei määritetty"}
             </p>
           </div>
           <div className="w-12 h-12 bg-white rounded-2xl border border-slate-200 flex items-center justify-center shadow-sm">

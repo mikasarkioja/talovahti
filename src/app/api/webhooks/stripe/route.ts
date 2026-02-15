@@ -12,11 +12,18 @@ export async function POST(req: NextRequest) {
 
     if (!secret) {
       console.error("STRIPE_WEBHOOK_SECRET is not set");
-      return NextResponse.json({ error: "Configuration error" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Configuration error" },
+        { status: 500 },
+      );
     }
 
     // 1. Verify Webhook Signature (Mock)
-    const isValid = await stripe.verifyWebhookSignature(rawBody, signature || "", secret);
+    const isValid = await stripe.verifyWebhookSignature(
+      rawBody,
+      signature || "",
+      secret,
+    );
     if (!isValid) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
@@ -26,17 +33,17 @@ export async function POST(req: NextRequest) {
       const session = body.data.object;
       const { userId, housingCompanyId, type } = session.metadata;
 
-      if (type === "CERTIFICATE_ORDER") {
+      if (type === "CERTIFICATE") {
         await prisma.$transaction(async (tx) => {
           // Update Order Status
           await tx.order.updateMany({
-            where: { 
-              userId, 
+            where: {
+              userId,
               housingCompanyId,
               status: OrderStatus.PENDING,
-              metadata: { contains: session.id }
+              metadata: { contains: session.id },
             },
-            data: { status: OrderStatus.PAID }
+            data: { status: OrderStatus.PAID },
           });
 
           // Create Audit Log
@@ -48,9 +55,9 @@ export async function POST(req: NextRequest) {
               metadata: {
                 amount: 45.0,
                 message: "Asukas osti isännöitsijäntodistuksen.",
-                sessionId: session.id
-              }
-            }
+                sessionId: session.id,
+              },
+            },
           });
         });
       }
@@ -59,6 +66,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error("Stripe Webhook Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

@@ -144,6 +144,11 @@ export function BoardTriageCard({
               <CardTitle className="text-sm font-bold text-slate-900">
                 {item.title}
               </CardTitle>
+              {(item.meta?.apartmentNumber as string) && (
+                <Badge variant="outline" className="text-[9px] h-4 px-1">
+                  Asunto {item.meta?.apartmentNumber as string}
+                </Badge>
+              )}
               {isHighRisk && (
                 <Badge
                   variant="destructive"
