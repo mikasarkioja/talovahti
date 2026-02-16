@@ -9,6 +9,7 @@ import {
   ChevronRight,
   ShieldCheck,
   Users,
+  Box,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -344,6 +345,19 @@ export default async function ResidentDashboardPage(props: {
               Pikavalinnat
             </h2>
             <div className="grid grid-cols-1 gap-3">
+              <Link href="/digital-twin">
+                <Button className="w-full justify-start gap-3 h-14 bg-gradient-to-r from-blue-600 to-brand-navy hover:from-blue-700 hover:to-slate-900 text-white rounded-xl shadow-lg shadow-blue-900/20">
+                  <Box size={20} className="text-brand-emerald" />
+                  <div className="text-left">
+                    <p className="text-xs font-black uppercase tracking-widest leading-none">
+                      Digitaalinen Kaksonen
+                    </p>
+                    <p className="text-[10px] opacity-70 font-medium">
+                      Tutki taloa 3D-muodossa
+                    </p>
+                  </div>
+                </Button>
+              </Link>
               <Link href="/resident/initiatives">
                 <Button className="w-full justify-start gap-3 h-14 bg-brand-navy hover:bg-slate-800 text-white rounded-xl shadow-lg shadow-slate-200">
                   <Users size={20} />

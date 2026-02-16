@@ -34,6 +34,8 @@ export function UserSwitcher() {
       getTestUsers().then((res) => {
         if (res.success && res.users) {
           setUsers(res.users);
+        } else {
+          console.error("UserSwitcher: Failed to fetch test users", res.error);
         }
       });
     }

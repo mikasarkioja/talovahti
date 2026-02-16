@@ -130,7 +130,10 @@ export default async function InitiativesPage(props: {
                         <p className="text-xs font-bold text-slate-500">
                           {init.supporters.reduce(
                             (sum: number, s: any) =>
-                              sum + (s.user.apartment?.shareCount || 0),
+                              sum +
+                              (s.user.role === "RESIDENT"
+                                ? 0
+                                : s.user.apartment?.shareCount || 0),
                             0,
                           )}{" "}
                           ääntä
@@ -157,7 +160,7 @@ export default async function InitiativesPage(props: {
                       <div
                         className="h-full bg-brand-emerald transition-all duration-1000"
                         style={{
-                          width: `${Math.min(100, (init.supporters.reduce((sum: number, s: any) => sum + (s.user.apartment?.shareCount || 0), 0) / init.requiredSupport) * 100)}%`,
+                          width: `${Math.min(100, (init.supporters.reduce((sum: number, s: any) => sum + (s.user.role === "RESIDENT" ? 0 : s.user.apartment?.shareCount || 0), 0) / init.requiredSupport) * 100)}%`,
                         }}
                       />
                     </div>

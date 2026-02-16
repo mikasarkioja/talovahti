@@ -52,7 +52,6 @@ model HousingCompany {
   invoices               Invoice[]
   loanApplications       LoanApplication[]
   documents              MeetingDocument[]
-  statutoryDocuments     StatutoryDocument[]
   meetings               Meeting[]
   mmlSyncLogs            MMLSyncLog[]
   monthlyFees            MonthlyFee[]
@@ -63,6 +62,7 @@ model HousingCompany {
   resources              Resource[]
   partners               ServicePartner[]
   shareholders           Shareholder[]
+  statutoryDocuments     StatutoryDocument[]
   subscription           Subscription?
   surveys                Survey[]
   tickets                Ticket[]
@@ -119,12 +119,11 @@ model User {
   language                String              @default("fi")
   notificationPreferences Json?
   phone                   String?
-  apartmentNumber         String?
   expertId                String?
   vendorId                String?
   shareholderId           String?
+  apartmentNumber         String?
   xp                      Int                 @default(0)
-  renovations             Renovation[]
   auditLogs               AuditLog[]
   bookings                Booking[]
   comments                Comment[]
@@ -136,6 +135,7 @@ model User {
   observations            Observation[]
   orders                  Order[]
   pollVotes               PollVote[]
+  renovations             Renovation[]
   surveyResponses         SurveyResponse[]
   createdTickets          Ticket[]
   apartment               Apartment?          @relation(fields: [apartmentId], references: [id])
@@ -241,13 +241,13 @@ model Ticket {
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
   observationId       String?        @unique
-  unitIdentifier      String?
-  imageUrl            String?
-  accessInfo          String?
   huoltoNotes         String?
   isPublic            Boolean        @default(false)
   triageLevel         TriageLevel    @default(ROUTINE)
   category            TicketCategory @default(MAINTENANCE)
+  unitIdentifier      String?
+  accessInfo          String?
+  imageUrl            String?
   apartment           Apartment?     @relation(fields: [apartmentId], references: [id])
   createdBy           User           @relation(fields: [createdById], references: [id])
   housingCompany      HousingCompany @relation(fields: [housingCompanyId], references: [id])
@@ -260,26 +260,26 @@ model Ticket {
 }
 
 model Renovation {
-  id               String             @id @default(cuid())
+  id               String                 @id @default(cuid())
   component        String
   yearDone         Int?
   plannedYear      Int?
-  cost             Float?             @default(0)
-  expectedLifeSpan Int?               @default(0)
+  cost             Float?                 @default(0)
+  expectedLifeSpan Int?                   @default(0)
   description      String?
-  status           RenovationStatus   @default(COMPLETED)
-  category         RenovationCategory @default(SURFACE)
+  status           RenovationStatus       @default(COMPLETED)
+  housingCompanyId String
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  category         RenovationCategory     @default(SURFACE)
   contractorInfo   String?
   schedule         String?
   triageStatus     RenovationTriageStatus @default(PENDING)
-  aiAssessment     String?
   userId           String?
-  housingCompanyId String
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  aiAssessment     String?
   assessments      ExpertAssessment[]
-  housingCompany   HousingCompany     @relation(fields: [housingCompanyId], references: [id])
-  user             User?              @relation(fields: [userId], references: [id])
+  housingCompany   HousingCompany         @relation(fields: [housingCompanyId], references: [id])
+  user             User?                  @relation(fields: [userId], references: [id])
 
   @@index([housingCompanyId])
   @@index([userId])
@@ -427,11 +427,12 @@ model Project {
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
   description      String?
-  unitIdentifier   String?
   observationId    String?              @unique
   signatureStatus  SignatureStatus?
   signatureUuid    String?              @unique
   warrantyEndDate  DateTime?
+  unitIdentifier   String?
+  bidInvitations   BidInvitation[]
   bids             Bid[]
   updates          BuildingUpdate[]
   changeOrders     ChangeOrder[]
@@ -445,7 +446,6 @@ model Project {
   housingCompany   HousingCompany       @relation(fields: [housingCompanyId], references: [id])
   siteReports      SiteReport[]
   tenders          Tender[]
-  bidInvitations   BidInvitation[]
 
   @@index([housingCompanyId, status])
   @@map("projects")
@@ -510,51 +510,51 @@ model PollVote {
 }
 
 model Tender {
-  id                        String       @id @default(cuid())
-  projectId                 String
-  type                      TenderType
-  status                    TenderStatus @default(OPEN)
-  createdAt                 DateTime     @default(now())
-  updatedAt                 DateTime     @updatedAt
-  expertRecommendationId    String?
+  id                         String       @id @default(cuid())
+  projectId                  String
+  type                       TenderType
+  status                     TenderStatus @default(OPEN)
+  createdAt                  DateTime     @default(now())
+  updatedAt                  DateTime     @updatedAt
+  expertRecommendationId     String?
   expertRecommendationReason String?
   aiAnalysisSummary          String?
-  bids                      TenderBid[]
-  project                   Project      @relation(fields: [projectId], references: [id])
+  bids                       TenderBid[]
+  project                    Project      @relation(fields: [projectId], references: [id])
 
   @@index([projectId])
   @@map("tenders")
 }
 
 model TenderBid {
-  id                String   @id @default(cuid())
-  tenderId          String
-  vendorId          String?
-  companyName       String
-  price             Float
-  startDate         DateTime @default(now())
-  endDate           DateTime @default(now())
-  durationDays      Int?
-  durationText      String?
-  creditRating      String   @default("A")
-  residentRating    Float?
-  riskScore         Float?
-  warrantyYears     Int?
-  status            String   @default("RECEIVED")
-  siteVisitsPerWeek Int?
-  livePhotosEnabled Boolean  @default(false)
-  notes             String?
-  pdfUrl            String?
-  isWinner          Boolean  @default(false)
-  supervisorRating  Int?
+  id                 String   @id @default(cuid())
+  tenderId           String
+  companyName        String
+  price              Float
+  startDate          DateTime @default(now())
+  endDate            DateTime @default(now())
+  durationDays       Int?
+  creditRating       String   @default("A")
+  residentRating     Float?
+  riskScore          Float?
+  warrantyYears      Int?
+  status             String   @default("RECEIVED")
+  siteVisitsPerWeek  Int?
+  livePhotosEnabled  Boolean  @default(false)
+  notes              String?
+  pdfUrl             String?
+  isWinner           Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
   supervisorComments String?
-  aiScore            Float?
+  supervisorRating   Int?
   aiRiskNote         String?
+  aiScore            Float?
   stripeCommission   Float?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  tender            Tender   @relation(fields: [tenderId], references: [id])
-  vendor            Vendor?  @relation(fields: [vendorId], references: [id])
+  durationText       String?
+  vendorId           String?
+  tender             Tender   @relation(fields: [tenderId], references: [id])
+  vendor             Vendor?  @relation(fields: [vendorId], references: [id])
 
   @@index([tenderId])
   @@index([vendorId])
@@ -562,17 +562,17 @@ model TenderBid {
 }
 
 model Vendor {
-  id           String               @id @default(cuid())
-  name         String
-  category     String
-  serviceArea  String[]
-  email        String?              @unique
-  bids         Bid[]
-  tenderBids   TenderBid[]
-  observations Observation[]
-  accessTokens ProjectAccessToken[]
+  id             String               @id @default(cuid())
+  name           String
+  category       String
+  serviceArea    String[]
+  email          String?              @unique
   bidInvitations BidInvitation[]
-  users        User[]
+  bids           Bid[]
+  observations   Observation[]
+  accessTokens   ProjectAccessToken[]
+  tenderBids     TenderBid[]
+  users          User[]
 
   @@map("vendors")
 }
@@ -829,13 +829,13 @@ model StatutoryDocument {
   id               String         @id @default(cuid())
   title            String
   fileUrl          String
-  category         String // e.g., "Yhtiöjärjestys", "Osakasluettelo", "Päätösasiakirja"
+  category         String
   isPermanent      Boolean        @default(true)
   metadata         Json?
   housingCompanyId String
-  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
+  housingCompany   HousingCompany @relation(fields: [housingCompanyId], references: [id])
 
   @@index([housingCompanyId, category])
   @@map("statutory_documents")
@@ -1331,10 +1331,10 @@ model StripeTransaction {
 
 enum UserRole {
   RESIDENT
-  SHAREHOLDER
   BOARD_MEMBER
   EXPERT
   ADMIN
+  SHAREHOLDER
 }
 
 enum SubscriptionPlan {
@@ -1439,15 +1439,15 @@ enum ProjectStatus {
   DIAGNOSIS
   ROI_ANALYSIS
   TENDERING
-  MARKETPLACE
-  BIDDING
   TECH_LEAD
   CONSTRUCTION
-  CONTRACT
   WARRANTY
   COMPLETED
   PLANNING
   EXECUTION
+  MARKETPLACE
+  BIDDING
+  CONTRACT
 }
 
 enum ProjectType {

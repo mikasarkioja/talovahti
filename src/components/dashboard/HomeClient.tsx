@@ -7,13 +7,10 @@ import {
   PenTool,
   Home,
   Activity,
-  Maximize2,
-  Minimize2,
+  Box,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { DecisionQueue, DecisionItem } from "@/components/dashboard/DecisionQueue";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
-import { BuildingModel } from "@/components/BuildingModel";
 import { PulseHero } from "@/components/dashboard/PulseHero";
 import { TicketTimeline } from "@/components/mobile/TicketTimeline";
 import {
@@ -28,24 +25,11 @@ import { DynastyPanel } from "@/components/dashboard/DynastyPanel";
 import { RoleGate } from "@/components/auth/RoleGate";
 import { TourOverlay } from "@/components/onboarding/TourOverlay";
 import { FEATURES } from "@/config/features";
-import { useState, Suspense, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
-function BuildingSkeleton() {
-  return (
-    <div className="w-full h-full bg-slate-50 flex items-center justify-center text-slate-300">
-      <div className="flex flex-col items-center gap-2">
-        <div className="w-12 h-12 rounded-full border-4 border-slate-200 border-t-brand-emerald animate-spin"></div>
-        <p className="text-xs font-medium uppercase tracking-widest">
-          Ladataan 3D-mallia...
-        </p>
-      </div>
-    </div>
-  );
-}
 
 interface Achievement {
   name: string;
@@ -107,8 +91,6 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
   }, [searchParams, router]);
 
   const [tourStep, setTourStep] = useState(1);
-  const [highlightId, setHighlightId] = useState<string | undefined>(undefined);
-  const [is3DExpanded, setIs3DExpanded] = useState(false);
 
   const isBoard =
     currentUser?.role === "BOARD_MEMBER" ||
@@ -150,13 +132,6 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
       xpReward: 50
     }))
   ];
-
-  const handleApartmentClick = (id: string) => {
-    if (tourStep === 3) {
-      setHighlightId(id);
-      setTourStep(4);
-    }
-  };
 
   if (!isBoard && currentUser?.role === "RESIDENT") {
     return (
@@ -243,7 +218,6 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
           onRoleSelect={() => {}}
           onComplete={() => {
             setTourStep(0);
-            setHighlightId(undefined);
           }}
         />
       )}
@@ -272,30 +246,26 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
             </section>
           )}
 
-          <section className={cn(
-            "bg-white rounded-2xl shadow-soft overflow-hidden border border-surface-greige/20 relative group transition-all duration-500",
-            is3DExpanded ? "h-[700px] z-40 fixed inset-4 md:inset-8" : "h-[300px]"
-          )}>
-            <div className="absolute top-4 left-4 z-10 bg-white/80 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-brand-navy shadow-sm flex items-center gap-2">
-              <Activity size={14} className="text-brand-emerald animate-pulse" />
-              Reaaliaikainen 3D-tilannekuva
+          <section className="bg-gradient-to-br from-blue-600 to-brand-navy rounded-3xl p-8 text-white shadow-xl relative overflow-hidden group">
+            <div className="relative z-10 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md">
+                  <Box size={24} className="text-brand-emerald" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold uppercase tracking-tight">Digitaalinen Kaksonen</h2>
+                  <p className="text-sm text-blue-100 opacity-80">Siirry tarkastelemaan yhtiön reaaliaikaista 3D-tilannekuvaa.</p>
+                </div>
+              </div>
+              <Link href="/digital-twin">
+                <Button className="bg-brand-emerald hover:bg-emerald-500 text-brand-navy font-black uppercase tracking-widest px-8 rounded-xl h-12 shadow-lg shadow-emerald-900/20 group-hover:scale-105 transition-all">
+                  Avaa 3D-malli
+                </Button>
+              </Link>
             </div>
-            
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-4 right-4 z-10 bg-white/80 backdrop-blur-md rounded-full shadow-sm hover:bg-white"
-              onClick={() => setIs3DExpanded(!is3DExpanded)}
-            >
-              {is3DExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-            </Button>
-
-            <Suspense fallback={<BuildingSkeleton />}>
-              <BuildingModel
-                onApartmentClick={handleApartmentClick}
-                highlightId={highlightId}
-              />
-            </Suspense>
+            <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Box size={200} />
+            </div>
           </section>
 
           {isBoard && FEATURES.STRATEGY_INSIGHTS && (

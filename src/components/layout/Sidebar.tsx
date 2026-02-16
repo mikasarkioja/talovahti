@@ -55,10 +55,11 @@ export function Sidebar() {
 
   const primaryItems = [
     {
-      href: currentUser?.role === "RESIDENT" ? "/resident" : "/",
+      href: currentUser?.role === "RESIDENT" || currentUser?.role === "SHAREHOLDER" ? "/resident" : "/",
       label: "Hallintapaneeli",
       icon: Home,
     },
+    { href: "/digital-twin", label: "Digitaalinen kaksonen", icon: Building2 },
     ...(isBoard
       ? [
           { href: "/finance", label: "Talous & Laskut", icon: Wallet },

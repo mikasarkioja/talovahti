@@ -26,8 +26,8 @@ export const RBAC = {
     // ADMIN has global access
     if (user.role === "ADMIN") return true;
 
-    // RESIDENT Logic
-    if (user.role === "RESIDENT") {
+    // RESIDENT & SHAREHOLDER Logic
+    if (user.role === "RESIDENT" || user.role === "SHAREHOLDER") {
       if (resourceType === "APARTMENT") return user.apartmentId === resourceId;
       if (resourceType === "READING") return user.apartmentId === resourceId;
       if (resourceType === "USER_DATA") return actorId === resourceId;
@@ -46,7 +46,7 @@ export const RBAC = {
         });
         return ticket?.createdById === actorId;
       }
-      // Cannot access FINANCE or BOARD_PROFILE
+      // SHAREHOLDER might have access to some FINANCE data in the future
       return false;
     }
 

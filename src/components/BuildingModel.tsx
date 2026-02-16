@@ -14,6 +14,8 @@ import {
   Calendar,
   Layers,
   Activity,
+  AlertCircle,
+  PlusCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBuildingXray } from "@/hooks/useBuildingXray";
@@ -21,6 +23,7 @@ import { BuildingGenerator, POI } from "@/lib/three/BuildingGenerator";
 import { HudCard } from "@/components/ui/hud-card";
 import { ApartmentMesh } from "./three/ApartmentMesh";
 import { InfrastructureMesh } from "./three/InfrastructureMesh";
+import Link from "next/link";
 
 function Roof({
   dimensions,
@@ -140,7 +143,7 @@ export function BuildingModel({
   onApartmentClick?: (id: string) => void;
   highlightId?: string;
 }) {
-  const { tickets, initiatives } = useStore();
+  const { tickets, initiatives, currentUser } = useStore();
   const { currentActiveQuarter, hoveredTask } = useTemporalStore();
   const { participatedApartmentIds } = useGovernanceStore();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -392,11 +395,24 @@ export function BuildingModel({
 
             {/* Apartments */}
             {apartments.map((apt) => {
+              // RBAC: Check if this is user's own apartment
+              const isOwnApartment =
+                currentUser?.apartmentId === apt.id ||
+                currentUser?.apartmentNumber === apt.id;
+              const isBoard =
+                currentUser?.role === "BOARD_MEMBER" ||
+                currentUser?.role === "ADMIN";
+
               // Status Logic
               const hasTicket = tickets.some(
-                (t) => t.apartmentId === apt.id && t.status !== "CLOSED",
+                (t) =>
+                  t.apartmentId === apt.id &&
+                  t.status !== "CLOSED" &&
+                  (isBoard || isOwnApartment),
               );
-              const activeVote = initiatives.some((i) => i.status === "VOTING");
+              const activeVote = initiatives.some(
+                (i) => i.status === "VOTING" && (isBoard || isOwnApartment),
+              );
 
               const isSelected = selectedAptId === apt.id;
               const isAnySelected = selectedAptId !== null;
@@ -518,27 +534,74 @@ export function BuildingModel({
                       ]}
                       center
                     >
-                      <div className="w-[200px] pointer-events-none">
+                      <div className="w-[220px] pointer-events-auto">
                         <HudCard title={apt.id}>
                           <div className="flex flex-col gap-2">
+                            {isOwnApartment && (
+                              <Badge className="bg-brand-emerald text-white text-[9px] w-fit mb-1">
+                                OMA ASUNTO
+                              </Badge>
+                            )}
                             <div className="flex justify-between text-xs">
-                              <span className="text-slate-500">Pinta-ala</span>
+                              <span className="text-slate-500 font-bold uppercase text-[9px]">
+                                Pinta-ala
+                              </span>
                               <span className="font-mono">{apt.areaM2} m²</span>
                             </div>
                             <div className="flex justify-between text-xs">
-                              <span className="text-slate-500">Lämpötila</span>
+                              <span className="text-slate-500 font-bold uppercase text-[9px]">
+                                Lämpötila
+                              </span>
                               <span className="font-mono flex items-center gap-1">
                                 <Thermometer size={10} /> 21.5°C
                               </span>
                             </div>
-                            {hasTicket && (
+
+                            {(isBoard || isOwnApartment) && hasTicket && (
                               <Badge
                                 variant="destructive"
-                                className="mt-1 text-[10px]"
+                                className="mt-1 text-[9px] animate-pulse"
                               >
                                 <Droplets size={10} className="mr-1" />{" "}
                                 Vuotoepäily
                               </Badge>
+                            )}
+
+                            {isOwnApartment && (
+                              <div className="pt-2 mt-2 border-t border-slate-200/50 flex flex-col gap-2">
+                                <Link
+                                  href={`/resident/tickets/new?aptId=${apt.id}`}
+                                >
+                                  <Button
+                                    size="sm"
+                                    className="w-full h-8 text-[10px] font-black bg-brand-navy hover:bg-slate-800 text-white rounded-lg gap-1.5"
+                                  >
+                                    <AlertCircle size={12} />
+                                    ILMOITA HAVAINTO
+                                  </Button>
+                                </Link>
+                                <Link
+                                  href={`/resident/renovations/new?aptId=${apt.id}`}
+                                >
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="w-full h-8 text-[10px] font-bold border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg gap-1.5"
+                                  >
+                                    <PlusCircle size={12} />
+                                    UUSI MUUTOSTYÖ
+                                  </Button>
+                                </Link>
+                              </div>
+                            )}
+
+                            {!isOwnApartment && !isBoard && (
+                              <div className="pt-2 mt-2 border-t border-slate-200/50">
+                                <p className="text-[9px] text-slate-400 italic">
+                                  Yksityisyyden suojan vuoksi vain yleistiedot
+                                  näkyvissä.
+                                </p>
+                              </div>
                             )}
                           </div>
                         </HudCard>

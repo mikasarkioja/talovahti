@@ -209,6 +209,8 @@ export async function supportInitiativeAction(params: {
 
     if (initiative && initiative.status === GovernanceStatus.OPEN_FOR_SUPPORT) {
       const totalShares = initiative.supporters.reduce((sum, s) => {
+        // Residents (tenants) never have voting power
+        if (s.user.role === "RESIDENT") return sum;
         return sum + (s.user.apartment?.shareCount || 0);
       }, 0);
 
