@@ -11,7 +11,10 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { escalateToExpert } from "@/app/actions/triage-actions";
-import { approveRenovationAction } from "@/app/actions/renovation-actions";
+import {
+  approveRenovationAction,
+  rejectRenovationAction,
+} from "@/app/actions/renovation-actions";
 import { useTransition, useState } from "react";
 import { toast } from "sonner";
 import { useStore } from "@/lib/store";
@@ -77,6 +80,28 @@ export function DecisionQueue({ items: initialItems }: DecisionQueueProps) {
     });
   };
 
+  const handleRenovationRejection = (item: DecisionItem) => {
+    if (!currentUser) return;
+
+    const reason = window.prompt("Hylkäyksen syy:", "Puutteelliset tiedot");
+    if (!reason) return;
+
+    startTransition(async () => {
+      const result = await rejectRenovationAction(
+        item.id,
+        currentUser.id,
+        reason,
+      );
+
+      if (result.success) {
+        toast.info("Muutostyöilmoitus hylätty.");
+        handleOptimisticRemove(item.id);
+      } else {
+        toast.error("Toiminto epäonnistui", { description: result.error });
+      }
+    });
+  };
+
   return (
     <Card className="shadow-soft border-surface-greige/20">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
@@ -122,19 +147,22 @@ export function DecisionQueue({ items: initialItems }: DecisionQueueProps) {
                           MUUTOSTYÖ
                         </Badge>
                       </div>
-                      <p className="text-xs text-emerald-600 mt-0.5 font-bold">
+                      <p className="text-xs text-blue-600 mt-1 font-medium bg-blue-50/50 p-2 rounded-lg border border-blue-100/50">
                         {item.recommendation}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between md:justify-end gap-6 mt-4 md:mt-0">
-                    <div className="text-right">
-                      <div className="flex items-center justify-end gap-1 text-emerald-600 font-bold text-[10px]">
-                        <TrendingUp size={10} />+{item.xpReward} XP
-                      </div>
-                    </div>
-
+                  <div className="flex items-center justify-between md:justify-end gap-3 mt-4 md:mt-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={isPending}
+                      className="border-red-200 text-red-600 hover:bg-red-50 font-bold px-4 rounded-lg h-10"
+                      onClick={() => handleRenovationRejection(item)}
+                    >
+                      Hylkää
+                    </Button>
                     <Button
                       size="sm"
                       disabled={isPending}

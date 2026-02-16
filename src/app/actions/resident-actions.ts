@@ -138,6 +138,7 @@ export async function createInitiativeAction(params: {
     );
 
     revalidatePath("/governance");
+    revalidatePath("/resident/initiatives");
     return { success: true, initiative };
   } catch (error) {
     console.error("Error creating initiative:", error);
@@ -145,6 +146,76 @@ export async function createInitiativeAction(params: {
       error instanceof Error ? error.message : "Aloitteen luonti epäonnistui";
     return { success: false, error: message };
   }
+}
+
+/**
+ * Support an initiative
+ */
+export async function supportInitiativeAction(params: {
+  initiativeId: string;
+  userId: string;
+}) {
+  try {
+    // 1. Isolation Guard
+    RBAC.ensureOwnership(params.userId, params.userId);
+
+    // 2. Add Support
+    const support = await prisma.initiativeSupport.create({
+      data: {
+        initiativeId: params.initiativeId,
+        userId: params.userId,
+      },
+    });
+
+    // 3. Check if qualified for Agenda
+    const initiative = await prisma.initiative.findUnique({
+      where: { id: params.initiativeId },
+      include: { _count: { select: { supporters: true } } },
+    });
+
+    if (
+      initiative &&
+      initiative.status === GovernanceStatus.OPEN_FOR_SUPPORT &&
+      initiative._count.supporters >= initiative.requiredSupport
+    ) {
+      await prisma.initiative.update({
+        where: { id: params.initiativeId },
+        data: { status: GovernanceStatus.QUALIFIED },
+      });
+    }
+
+    // 4. GDPR Logging
+    await RBAC.auditAccess(
+      params.userId,
+      "WRITE",
+      `Support:${support.id}`,
+      "Aloitteen kannattaminen",
+    );
+
+    revalidatePath("/governance");
+    revalidatePath("/resident/initiatives");
+    return { success: true };
+  } catch (error) {
+    console.error("Error supporting initiative:", error);
+    const message =
+      error instanceof Error ? error.message : "Kannattaminen epäonnistui";
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Fetch all initiatives for the company
+ */
+export async function getInitiatives(housingCompanyId: string) {
+  return await prisma.initiative.findMany({
+    where: { housingCompanyId },
+    include: {
+      user: true,
+      _count: { select: { supporters: true } },
+      supporters: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
 }
 
 /**

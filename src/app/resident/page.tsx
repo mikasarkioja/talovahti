@@ -8,6 +8,7 @@ import {
   Info,
   ChevronRight,
   ShieldCheck,
+  Users,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -54,33 +55,34 @@ export default async function ResidentDashboardPage(props: {
 
   // Ensure isolation: Resident can only see their own data
   // 2. Fetch User Data
-  const [tickets, , volunteerTasks, announcements] = await Promise.all([
-    prisma.ticket.findMany({
-      where: { createdById: user.id },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-    }),
-    // Mocking bookings for now as model is generic
-    prisma.volunteerTask.findMany({
-      where: { userId: user.id, status: ResidentTaskStatus.IN_PROGRESS },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-    }),
-    prisma.volunteerTask.findMany({
-      where: { status: ResidentTaskStatus.OPEN },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-    }),
-    // Announcements from AuditLog or Initiatives
-    prisma.initiative.findMany({
-      where: {
-        housingCompanyId: company.id,
-        status: { in: ["OPEN_FOR_SUPPORT", "APPROVED"] },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 3,
-    }),
-  ]);
+  const [tickets, renovations, volunteerTasks, announcements] =
+    await Promise.all([
+      prisma.ticket.findMany({
+        where: { createdById: user.id },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      }),
+      prisma.renovation.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      }),
+      // Mocking bookings for now as model is generic
+      prisma.volunteerTask.findMany({
+        where: { status: ResidentTaskStatus.OPEN },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      }),
+      // Announcements from AuditLog or Initiatives
+      prisma.initiative.findMany({
+        where: {
+          housingCompanyId: company.id,
+          status: { in: ["OPEN_FOR_SUPPORT", "APPROVED"] },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 3,
+      }),
+    ]);
 
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-8">
@@ -210,6 +212,82 @@ export default async function ResidentDashboardPage(props: {
               )}
             </div>
           </section>
+
+          {/* Renovations */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                <Hammer size={14} /> Omat muutostyöilmoitukset
+              </h2>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm divide-y">
+              {renovations.map((r) => (
+                <div
+                  key={r.id}
+                  className="p-5 flex flex-col gap-3 hover:bg-slate-50 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+                        <Hammer size={16} />
+                      </div>
+                      <p className="font-bold text-slate-900">{r.component}</p>
+                    </div>
+                    <Badge
+                      className={`text-[9px] font-bold ${
+                        r.triageStatus === "APPROVED"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : r.triageStatus === "REJECTED"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-amber-100 text-amber-700"
+                      }`}
+                    >
+                      {r.triageStatus === "APPROVED"
+                        ? "HYVÄKSYTTY"
+                        : r.triageStatus === "REJECTED"
+                          ? "HYLJÄTTY"
+                          : r.triageStatus === "AUTO_APPROVE_READY"
+                            ? "VALMIS HYVÄKSYTTÄVÄKSI"
+                            : r.triageStatus === "REQUIRES_EXPERT"
+                              ? "VAATII ASIANTUNTIJAN"
+                              : "ODOTTAA"}
+                    </Badge>
+                  </div>
+
+                  {r.aiAssessment && (
+                    <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-200/50">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1">
+                        <ShieldCheck size={10} /> Järjestelmän vastaus
+                      </p>
+                      <p className="text-xs text-slate-600 font-medium italic">
+                        &quot;{r.aiAssessment}&quot;
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                    <span>Ilmoitettu {format(r.createdAt, "d.M.yyyy")}</span>
+                    <span>
+                      {r.category === "SURFACE"
+                        ? "Pintamateriaalit"
+                        : r.category === "LVI"
+                          ? "LVI-työ"
+                          : r.category === "ELECTRICAL"
+                            ? "Sähkötyö"
+                            : r.category === "STRUCTURAL"
+                              ? "Rakenteellinen"
+                              : r.category}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {renovations.length === 0 && (
+                <div className="p-8 text-center text-slate-400 text-sm italic">
+                  Ei aiempia muutostyöilmoituksia.
+                </div>
+              )}
+            </div>
+          </section>
         </div>
 
         {/* Right Column: Bookings & Tasks */}
@@ -220,14 +298,30 @@ export default async function ResidentDashboardPage(props: {
               Pikavalinnat
             </h2>
             <div className="grid grid-cols-1 gap-3">
-              <Link href="/booking">
+              <Link href="/resident/initiatives">
                 <Button className="w-full justify-start gap-3 h-14 bg-brand-navy hover:bg-slate-800 text-white rounded-xl shadow-lg shadow-slate-200">
-                  <CalendarClock size={20} />
+                  <Users size={20} />
                   <div className="text-left">
                     <p className="text-xs font-black uppercase tracking-widest leading-none">
-                      Varaa sauna
+                      Osakasaloitteet
                     </p>
                     <p className="text-[10px] opacity-70 font-medium">
+                      Tee aloite tai kannata muita
+                    </p>
+                  </div>
+                </Button>
+              </Link>
+              <Link href="/booking">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start gap-3 h-14 rounded-xl border-slate-200 hover:bg-slate-50"
+                >
+                  <CalendarClock size={20} className="text-slate-600" />
+                  <div className="text-left">
+                    <p className="text-xs font-black uppercase tracking-widest leading-none text-slate-900">
+                      Varaa sauna
+                    </p>
+                    <p className="text-[10px] opacity-70 font-medium text-slate-500">
                       Tai pesutupa / kerhotila
                     </p>
                   </div>

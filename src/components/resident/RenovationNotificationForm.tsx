@@ -74,7 +74,7 @@ export function RenovationNotificationForm({
 
       if (res.success) {
         toast.success("Muutostyöilmoitus lähetetty onnistuneesti!");
-        router.push("/profile"); // Or wherever appropriate
+        router.push("/resident");
       } else {
         toast.error(res.error || "Ilmoituksen jättäminen epäonnistui.");
       }

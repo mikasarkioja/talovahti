@@ -97,7 +97,7 @@ export async function DecisionQueueServer({
       amount: 0,
       xpReward: 50,
       description: r.description || "",
-      recommendation,
+      recommendation: r.aiAssessment || recommendation,
     };
   });
 

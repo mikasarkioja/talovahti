@@ -272,6 +272,7 @@ model Renovation {
   contractorInfo   String?
   schedule         String?
   triageStatus     RenovationTriageStatus @default(PENDING)
+  aiAssessment     String?
   userId           String?
   housingCompanyId String
   createdAt        DateTime           @default(now())

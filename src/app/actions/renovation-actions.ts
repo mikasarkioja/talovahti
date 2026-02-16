@@ -32,16 +32,22 @@ export async function createRenovationNotificationAction(params: {
       schedule,
     } = params;
 
-    // 1. Automated Triage Logic
+    // 1. Automated Triage Logic (AI-ready)
     let triageStatus: RenovationTriageStatus = RenovationTriageStatus.PENDING;
+    let aiAssessment = "AI analysoi ilmoitusta...";
 
     if (
       category === RenovationCategory.LVI ||
       category === RenovationCategory.STRUCTURAL
     ) {
       triageStatus = RenovationTriageStatus.REQUIRES_EXPERT;
+      aiAssessment = `HUOM: ${category} -työt vaativat aina taloyhtiön valvojan tarkastuksen. Tekniset riskit (vuoto/kantavuus) on huomioitava.`;
     } else if (category === RenovationCategory.SURFACE) {
       triageStatus = RenovationTriageStatus.AUTO_APPROVE_READY;
+      aiAssessment =
+        "Pintaremointi (maalaus/tapetointi) on yleensä vapaasti sallittua. Voidaan hyväksyä automaattisesti.";
+    } else {
+      aiAssessment = "Ilmoitus vaatii hallituksen rutiinitarkastuksen.";
     }
 
     // 2. Create Renovation Record
@@ -55,6 +61,7 @@ export async function createRenovationNotificationAction(params: {
         contractorInfo,
         schedule,
         triageStatus,
+        aiAssessment,
         status: RenovationStatus.PENDING,
       },
     });
@@ -153,6 +160,42 @@ export async function approveRenovationAction(
   } catch (error) {
     console.error("Approve Renovation Error:", error);
     return { success: false, error: "Muutostyön hyväksyntä epäonnistui." };
+  }
+}
+
+export async function rejectRenovationAction(
+  renovationId: string,
+  actorId: string,
+  reason: string,
+) {
+  try {
+    const updated = await prisma.renovation.update({
+      where: { id: renovationId },
+      data: {
+        triageStatus: RenovationTriageStatus.REJECTED,
+        aiAssessment: `HALLITUKSEN PÄÄTÖS: Hylätty. Syy: ${reason}`,
+      },
+    });
+
+    // Audit Log
+    await prisma.auditLog.create({
+      data: {
+        action: "RENOVATION_REJECTED",
+        userId: actorId,
+        targetId: renovationId,
+        metadata: {
+          label: "Muutostyöilmoitus hylätty",
+          reason,
+        } as Prisma.InputJsonValue,
+      },
+    });
+
+    revalidatePath("/admin/dashboard");
+    revalidatePath("/resident/renovations");
+    return { success: true, renovation: updated };
+  } catch (error) {
+    console.error("Reject Renovation Error:", error);
+    return { success: false, error: "Muutostyön hylkääminen epäonnistui." };
   }
 }
 
