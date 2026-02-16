@@ -118,8 +118,8 @@ export default async function InitiativesPage(props: {
                     <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="flex -space-x-2">
-                          {[...Array(Math.min(3, init._count.supporters))].map(
-                            (_, i) => (
+                          {[...Array(Math.min(3, init.supporters.length))].map(
+                            (_: unknown, i: number) => (
                               <div
                                 key={i}
                                 className="w-6 h-6 rounded-full border-2 border-white bg-slate-200"
@@ -128,7 +128,12 @@ export default async function InitiativesPage(props: {
                           )}
                         </div>
                         <p className="text-xs font-bold text-slate-500">
-                          {init._count.supporters} kannattajaa
+                          {init.supporters.reduce(
+                            (sum: number, s: any) =>
+                              sum + (s.user.apartment?.shareCount || 0),
+                            0,
+                          )}{" "}
+                          ääntä
                           <span className="text-slate-300 mx-1">/</span>
                           {init.requiredSupport} tarvitaan
                         </p>
@@ -138,9 +143,12 @@ export default async function InitiativesPage(props: {
                         initiativeId={init.id}
                         userId={user.id}
                         isSupported={init.supporters.some(
-                          (s) => s.userId === user.id,
+                          (s: any) => s.userId === user.id,
                         )}
-                        disabled={init.status !== "OPEN_FOR_SUPPORT"}
+                        disabled={
+                          init.status !== "OPEN_FOR_SUPPORT" ||
+                          user.role === "RESIDENT"
+                        }
                       />
                     </div>
 
@@ -149,7 +157,7 @@ export default async function InitiativesPage(props: {
                       <div
                         className="h-full bg-brand-emerald transition-all duration-1000"
                         style={{
-                          width: `${Math.min(100, (init._count.supporters / init.requiredSupport) * 100)}%`,
+                          width: `${Math.min(100, (init.supporters.reduce((sum: number, s: any) => sum + (s.user.apartment?.shareCount || 0), 0) / init.requiredSupport) * 100)}%`,
                         }}
                       />
                     </div>
@@ -170,7 +178,11 @@ export default async function InitiativesPage(props: {
           <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
             <ThumbsUp size={14} /> Tee uusi aloite
           </h2>
-          <InitiativeForm userId={user.id} housingCompanyId={company.id} />
+          <InitiativeForm
+        userId={user.id}
+        housingCompanyId={company.id}
+        disabled={user.role === "RESIDENT"}
+      />
 
           <Card className="bg-slate-900 text-white border-none shadow-xl">
             <CardContent className="p-6 space-y-4">

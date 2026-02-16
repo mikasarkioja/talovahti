@@ -84,6 +84,29 @@ export default async function ResidentDashboardPage(props: {
       }),
     ]);
 
+  // Fetch fees if user is a shareholder/board member
+  let financialInfo = null;
+  if (
+    user.role === UserRole.BOARD_MEMBER ||
+    user.role === UserRole.SHAREHOLDER
+  ) {
+    const apartment = await prisma.apartment.findUnique({
+      where: { id: user.apartmentId || undefined },
+    });
+    if (apartment) {
+      const maintenanceFee =
+        Number(company.maintenanceFeePerShare) * apartment.shareCount;
+      const capitalFee =
+        Number(company.financeFeePerShare) * apartment.shareCount;
+      financialInfo = {
+        maintenanceFee,
+        capitalFee,
+        total: maintenanceFee + capitalFee,
+        shareCount: apartment.shareCount,
+      };
+    }
+  }
+
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-8">
       {/* Welcome Header */}
@@ -93,7 +116,11 @@ export default async function ResidentDashboardPage(props: {
             variant="outline"
             className="text-[10px] font-black uppercase tracking-widest text-emerald-600 border-emerald-200 bg-emerald-50"
           >
-            Asukasportaali
+            {user.role === UserRole.BOARD_MEMBER
+              ? "Hallituksen jäsen"
+              : user.role === UserRole.SHAREHOLDER
+                ? "Osakasportaali"
+                : "Asukasportaali"}
           </Badge>
           <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tight">
             Hei, {user.name?.split(" ")[0]}!
@@ -102,17 +129,36 @@ export default async function ResidentDashboardPage(props: {
             Tervetuloa kotisi digitaaliseen hallintapaneeliin.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="text-right hidden md:block">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-              Oma asunto
-            </p>
-            <p className="text-sm font-bold text-slate-900">
-              {user.apartmentNumber || "Ei määritetty"}
-            </p>
-          </div>
-          <div className="w-12 h-12 bg-white rounded-2xl border border-slate-200 flex items-center justify-center shadow-sm">
-            <ShieldCheck className="text-emerald-500" size={24} />
+        <div className="flex items-center gap-6">
+          {financialInfo && (
+            <div className="hidden xl:flex items-center gap-4 px-4 py-2 bg-emerald-50 border border-emerald-100 rounded-2xl">
+              <div className="text-right">
+                <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">
+                  Kuukausivastike yhteensä
+                </p>
+                <p className="text-lg font-black text-emerald-900">
+                  {financialInfo.total.toFixed(2)} €
+                </p>
+              </div>
+              <div className="h-8 w-px bg-emerald-200" />
+              <div className="text-[10px] text-emerald-700 font-bold">
+                <p>Hoito: {financialInfo.maintenanceFee.toFixed(2)} €</p>
+                <p>Rahoitus: {financialInfo.capitalFee.toFixed(2)} €</p>
+              </div>
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <div className="text-right hidden md:block">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Oma asunto
+              </p>
+              <p className="text-sm font-bold text-slate-900">
+                {user.apartmentNumber || "Ei määritetty"}
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-white rounded-2xl border border-slate-200 flex items-center justify-center shadow-sm">
+              <ShieldCheck className="text-emerald-500" size={24} />
+            </div>
           </div>
         </div>
       </div>
@@ -330,6 +376,7 @@ export default async function ResidentDashboardPage(props: {
               <Link href="/resident/renovations/new">
                 <Button
                   variant="outline"
+                  disabled={user.role === UserRole.RESIDENT}
                   className="w-full justify-start gap-3 h-14 rounded-xl border-slate-200 hover:bg-slate-50"
                 >
                   <Hammer size={20} className="text-slate-600" />
@@ -338,7 +385,9 @@ export default async function ResidentDashboardPage(props: {
                       Muutostyöilmoitus
                     </p>
                     <p className="text-[10px] text-slate-500 font-medium">
-                      Tee ilmoitus remontista
+                      {user.role === UserRole.RESIDENT
+                        ? "Vain osakkaille"
+                        : "Tee ilmoitus remontista"}
                     </p>
                   </div>
                 </Button>

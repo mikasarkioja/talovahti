@@ -23,6 +23,7 @@ async function main() {
   console.log("🧹 Cleaning up old data...");
   try {
     // Delete in order of dependencies (Child-to-Parent)
+    await prisma.bidInvitation.deleteMany();
     await prisma.milestone.deleteMany();
     await prisma.legalContract.deleteMany();
     await prisma.projectAccessToken.deleteMany();
@@ -70,8 +71,12 @@ async function main() {
     await prisma.resource.deleteMany();
     await prisma.powerEvent.deleteMany();
 
+    await prisma.stripeTransaction.deleteMany();
+    await prisma.order.deleteMany();
     await prisma.user.deleteMany();
     await prisma.apartment.deleteMany();
+    await prisma.healthHistory.deleteMany();
+    await prisma.boardProfile.deleteMany();
     await prisma.housingCompany.deleteMany();
     await prisma.vendor.deleteMany();
   } catch (e) {
@@ -134,7 +139,7 @@ async function main() {
     apartments.push(created);
   }
 
-  // 4. Users (Board & Residents)
+  // 4. Users (Board, Shareholders & Resident)
   console.log("👥 Creating Users...");
   const boardUser = await prisma.user.create({
     data: {
@@ -146,6 +151,37 @@ async function main() {
     },
   });
 
+  const shareholder1 = await prisma.user.create({
+    data: {
+      email: "osakas1@example.com",
+      name: "Outi Osakas",
+      role: UserRole.SHAREHOLDER,
+      housingCompanyId: company.id,
+      apartmentId: apartments[1].id, // A 2
+    },
+  });
+
+  const shareholder2 = await prisma.user.create({
+    data: {
+      email: "osakas2@example.com",
+      name: "Olli Osakas",
+      role: UserRole.SHAREHOLDER,
+      housingCompanyId: company.id,
+      apartmentId: apartments[2].id, // A 3
+    },
+  });
+
+  const shareholder3 = await prisma.user.create({
+    data: {
+      email: "osakas3@example.com",
+      name: "Onni Osakas",
+      role: UserRole.SHAREHOLDER,
+      housingCompanyId: company.id,
+      apartmentId: apartments[3].id, // A 4
+    },
+  });
+  console.log("Shareholder 3 created:", shareholder3.email);
+
   const residentUser = await prisma.user.create({
     data: {
       email: "matti.meikalainen@example.com",
@@ -155,22 +191,6 @@ async function main() {
       apartmentId: apartments[4].id, // B 1
     },
   });
-
-  // Create users for other apartments for voting
-  const otherUsers = [];
-  for (let i = 1; i < 4; i++) {
-    // 3 more voters
-    const user = await prisma.user.create({
-      data: {
-        email: `asukas${i}@example.com`,
-        name: `Asukas ${i}`,
-        role: UserRole.RESIDENT,
-        housingCompanyId: company.id,
-        apartmentId: apartments[i].id,
-      },
-    });
-    otherUsers.push(user);
-  }
 
   // 5. Financials
   console.log("💰 Creating Financial Data...");
@@ -333,11 +353,11 @@ async function main() {
       shares: 100,
     },
   });
-  // Other users (A2: 150, A3: 150) -> YES
+  // Shareholders (A2: 150, A3: 150) -> YES
   await prisma.vote.create({
     data: {
       initiativeId: initiative.id,
-      userId: otherUsers[0].id,
+      userId: shareholder1.id,
       apartmentId: apartments[1].id,
       choice: VoteChoice.YES,
       shares: 150,
@@ -346,7 +366,7 @@ async function main() {
   await prisma.vote.create({
     data: {
       initiativeId: initiative.id,
-      userId: otherUsers[1].id,
+      userId: shareholder2.id,
       apartmentId: apartments[2].id,
       choice: VoteChoice.YES,
       shares: 150,

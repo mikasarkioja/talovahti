@@ -9,19 +9,33 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { createInitiativeAction } from "@/app/actions/resident-actions";
 import { useRouter } from "next/navigation";
+import { Card, CardContent } from "@/components/ui/card";
 
 export function InitiativeForm({
   userId,
   housingCompanyId,
+  disabled = false,
 }: {
   userId: string;
   housingCompanyId: string;
+  disabled?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [affectedArea, setAffectedArea] = useState("");
+
+  if (disabled) {
+    return (
+      <Card className="bg-slate-50 border-slate-200">
+        <CardContent className="p-6 text-center space-y-2">
+          <p className="text-xs font-black uppercase tracking-widest text-slate-400">Huomio</p>
+          <p className="text-sm text-slate-500 italic">Vain osakkailla on oikeus tehdä aloitteita.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

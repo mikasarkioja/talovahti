@@ -125,11 +125,37 @@ export async function createInitiativeAction(params: {
         userId: params.userId,
         housingCompanyId: params.housingCompanyId,
         affectedArea: params.affectedArea,
-        status: GovernanceStatus.DRAFT,
+        status: GovernanceStatus.OPEN_FOR_SUPPORT,
       },
     });
 
-    // GDPR Logging
+    // 2. Author automatically supports
+    const user = await prisma.user.findUnique({
+      where: { id: params.userId },
+      include: { apartment: true },
+    });
+
+    if (user) {
+      await prisma.initiativeSupport.create({
+        data: {
+          initiativeId: initiative.id,
+          userId: params.userId,
+        },
+      });
+
+      // If they have an apartment, update total support immediately
+      if (user.apartment) {
+        // Initial support logic: author's share count counts
+        await prisma.initiative.update({
+          where: { id: initiative.id },
+          data: {
+            requiredSupport: 1000, // Example: 1000 shares needed to qualify
+          },
+        });
+      }
+    }
+
+    // 3. GDPR Logging
     await RBAC.auditAccess(
       params.userId,
       "WRITE",
@@ -167,21 +193,31 @@ export async function supportInitiativeAction(params: {
       },
     });
 
-    // 3. Check if qualified for Agenda
+    // 3. Check if qualified for Agenda using share-based logic
     const initiative = await prisma.initiative.findUnique({
       where: { id: params.initiativeId },
-      include: { _count: { select: { supporters: true } } },
+      include: {
+        supporters: {
+          include: {
+            user: {
+              include: { apartment: true },
+            },
+          },
+        },
+      },
     });
 
-    if (
-      initiative &&
-      initiative.status === GovernanceStatus.OPEN_FOR_SUPPORT &&
-      initiative._count.supporters >= initiative.requiredSupport
-    ) {
-      await prisma.initiative.update({
-        where: { id: params.initiativeId },
-        data: { status: GovernanceStatus.QUALIFIED },
-      });
+    if (initiative && initiative.status === GovernanceStatus.OPEN_FOR_SUPPORT) {
+      const totalShares = initiative.supporters.reduce((sum, s) => {
+        return sum + (s.user.apartment?.shareCount || 0);
+      }, 0);
+
+      if (totalShares >= initiative.requiredSupport) {
+        await prisma.initiative.update({
+          where: { id: params.initiativeId },
+          data: { status: GovernanceStatus.QUALIFIED },
+        });
+      }
     }
 
     // 4. GDPR Logging
@@ -210,9 +246,16 @@ export async function getInitiatives(housingCompanyId: string) {
   return await prisma.initiative.findMany({
     where: { housingCompanyId },
     include: {
-      user: true,
-      _count: { select: { supporters: true } },
-      supporters: true,
+      user: {
+        include: { apartment: true },
+      },
+      supporters: {
+        include: {
+          user: {
+            include: { apartment: true },
+          },
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
