@@ -1,21 +1,24 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { ArrowRight, Check, Hand, User, Building2, Bell, ShieldCheck } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowRight, Check, Hand, User, Building2, Bell, ShieldCheck, Sparkles } from 'lucide-react'
 import { clsx } from 'clsx'
+import { useStore } from '@/lib/store'
 
 type Props = {
   step: number
-  onRoleSelect: (role: 'RESIDENT' | 'BOARD') => void
   onNext: () => void
   onComplete: () => void
 }
 
-export function TourOverlay({ step, onRoleSelect, onNext, onComplete }: Props) {
-  const [selectedRole, setSelectedRole] = useState<'RESIDENT' | 'BOARD' | null>(null)
+export function TourOverlay({ step, onNext, onComplete }: Props) {
+  const { currentUser } = useStore()
+  const [selectedRole, setSelectedRole] = useState<'RESIDENT' | 'BOARD' | null>(
+    currentUser?.role === 'BOARD_MEMBER' || currentUser?.role === 'ADMIN' ? 'BOARD' : 'RESIDENT'
+  )
 
   // Step 1: Swipe / Welcome
-  // Step 2: Role Selection
-  // Step 3: Select Apartment
+  // Step 2: Role Selection (Skipped if user profile exists)
+  // Step 3: Select Apartment (Skipped if user profile exists)
   // Step 4: Finish
 
   return (
@@ -40,11 +43,17 @@ export function TourOverlay({ step, onRoleSelect, onNext, onComplete }: Props) {
                 <Building2 size={24} />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-slate-900">Tervetuloa Talovahtiin</h3>
-                <p className="text-sm text-slate-500 mt-1">Tutustu taloyhtiösi digitaaliseen kaksoseen.</p>
+                <h3 className="text-xl font-bold text-slate-900">
+                  {currentUser ? `Hei ${currentUser.name.split(' ')[0]}!` : 'Tervetuloa Talovahtiin'}
+                </h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  {currentUser 
+                    ? `Olemme tunnistaneet sinut asunnon ${currentUser.apartmentId || currentUser.apartmentNumber || ''} ${currentUser.role === 'BOARD_MEMBER' ? 'hallituksen jäseneksi' : 'asukkaaksi'}.`
+                    : 'Tutustu taloyhtiösi digitaaliseen kaksoseen.'}
+                </p>
               </div>
-              <button onClick={onNext} className="w-full py-3 bg-[#002f6c] text-white rounded-xl font-bold shadow-lg hover:bg-blue-900 transition-colors">
-                Aloita kierros
+              <button onClick={onNext} className="w-full py-3 bg-[#002f6c] text-white rounded-xl font-bold shadow-lg hover:bg-blue-900 transition-colors flex items-center justify-center gap-2">
+                Aloita kierros <ArrowRight size={18} />
               </button>
             </div>
           )}
@@ -55,7 +64,7 @@ export function TourOverlay({ step, onRoleSelect, onNext, onComplete }: Props) {
               <h3 className="text-xl font-bold text-slate-900 text-center">Kuka olet?</h3>
               <div className="grid grid-cols-2 gap-4">
                 <button 
-                  onClick={() => { setSelectedRole('RESIDENT'); onRoleSelect('RESIDENT') }}
+                  onClick={() => setSelectedRole('RESIDENT')}
                   className={clsx("p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all",
                     selectedRole === 'RESIDENT' ? "border-blue-600 bg-blue-50 text-blue-900" : "border-slate-200 hover:border-blue-300"
                   )}
@@ -64,7 +73,7 @@ export function TourOverlay({ step, onRoleSelect, onNext, onComplete }: Props) {
                   <span className="font-bold text-sm">Asukas</span>
                 </button>
                 <button 
-                  onClick={() => { setSelectedRole('BOARD'); onRoleSelect('BOARD') }}
+                  onClick={() => setSelectedRole('BOARD')}
                   className={clsx("p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all",
                     selectedRole === 'BOARD' ? "border-purple-600 bg-purple-50 text-purple-900" : "border-slate-200 hover:border-purple-300"
                   )}
@@ -104,14 +113,14 @@ export function TourOverlay({ step, onRoleSelect, onNext, onComplete }: Props) {
               </div>
               <h3 className="text-xl font-bold text-slate-900">Pysy ajan tasalla</h3>
               <p className="text-sm text-slate-500">
-                {selectedRole === 'RESIDENT' 
-                  ? "Salli ilmoitukset saadaksesi tiedon huoltokatkoista." 
-                  : "Salli ilmoitukset hyväksyäksesi laskut nopeasti."}
+                {(selectedRole === 'BOARD' || currentUser?.role === 'BOARD_MEMBER' || currentUser?.role === 'ADMIN')
+                  ? "Salli ilmoitukset hyväksyäksesi laskut nopeasti."
+                  : "Salli ilmoitukset saadaksesi tiedon huoltokatkoista."}
               </p>
               
               <div className="pt-2 space-y-2">
-                <button onClick={onComplete} className="w-full py-3 bg-[#002f6c] text-white rounded-xl font-bold shadow-lg hover:bg-blue-900 transition-colors">
-                  Salli ja Valmis
+                <button onClick={onComplete} className="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2">
+                  <Check size={18} /> Salli ja Valmis
                 </button>
                 <button onClick={onComplete} className="w-full py-2 text-slate-400 text-sm font-medium hover:text-slate-600">
                   Ei nyt

@@ -26,8 +26,8 @@ export const RBAC = {
     // ADMIN has global access
     if (user.role === "ADMIN") return true;
 
-    // RESIDENT & SHAREHOLDER Logic
-    if (user.role === "RESIDENT" || user.role === "SHAREHOLDER") {
+    // SHAREHOLDER Logic
+    if (user.role === "SHAREHOLDER") {
       if (resourceType === "APARTMENT") return user.apartmentId === resourceId;
       if (resourceType === "READING") return user.apartmentId === resourceId;
       if (resourceType === "USER_DATA") return actorId === resourceId;
@@ -46,7 +46,22 @@ export const RBAC = {
         });
         return ticket?.createdById === actorId;
       }
-      // SHAREHOLDER might have access to some FINANCE data in the future
+      if (resourceType === "FINANCE") return false; // Basic shareholders don't see company finance yet
+    }
+
+    // RESIDENT Logic (Tenant)
+    if (user.role === "RESIDENT") {
+      if (resourceType === "APARTMENT") return user.apartmentId === resourceId;
+      if (resourceType === "READING") return user.apartmentId === resourceId;
+      if (resourceType === "USER_DATA") return actorId === resourceId;
+      if (resourceType === "TICKET") {
+        if (!resourceId) return true;
+        const ticket = await prisma.ticket.findUnique({
+          where: { id: resourceId },
+        });
+        return ticket?.createdById === actorId;
+      }
+      // No access to RENOVATION or FINANCE
       return false;
     }
 

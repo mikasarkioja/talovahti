@@ -1,11 +1,39 @@
 // src/app/digital-twin/page.tsx
+"use client";
+
 import { BuildingModel } from "@/components/BuildingModel";
 import { Badge } from "@/components/ui/badge";
-import { Info, Box } from "lucide-react";
+import { Info, Box, Sparkles, PlayCircle } from "lucide-react";
+import { useState } from "react";
+import { TourOverlay } from "@/components/onboarding/TourOverlay";
+import { useStore } from "@/lib/store";
+import { Button } from "@/components/ui/button";
 
 export default function DigitalTwinPage() {
+  const { currentUser } = useStore();
+  const [tourStep, setTourStep] = useState(0);
+
+  const startTour = () => setTourStep(1);
+
+  const handleNext = () => {
+    // If we have a user profile, we can skip role selection (2) and apartment selection (3)
+    if (tourStep === 1 && currentUser) {
+      setTourStep(4);
+    } else {
+      setTourStep((prev) => prev + 1);
+    }
+  };
+
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-8">
+      {tourStep > 0 && (
+        <TourOverlay
+          step={tourStep}
+          onNext={handleNext}
+          onComplete={() => setTourStep(0)}
+        />
+      )}
+
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="space-y-1">
           <Badge
@@ -22,6 +50,14 @@ export default function DigitalTwinPage() {
             Selaa taloyhtiön 3D-mallia, tarkastele teknistä tilaa ja ilmoita havainnoista.
           </p>
         </div>
+        
+        <Button 
+          onClick={startTour}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-blue-200"
+        >
+          <PlayCircle size={18} />
+          Aloita esittelykierros
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-8">

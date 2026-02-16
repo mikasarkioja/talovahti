@@ -8,7 +8,7 @@ export async function getTestUsers() {
       include: {
         apartment: true,
       },
-      take: 20,
+      take: 50,
     });
 
     const mockUsers = users.map((u) => ({

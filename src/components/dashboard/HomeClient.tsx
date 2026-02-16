@@ -1,3 +1,4 @@
+// talovahti/src/components/dashboard/HomeClient.tsx
 "use client";
 
 import { useStore, MockInvoice, MockObservation } from "@/lib/store";
@@ -23,9 +24,8 @@ import { HealthScoreDashboard } from "@/components/dashboard/HealthScoreDashboar
 import { GamificationDashboard } from "@/components/dashboard/GamificationDashboard";
 import { DynastyPanel } from "@/components/dashboard/DynastyPanel";
 import { RoleGate } from "@/components/auth/RoleGate";
-import { TourOverlay } from "@/components/onboarding/TourOverlay";
 import { FEATURES } from "@/config/features";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -90,11 +90,16 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
     }
   }, [searchParams, router]);
 
-  const [tourStep, setTourStep] = useState(1);
-
   const isBoard =
     currentUser?.role === "BOARD_MEMBER" ||
     currentUser?.role === "ADMIN";
+
+  useEffect(() => {
+    // If not board member, redirect to resident portal
+    if (currentUser && !isBoard && currentUser.role !== "EXPERT") {
+      router.replace(`/resident?user=${encodeURIComponent(currentUser.email || "")}`);
+    }
+  }, [currentUser, isBoard, router]);
 
   const urgentObservations = (observations as MockObservation[] || []).filter(
     (o) =>
@@ -133,7 +138,7 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
     }))
   ];
 
-  if (!isBoard && currentUser?.role === "RESIDENT") {
+  if (!isBoard && (currentUser?.role === "RESIDENT" || currentUser?.role === "SHAREHOLDER")) {
     return (
       <div className="p-4 max-w-lg mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500">
         <header className="text-center pt-8">
@@ -211,17 +216,6 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
-      {tourStep > 0 && (
-        <TourOverlay
-          step={tourStep}
-          onNext={() => setTourStep((p) => p + 1)}
-          onRoleSelect={() => {}}
-          onComplete={() => {
-            setTourStep(0);
-          }}
-        />
-      )}
-
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-brand-navy tracking-tight">

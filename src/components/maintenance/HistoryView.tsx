@@ -15,6 +15,7 @@ import { estimateFutureCost } from "@/lib/maintenance-logic";
 import { clsx } from "clsx";
 import Link from "next/link";
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
 
 export function HistoryView({
   initialRenovations,
@@ -30,6 +31,27 @@ export function HistoryView({
       hydrate({ renovations: initialRenovations });
     }
   }, [initialRenovations, hydrate]);
+
+  if (currentUser?.role === "RESIDENT") {
+    return (
+      <div className="p-12 max-w-2xl mx-auto text-center space-y-6">
+        <div className="bg-slate-50 border border-dashed border-slate-200 p-12 rounded-[40px]">
+          <div className="w-20 h-20 bg-white rounded-3xl shadow-sm flex items-center justify-center mx-auto mb-6">
+            <AlertTriangle size={40} className="text-slate-300" />
+          </div>
+          <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Pääsy rajoitettu</h1>
+          <p className="text-slate-500 font-medium mt-4 leading-relaxed">
+            Kunnossapitosuunnitelma (PTS) ja yhtiön tekninen historia on lakisääteisesti vain osakkaiden ja hallituksen saatavilla.
+          </p>
+          <div className="pt-8">
+            <Link href="/resident">
+              <Button className="bg-brand-navy text-white rounded-xl px-8">Palaa hallintapaneeliin</Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Use store data (which is now hydrated)
   const completed = renovations.filter((r) => r.status === "COMPLETED");

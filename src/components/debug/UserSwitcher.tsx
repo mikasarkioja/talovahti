@@ -31,8 +31,10 @@ export function UserSwitcher() {
       window.location.hostname === "localhost";
 
     if (isDev) {
+      console.log("UserSwitcher: Fetching test users...");
       getTestUsers().then((res) => {
         if (res.success && res.users) {
+          console.log(`UserSwitcher: Successfully fetched ${res.users.length} users`);
           setUsers(res.users);
         } else {
           console.error("UserSwitcher: Failed to fetch test users", res.error);
@@ -85,6 +87,7 @@ export function UserSwitcher() {
                 <button
                   key={u.id}
                   onClick={() => {
+                    // 1. Update Client Store
                     setCurrentUser({
                       id: u.id,
                       name: u.name || u.id,
@@ -94,6 +97,15 @@ export function UserSwitcher() {
                       shareCount: u.shareCount,
                       canApproveFinance: u.canApproveFinance,
                     });
+
+                    // 2. Redirect to correct dashboard with user context
+                    const dashboardPath =
+                      u.role === "BOARD_MEMBER" || u.role === "ADMIN"
+                        ? "/"
+                        : "/resident";
+
+                    // Use email as identifier for demo routing
+                    window.location.href = `${dashboardPath}?user=${encodeURIComponent(u.email || "")}`;
                     setIsOpen(false);
                   }}
                   className={`w-full text-left p-3 rounded-xl text-[10px] transition-all group ${

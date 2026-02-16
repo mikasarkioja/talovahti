@@ -94,16 +94,20 @@ export function Sidebar() {
     {
       title: "Kunnossapito",
       items: [
-        {
-          href: "/resident/renovations/new",
-          label: "Muutostyöilmoitus",
-          icon: ClipboardList,
-        },
-        {
-          href: "/maintenance/history",
-          label: "PTS & Historia",
-          icon: ClipboardList,
-        },
+        ...(currentUser?.role !== "RESIDENT"
+          ? [
+              {
+                href: "/resident/renovations/new",
+                label: "Muutostyöilmoitus",
+                icon: ClipboardList,
+              },
+              {
+                href: "/maintenance/history",
+                label: "PTS & Historia",
+                icon: ClipboardList,
+              },
+            ]
+          : []),
         ...(isBoard
           ? [
               { href: "/board/roi", label: "Energia ROI", icon: LineChart },

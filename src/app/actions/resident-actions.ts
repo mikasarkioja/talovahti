@@ -21,6 +21,9 @@ export async function submitVoteAction(params: {
     RBAC.ensureOwnership(params.userId, params.userId);
 
     // 2. Database Operation
+    const user = await prisma.user.findUnique({ where: { id: params.userId } });
+    const finalShares = user?.role === "RESIDENT" ? 0 : params.shares;
+
     const vote = await prisma.vote.upsert({
       where: {
         initiativeId_apartmentId: {
@@ -30,14 +33,14 @@ export async function submitVoteAction(params: {
       },
       update: {
         choice: params.choice,
-        shares: params.shares,
+        shares: finalShares,
         timestamp: new Date(),
       },
       create: {
         userId: params.userId,
         initiativeId: params.initiativeId,
         choice: params.choice,
-        shares: params.shares,
+        shares: finalShares,
         apartmentId: params.apartmentId,
       },
     });
@@ -143,13 +146,21 @@ export async function createInitiativeAction(params: {
         },
       });
 
-      // If they have an apartment, update total support immediately
-      if (user.apartment) {
+      // If they have an apartment and are NOT a resident (tenant), update total support immediately
+      if (user.apartment && user.role !== "RESIDENT") {
         // Initial support logic: author's share count counts
         await prisma.initiative.update({
           where: { id: initiative.id },
           data: {
             requiredSupport: 1000, // Example: 1000 shares needed to qualify
+          },
+        });
+      } else {
+        // If resident or no apartment, still set a threshold but author adds 0 shares
+        await prisma.initiative.update({
+          where: { id: initiative.id },
+          data: {
+            requiredSupport: 1000,
           },
         });
       }

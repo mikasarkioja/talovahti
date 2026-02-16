@@ -38,6 +38,7 @@ export default async function ResidentDashboardPage(props: {
         housingCompanyId: company.id,
         email: { contains: userQuery, mode: "insensitive" },
       },
+      include: { apartment: true },
     });
   }
 
@@ -47,6 +48,7 @@ export default async function ResidentDashboardPage(props: {
         housingCompanyId: company.id,
         role: UserRole.RESIDENT,
       },
+      include: { apartment: true },
     });
   }
 
@@ -56,12 +58,15 @@ export default async function ResidentDashboardPage(props: {
 
   // Ensure isolation: Resident can only see their own data
   // 2. Fetch User Data
+  const isBoard = user.role === UserRole.BOARD_MEMBER || user.role === UserRole.ADMIN;
+
   const [tickets, renovations, volunteerTasks, announcements] =
     await Promise.all([
       prisma.ticket.findMany({
-        where: { createdById: user.id },
+        where: isBoard ? {} : { createdById: user.id },
+        include: { createdBy: true },
         orderBy: { createdAt: "desc" },
-        take: 5,
+        take: 10,
       }),
       prisma.renovation.findMany({
         where: { userId: user.id },
@@ -154,7 +159,7 @@ export default async function ResidentDashboardPage(props: {
                 Oma asunto
               </p>
               <p className="text-sm font-bold text-slate-900">
-                {user.apartmentNumber || "Ei määritetty"}
+                {user.apartmentNumber || (user as any).apartment?.apartmentNumber || "Ei määritetty"}
               </p>
             </div>
             <div className="w-12 h-12 bg-white rounded-2xl border border-slate-200 flex items-center justify-center shadow-sm">
@@ -218,7 +223,7 @@ export default async function ResidentDashboardPage(props: {
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                <PenTool size={14} /> Omat vikailmoitukset
+                <PenTool size={14} /> {isBoard ? "Kaikki vikailmoitukset" : "Omat vikailmoitukset"}
               </h2>
               <Link href="/resident/tickets/new">
                 <Button
@@ -242,10 +247,10 @@ export default async function ResidentDashboardPage(props: {
                     />
                     <div>
                       <p className="font-bold text-slate-900 text-sm">
-                        {t.title}
+                        {t.title} {isBoard && t.unitIdentifier && `- ${t.unitIdentifier}`}
                       </p>
                       <p className="text-[10px] text-slate-500 uppercase font-medium">
-                        Päivitetty {format(t.createdAt, "d.M.yyyy")}
+                        Päivitetty {format(t.createdAt, "d.M.yyyy")} {isBoard && t.createdBy?.name && `• ${t.createdBy.name}`}
                       </p>
                     </div>
                   </div>
@@ -260,81 +265,83 @@ export default async function ResidentDashboardPage(props: {
             </div>
           </section>
 
-          {/* Renovations */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                <Hammer size={14} /> Omat muutostyöilmoitukset
-              </h2>
-            </div>
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm divide-y">
-              {renovations.map((r) => (
-                <div
-                  key={r.id}
-                  className="p-5 flex flex-col gap-3 hover:bg-slate-50 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
-                        <Hammer size={16} />
+          {/* Renovations - Hide for RESIDENT */}
+          {user.role !== UserRole.RESIDENT && (
+            <section className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                  <Hammer size={14} /> Omat muutostyöilmoitukset
+                </h2>
+              </div>
+              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm divide-y">
+                {renovations.map((r) => (
+                  <div
+                    key={r.id}
+                    className="p-5 flex flex-col gap-3 hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+                          <Hammer size={16} />
+                        </div>
+                        <p className="font-bold text-slate-900">{r.component}</p>
                       </div>
-                      <p className="font-bold text-slate-900">{r.component}</p>
-                    </div>
-                    <Badge
-                      className={`text-[9px] font-bold ${
-                        r.triageStatus === "APPROVED"
-                          ? "bg-emerald-100 text-emerald-700"
+                      <Badge
+                        className={`text-[9px] font-bold ${
+                          r.triageStatus === "APPROVED"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : r.triageStatus === "REJECTED"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        {r.triageStatus === "APPROVED"
+                          ? "HYVÄKSYTTY"
                           : r.triageStatus === "REJECTED"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-amber-100 text-amber-700"
-                      }`}
-                    >
-                      {r.triageStatus === "APPROVED"
-                        ? "HYVÄKSYTTY"
-                        : r.triageStatus === "REJECTED"
-                          ? "HYLJÄTTY"
-                          : r.triageStatus === "AUTO_APPROVE_READY"
-                            ? "VALMIS HYVÄKSYTTÄVÄKSI"
-                            : r.triageStatus === "REQUIRES_EXPERT"
-                              ? "VAATII ASIANTUNTIJAN"
-                              : "ODOTTAA"}
-                    </Badge>
-                  </div>
-
-                  {r.aiAssessment && (
-                    <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-200/50">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1">
-                        <ShieldCheck size={10} /> Järjestelmän vastaus
-                      </p>
-                      <p className="text-xs text-slate-600 font-medium italic">
-                        &quot;{r.aiAssessment}&quot;
-                      </p>
+                            ? "HYLJÄTTY"
+                            : r.triageStatus === "AUTO_APPROVE_READY"
+                              ? "VALMIS HYVÄKSYTTÄVÄKSI"
+                              : r.triageStatus === "REQUIRES_EXPERT"
+                                ? "VAATII ASIANTUNTIJAN"
+                                : "ODOTTAA"}
+                      </Badge>
                     </div>
-                  )}
 
-                  <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                    <span>Ilmoitettu {format(r.createdAt, "d.M.yyyy")}</span>
-                    <span>
-                      {r.category === "SURFACE"
-                        ? "Pintamateriaalit"
-                        : r.category === "LVI"
-                          ? "LVI-työ"
-                          : r.category === "ELECTRICAL"
-                            ? "Sähkötyö"
-                            : r.category === "STRUCTURAL"
-                              ? "Rakenteellinen"
-                              : r.category}
-                    </span>
+                    {r.aiAssessment && (
+                      <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-200/50">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1">
+                          <ShieldCheck size={10} /> Järjestelmän vastaus
+                        </p>
+                        <p className="text-xs text-slate-600 font-medium italic">
+                          &quot;{r.aiAssessment}&quot;
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                      <span>Ilmoitettu {format(r.createdAt, "d.M.yyyy")}</span>
+                      <span>
+                        {r.category === "SURFACE"
+                          ? "Pintamateriaalit"
+                          : r.category === "LVI"
+                            ? "LVI-työ"
+                            : r.category === "ELECTRICAL"
+                              ? "Sähkötyö"
+                              : r.category === "STRUCTURAL"
+                                ? "Rakenteellinen"
+                                : r.category}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
-              {renovations.length === 0 && (
-                <div className="p-8 text-center text-slate-400 text-sm italic">
-                  Ei aiempia muutostyöilmoituksia.
-                </div>
-              )}
-            </div>
-          </section>
+                ))}
+                {renovations.length === 0 && (
+                  <div className="p-8 text-center text-slate-400 text-sm italic">
+                    Ei aiempia muutostyöilmoituksia.
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
         </div>
 
         {/* Right Column: Bookings & Tasks */}
