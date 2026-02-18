@@ -91,8 +91,10 @@ export function UserSwitcher() {
                     setCurrentUser({
                       id: u.id,
                       name: u.name || u.id,
+                      email: u.email,
                       role: u.role as UserRole,
                       apartmentId: u.apartmentId,
+                      apartmentNumber: u.apartmentNumber,
                       housingCompanyId: u.housingCompanyId,
                       shareCount: u.shareCount,
                       canApproveFinance: u.canApproveFinance,

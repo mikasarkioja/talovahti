@@ -35,8 +35,10 @@ import {
 export type MockUser = {
   id: string;
   name: string;
+  email?: string;
   role: UserRole;
   apartmentId: string | null;
+  apartmentNumber?: string | null;
   housingCompanyId: string;
   shareCount: number;
   personalDebtShare?: number;
