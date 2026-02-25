@@ -7,6 +7,7 @@ export async function getTestUsers() {
     const users = await prisma.user.findMany({
       include: {
         apartment: true,
+        housingCompany: true,
       },
       take: 50,
     });
@@ -19,8 +20,10 @@ export async function getTestUsers() {
       apartmentId: u.apartmentId,
       apartmentNumber: u.apartmentNumber || u.apartment?.apartmentNumber,
       housingCompanyId: u.housingCompanyId,
+      housingCompanyName: u.housingCompany?.name, // Added for switcher
       canApproveFinance: u.canApproveFinance,
-      shareCount: u.role === "RESIDENT" ? 0 : (u.apartment?.shareCount || 0),
+      phone: u.phone,
+      language: u.language,
     }));
 
     console.log(`Fetched ${mockUsers.length} test users for switcher`);

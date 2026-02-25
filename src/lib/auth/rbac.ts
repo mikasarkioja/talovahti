@@ -32,21 +32,20 @@ export const RBAC = {
       if (resourceType === "READING") return user.apartmentId === resourceId;
       if (resourceType === "USER_DATA") return actorId === resourceId;
       if (resourceType === "RENOVATION") {
-        if (!resourceId) return true; // Can see their own list
+        if (!resourceId) return true; // Can access the list view (must be filtered by userId in query)
         const renovation = await prisma.renovation.findUnique({
           where: { id: resourceId },
         });
         return renovation?.userId === actorId;
       }
       if (resourceType === "TICKET") {
-        // Can see their own tickets
-        if (!resourceId) return true;
+        if (!resourceId) return true; // Can access the list view (must be filtered by createdById in query)
         const ticket = await prisma.ticket.findUnique({
           where: { id: resourceId },
         });
         return ticket?.createdById === actorId;
       }
-      if (resourceType === "FINANCE") return false; // Basic shareholders don't see company finance yet
+      if (resourceType === "FINANCE") return false;
     }
 
     // RESIDENT Logic (Tenant)
@@ -55,14 +54,14 @@ export const RBAC = {
       if (resourceType === "READING") return user.apartmentId === resourceId;
       if (resourceType === "USER_DATA") return actorId === resourceId;
       if (resourceType === "TICKET") {
-        if (!resourceId) return true;
+        if (!resourceId) return true; // Can access the list view (must be filtered by createdById in query)
         const ticket = await prisma.ticket.findUnique({
           where: { id: resourceId },
         });
         return ticket?.createdById === actorId;
       }
-      // No access to RENOVATION or FINANCE
-      return false;
+      if (resourceType === "RENOVATION") return false;
+      if (resourceType === "FINANCE") return false;
     }
 
     // BOARD_MEMBER Logic
@@ -71,6 +70,7 @@ export const RBAC = {
       if (resourceType === "TICKET") return true;
       if (resourceType === "OBSERVATION") return true;
       if (resourceType === "BOARD_PROFILE") return true;
+      if (resourceType === "RENOVATION") return true;
       if (resourceType === "USER_DATA") return true; // Audit log required in app layer
     }
 

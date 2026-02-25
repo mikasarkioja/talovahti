@@ -44,13 +44,13 @@ export function generateIsannointitodistus(
   // Calculate fees (Hoitovastike + Rahoitusvastike)
   // Mock: 4.5€/m2 hoito + loan share implication
   // Just use a mock total for now based on share count
-  const monthlyVastike = (user.shareCount * 4.5) + (user.personalDebtShare ? (user.personalDebtShare * 0.005) : 0)
+  const monthlyVastike = ((user.shareCount || 0) * 4.5) + (user.personalDebtShare ? (user.personalDebtShare * 0.005) : 0)
 
   return {
     companyName,
     businessId,
     apartmentId: user.apartmentId || 'N/A',
-    shareCount: user.shareCount,
+    shareCount: user.shareCount || 0,
     shareOfLoans: user.personalDebtShare || 0,
     monthlyVastike,
     energyGrade,

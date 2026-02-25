@@ -73,18 +73,26 @@ async function main() {
 
     await prisma.stripeTransaction.deleteMany();
     await prisma.order.deleteMany();
+    await prisma.wallet.deleteMany();
     await prisma.user.deleteMany();
     await prisma.apartment.deleteMany();
     await prisma.healthHistory.deleteMany();
     await prisma.boardProfile.deleteMany();
+    await prisma.buildingComponent.deleteMany();
+    await prisma.budgetLineItem.deleteMany();
+    await prisma.monthlyFee.deleteMany();
+    await prisma.statutoryDocument.deleteMany();
+    await prisma.utilityPrice.deleteMany();
+    await prisma.servicePartner.deleteMany();
     await prisma.housingCompany.deleteMany();
     await prisma.vendor.deleteMany();
+    await prisma.expert.deleteMany();
   } catch (e) {
     console.warn("Cleanup warning (tables might be empty):", e);
   }
 
   // 2. Housing Company
-  console.log("🏢 Creating Housing Company...");
+  console.log("🏢 Creating Housing Companies...");
   const company = await prisma.housingCompany.create({
     data: {
       name: "As Oy Säästötalo",
@@ -93,14 +101,25 @@ async function main() {
       city: "Helsinki",
       postalCode: "00100",
       constructionYear: 1985,
-      totalSqm: 2500.0, // Total building area
+      totalSqm: 2500.0,
       maintenanceFeePerShare: 4.5,
     },
   });
 
-  // 3. Apartments (10 units, Total 1200 shares)
-  // 4 * 150 = 600
-  // 6 * 100 = 600
+  const company2 = await prisma.housingCompany.create({
+    data: {
+      name: "As Oy ModerniTorni",
+      businessId: "8765432-1",
+      address: "Tulevaisuudenkuja 1",
+      city: "Espoo",
+      postalCode: "02100",
+      constructionYear: 2024,
+      totalSqm: 5000.0,
+      maintenanceFeePerShare: 5.2,
+    },
+  });
+
+  // 3. Apartments
   console.log("🏠 Creating Apartments...");
   const apartmentsData = [];
 
@@ -132,11 +151,28 @@ async function main() {
         floor: apt.floor,
         shareCount: apt.shareCount,
         area: apt.area,
-        sharesStart: 1, // Mock
-        sharesEnd: 100, // Mock
+        sharesStart: 1,
+        sharesEnd: 100,
       },
     });
     apartments.push(created);
+  }
+
+  // Apartments for Company 2
+  const apartments2 = [];
+  for (let i = 1; i <= 5; i++) {
+    const created = await prisma.apartment.create({
+      data: {
+        housingCompanyId: company2.id,
+        apartmentNumber: `C ${i}`,
+        floor: i,
+        shareCount: 200,
+        area: 110.0,
+        sharesStart: 1,
+        sharesEnd: 100,
+      },
+    });
+    apartments2.push(created);
   }
 
   // 4. Users (Board, Shareholders & Resident)
@@ -171,17 +207,6 @@ async function main() {
     },
   });
 
-  const shareholder3 = await prisma.user.create({
-    data: {
-      email: "osakas3@example.com",
-      name: "Onni Osakas",
-      role: UserRole.SHAREHOLDER,
-      housingCompanyId: company.id,
-      apartmentId: apartments[3].id, // A 4
-    },
-  });
-  console.log("Shareholder 3 created:", shareholder3.email);
-
   const residentUser = await prisma.user.create({
     data: {
       email: "matti.meikalainen@example.com",
@@ -189,6 +214,27 @@ async function main() {
       role: UserRole.RESIDENT,
       housingCompanyId: company.id,
       apartmentId: apartments[4].id, // B 1
+    },
+  });
+
+  // Users for Company 2
+  await prisma.user.create({
+    data: {
+      email: "eeva.edistyksellinen@example.com",
+      name: "Eeva Edistyksellinen",
+      role: UserRole.BOARD_MEMBER,
+      housingCompanyId: company2.id,
+      apartmentId: apartments2[0].id, // C 1
+    },
+  });
+
+  await prisma.user.create({
+    data: {
+      email: "teemu.testaaja@example.com",
+      name: "Teemu Testaaja",
+      role: UserRole.RESIDENT,
+      housingCompanyId: company2.id,
+      apartmentId: apartments2[1].id, // C 2
     },
   });
 

@@ -27,17 +27,35 @@ export default async function ResidentDashboardPage(props: {
     typeof searchParams.user === "string" ? searchParams.user : undefined;
 
   // 1. Fetch User and Company
-  const company = await prisma.housingCompany.findFirst();
+  // If userQuery is an email, first find the user to get their companyId
+  let userByEmail = null;
+  if (userQuery) {
+    userByEmail = await prisma.user.findFirst({
+      where: { email: { contains: userQuery, mode: "insensitive" } },
+    });
+  }
+
+  const company = await prisma.housingCompany.findFirst({
+    where: userByEmail ? { id: userByEmail.housingCompanyId } : {},
+  });
+
   if (!company)
     return <div className="p-10 text-center">Taloyhtiötä ei löytynyt.</div>;
 
-  let user;
-  if (userQuery) {
+  let user: any = userByEmail;
+  if (!user && userQuery) {
+    // Retry with company filter if not found by email alone
     user = await prisma.user.findFirst({
       where: {
         housingCompanyId: company.id,
         email: { contains: userQuery, mode: "insensitive" },
       },
+      include: { apartment: true },
+    });
+  } else if (user) {
+    // Include apartment for the user we already found
+    user = await prisma.user.findUnique({
+      where: { id: user.id },
       include: { apartment: true },
     });
   }
@@ -63,27 +81,31 @@ export default async function ResidentDashboardPage(props: {
   const [tickets, renovations, volunteerTasks, announcements] =
     await Promise.all([
       prisma.ticket.findMany({
-        where: isBoard ? {} : { createdById: user.id },
+        where: isBoard ? { housingCompanyId: company.id } : { createdById: user.id },
         include: { createdBy: true },
         orderBy: { createdAt: "desc" },
         take: 10,
       }),
       prisma.renovation.findMany({
-        where: { userId: user.id },
+        where: isBoard
+          ? { housingCompanyId: company.id }
+          : { userId: user.id },
         orderBy: { createdAt: "desc" },
         take: 5,
       }),
       // Mocking bookings for now as model is generic
       prisma.volunteerTask.findMany({
-        where: { status: ResidentTaskStatus.OPEN },
+        where: isBoard
+          ? { housingCompanyId: company.id, status: ResidentTaskStatus.OPEN }
+          : { userId: user.id, status: ResidentTaskStatus.OPEN },
         orderBy: { createdAt: "desc" },
         take: 5,
       }),
-      // Announcements from AuditLog or Initiatives
+      // Announcements from Initiatives
       prisma.initiative.findMany({
         where: {
           housingCompanyId: company.id,
-          status: { in: ["OPEN_FOR_SUPPORT", "APPROVED"] },
+          status: { in: ["OPEN_FOR_SUPPORT", "QUALIFIED", "APPROVED"] },
         },
         orderBy: { createdAt: "desc" },
         take: 3,

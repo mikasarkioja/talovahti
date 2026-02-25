@@ -12,14 +12,18 @@ export function InfrastructureMesh({ apartments }: { apartments: ApartmentLayout
         const tempObj = new THREE.Object3D()
         
         balconyApts.forEach((apt, i) => {
-            // Position: Center of apt + Offset to front (+Z)
-            // Front face is at apt.dimensions[2]/2
-            // Height: Lower 1m of the 3m floor. Relative to apt center Y (-1.5 to +1.5), it should be at bottom edge (-1.5) + 0.5 (half height of railing)
-            
             const zOffset = apt.dimensions[2] / 2 + 0.5 // 0.5m sticking out
             const yOffset = -apt.dimensions[1] / 2 + 0.5 // Bottom aligned
             
-            tempObj.position.set(apt.position[0], apt.position[1] + yOffset, apt.position[2] + zOffset)
+            const rotation = apt.rotation || 0
+            const relX = 0
+            const relZ = zOffset
+            
+            const rotatedX = relX * Math.cos(rotation) - relZ * Math.sin(rotation)
+            const rotatedZ = relX * Math.sin(rotation) + relZ * Math.cos(rotation)
+
+            tempObj.position.set(apt.position[0] + rotatedX, apt.position[1] + yOffset, apt.position[2] + rotatedZ)
+            tempObj.rotation.set(0, rotation, 0)
             tempObj.updateMatrix()
             meshRef.current!.setMatrixAt(i, tempObj.matrix)
         })

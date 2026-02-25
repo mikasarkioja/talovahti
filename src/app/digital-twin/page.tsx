@@ -1,107 +1,58 @@
 // src/app/digital-twin/page.tsx
-"use client";
+import { prisma } from "@/lib/db";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { DigitalTwinClient } from "@/components/digital-twin/DigitalTwinClient";
 
-import { BuildingModel } from "@/components/BuildingModel";
-import { Badge } from "@/components/ui/badge";
-import { Info, Box, Sparkles, PlayCircle } from "lucide-react";
-import { useState } from "react";
-import { TourOverlay } from "@/components/onboarding/TourOverlay";
-import { useStore } from "@/lib/store";
-import { Button } from "@/components/ui/button";
+export default async function DigitalTwinPage({
+  searchParams,
+}: {
+  searchParams: { user?: string };
+}) {
+  const userEmail = searchParams.user;
 
-export default function DigitalTwinPage() {
-  const { currentUser } = useStore();
-  const [tourStep, setTourStep] = useState(0);
+  // Find user and company
+  let user = null;
+  if (userEmail) {
+    user = await prisma.user.findUnique({
+      where: { email: userEmail },
+      include: { apartment: true },
+    });
+  }
 
-  const startTour = () => setTourStep(1);
+  const company = await prisma.housingCompany.findFirst({
+    where: user ? { id: user.housingCompanyId } : {},
+    include: {
+      tickets: true,
+      initiatives: {
+        include: { votes: { include: { apartment: true } } },
+      },
+    },
+  });
 
-  const handleNext = () => {
-    // If we have a user profile, we can skip role selection (2) and apartment selection (3)
-    if (tourStep === 1 && currentUser) {
-      setTourStep(4);
-    } else {
-      setTourStep((prev) => prev + 1);
-    }
+  if (!user || !company) {
+    // Fallback or error
+    return <div>Ladataan...</div>;
+  }
+
+  const initialData = {
+    currentUser: {
+      id: user.id,
+      name: user.name || "Unknown",
+      role: user.role,
+      apartmentId: user.apartment?.apartmentNumber || null,
+      housingCompanyId: company.id,
+    },
+    housingCompany: company,
+    tickets: company.tickets,
+    initiatives: company.initiatives,
   };
 
   return (
-    <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-8">
-      {tourStep > 0 && (
-        <TourOverlay
-          step={tourStep}
-          onNext={handleNext}
-          onComplete={() => setTourStep(0)}
-        />
-      )}
-
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div className="space-y-1">
-          <Badge
-            variant="outline"
-            className="text-[10px] font-black uppercase tracking-widest text-blue-600 border-blue-200 bg-blue-50"
-          >
-            Reaaliaikainen tilannekuva
-          </Badge>
-          <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
-            <Box size={32} className="text-blue-600" />
-            Digitaalinen Kaksonen
-          </h1>
-          <p className="text-slate-500 font-medium">
-            Selaa taloyhtiön 3D-mallia, tarkastele teknistä tilaa ja ilmoita havainnoista.
-          </p>
-        </div>
-        
-        <Button 
-          onClick={startTour}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-blue-200"
-        >
-          <PlayCircle size={18} />
-          Aloita esittelykierros
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 gap-8">
-        <div className="bg-white p-1 rounded-3xl border border-slate-200 shadow-xl overflow-hidden relative group">
-          <BuildingModel />
-          
-          {/* Help Overlay */}
-          <div className="absolute top-6 right-20 z-10 hidden md:block">
-            <div className="bg-white/90 backdrop-blur-sm border border-slate-200 p-3 rounded-2xl shadow-lg max-w-[250px]">
-              <div className="flex items-center gap-2 mb-2 text-blue-600">
-                <Info size={16} />
-                <span className="text-[10px] font-black uppercase">Käyttöohje</span>
-              </div>
-              <ul className="text-[10px] space-y-1.5 text-slate-600 font-medium">
-                <li>• Pyöritä mallia hiirellä tai kosketuksella</li>
-                <li>• Klikkaa asuntoa nähdäksesi lisätiedot</li>
-                <li>• Käytä kerrosvalitsinta tarkempaan tarkasteluun</li>
-                <li>• Aktivoi läpivalaisu nähdäksesi rakenteet</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-3xl space-y-2">
-            <h3 className="font-black text-emerald-900 uppercase text-xs tracking-widest">Läpinäkyvyys</h3>
-            <p className="text-xs text-emerald-700 leading-relaxed">
-              Digitaalinen kaksonen tuo yhtiön kunnossapitohistorian ja tulevat remontit visuaaliseen muotoon kaikkien saataville.
-            </p>
-          </div>
-          <div className="bg-blue-50 border border-blue-100 p-6 rounded-3xl space-y-2">
-            <h3 className="font-black text-blue-900 uppercase text-xs tracking-widest">Tietosuoja</h3>
-            <p className="text-xs text-blue-700 leading-relaxed">
-              Asukkaat ja osakkaat näkevät mallissa vain julkiset tilat sekä oman huoneistonsa yksityiskohtaiset tiedot.
-            </p>
-          </div>
-          <div className="bg-amber-50 border border-amber-100 p-6 rounded-3xl space-y-2">
-            <h3 className="font-black text-amber-900 uppercase text-xs tracking-widest">Ennakointi</h3>
-            <p className="text-xs text-amber-700 leading-relaxed">
-              Sensoridatan (lämpötila, kosteus) visualisointi auttaa havaitsemaan mahdolliset ongelmat ennen kuin niistä tulee kalliita remontteja.
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="flex min-h-screen bg-slate-50">
+      <Sidebar />
+      <main className="flex-1 lg:ml-64">
+        <DigitalTwinClient initialData={JSON.parse(JSON.stringify(initialData))} />
+      </main>
     </div>
   );
 }

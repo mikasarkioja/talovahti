@@ -47,7 +47,17 @@ export default async function Home(props: {
     const currentYear = new Date().getFullYear();
 
     // 1. Fetch Housing Company
+    // If userQuery is an email, first find the user to get their companyId
+    let userByEmail = null;
+    if (userQuery) {
+      userByEmail = await prisma.user.findFirst({
+        where: { email: { contains: userQuery, mode: "insensitive" } },
+        include: { apartment: true, housingCompany: true },
+      });
+    }
+
     const company = await prisma.housingCompany.findFirst({
+      where: userByEmail ? { id: userByEmail.housingCompanyId } : {},
       include: {
         tickets: {
           include: { observation: true, apartment: true },
@@ -73,13 +83,19 @@ export default async function Home(props: {
     const companyId = company?.id || "default-company-id";
 
     // 2. Fetch User (Dynamic Switcher)
-    let user;
-    if (userQuery) {
+    let user: any = userByEmail;
+    if (!user && userQuery) {
       user = await prisma.user.findFirst({
         where: {
           housingCompanyId: companyId,
           email: { contains: userQuery, mode: "insensitive" },
         },
+        include: { apartment: true },
+      });
+    } else if (user) {
+      // Include apartment for the user we already found
+      user = await prisma.user.findUnique({
+        where: { id: user.id },
         include: { apartment: true },
       });
     }

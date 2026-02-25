@@ -21,6 +21,7 @@ import {
   Workflow,
   Settings,
   Thermometer,
+  Wrench,
   LucideIcon,
   ChevronDown,
   ChevronRight,
@@ -147,6 +148,11 @@ export function Sidebar() {
                 label: "MML Integraatio",
                 icon: Database,
                 locked: isBasic,
+              },
+              {
+                href: "/digital-twin/setup",
+                label: "Mallin asetukset",
+                icon: Wrench,
               },
               {
                 href: "/profile",

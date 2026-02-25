@@ -72,6 +72,7 @@ export function ApartmentMesh({
   return (
     <group
       position={data.position}
+      rotation={[0, data.rotation || 0, 0]}
       onClick={(e) => {
         e.stopPropagation();
         onClick(e);

@@ -42,7 +42,7 @@ export default async function InitiativesPage(props: {
 
   if (!user) return <div>Käyttäjää ei löytynyt.</div>;
 
-  const initiatives = await getInitiatives(company.id);
+  const initiatives = await getInitiatives(company.id, user.id);
 
   return (
     <div className="p-6 md:p-10 max-w-5xl mx-auto space-y-8">

@@ -35,15 +35,18 @@ import {
 export type MockUser = {
   id: string;
   name: string;
-  email?: string;
+  email: string;
   role: UserRole;
   apartmentId: string | null;
   apartmentNumber?: string | null;
   housingCompanyId: string;
-  shareCount: number;
+  housingCompanyName?: string; // For multi-company context
   personalDebtShare?: number;
   personalBalanceStatus?: "OK" | "OVERDUE";
   canApproveFinance: boolean;
+  shareCount?: number;
+  phone?: string | null;
+  language?: string;
 };
 
 export type MockInitiative = {
@@ -303,6 +306,8 @@ interface AppState {
   currentUser: MockUser | null;
   housingCompany: {
     id: string;
+    name?: string;
+    buildingConfig?: any; // New parametric config
     healthScore?: number;
     healthScoreTechnical?: number;
     healthScoreFinancial?: number;
@@ -382,10 +387,10 @@ export const useStore = create<AppState>((set) => ({
   currentUser: {
     id: "user-board-1",
     name: "Pekka Puheenjohtaja",
+    email: "pekka@talovahti.fi",
     role: "BOARD_MEMBER",
     apartmentId: "B 10",
     housingCompanyId: "company-1",
-    shareCount: 150,
     personalDebtShare: 0,
     personalBalanceStatus: "OK",
     canApproveFinance: true,

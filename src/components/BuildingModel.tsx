@@ -143,7 +143,7 @@ export function BuildingModel({
   onApartmentClick?: (id: string) => void;
   highlightId?: string;
 }) {
-  const { tickets, initiatives, currentUser } = useStore();
+  const { tickets, initiatives, currentUser, housingCompany } = useStore();
   const { currentActiveQuarter, hoveredTask } = useTemporalStore();
   const { participatedApartmentIds } = useGovernanceStore();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -157,8 +157,8 @@ export function BuildingModel({
 
   // Generate Layout
   const { apartments, pois, buildingDimensions } = useMemo(
-    () => BuildingGenerator.generateLayout(),
-    [],
+    () => BuildingGenerator.generateLayout(housingCompany?.buildingConfig),
+    [housingCompany?.buildingConfig],
   );
 
   // Get component statuses (Mocked as valuation was removed)
@@ -397,8 +397,12 @@ export function BuildingModel({
             {apartments.map((apt) => {
               // RBAC: Check if this is user's own apartment
               const isOwnApartment =
-                currentUser?.apartmentId === apt.id ||
-                currentUser?.apartmentNumber === apt.id;
+                currentUser &&
+                (currentUser.apartmentId === apt.id ||
+                  currentUser.apartmentNumber === apt.id ||
+                  (currentUser.apartmentId &&
+                    apt.id.includes(currentUser.apartmentId)));
+
               const isBoard =
                 currentUser?.role === "BOARD_MEMBER" ||
                 currentUser?.role === "ADMIN";

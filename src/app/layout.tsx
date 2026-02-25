@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Public_Sans } from "next/font/google";
 import "./globals.css";
 import { MobileShell } from "@/components/layout/MobileShell";
+import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
 const publicSans = Public_Sans({ subsets: ["latin"], variable: '--font-data' });
@@ -30,6 +31,7 @@ export default function RootLayout({
         <MobileShell>
           {children}
         </MobileShell>
+        <Toaster position="top-center" richColors />
       </body>
     </html>
   );

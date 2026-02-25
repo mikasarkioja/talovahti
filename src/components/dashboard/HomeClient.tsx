@@ -95,9 +95,16 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
     currentUser?.role === "ADMIN";
 
   useEffect(() => {
-    // If not board member, redirect to resident portal
-    if (currentUser && !isBoard && currentUser.role !== "EXPERT") {
-      router.replace(`/resident?user=${encodeURIComponent(currentUser.email || "")}`);
+    if (!currentUser) return;
+
+    const shouldRedirectToResident =
+      currentUser.role === "RESIDENT" ||
+      currentUser.role === "SHAREHOLDER";
+
+    if (shouldRedirectToResident && window.location.pathname === "/") {
+      router.replace(
+        `/resident?user=${encodeURIComponent(currentUser.email || currentUser.id)}`,
+      );
     }
   }, [currentUser, isBoard, router]);
 

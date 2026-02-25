@@ -11,9 +11,16 @@ import {
   ChevronDown,
 } from "lucide-react";
 
-type SwitcheableUser = Omit<MockUser, "name"> & {
+type SwitcheableUser = {
+  id: string;
   name: string | null;
-  email?: string;
+  email: string;
+  role: string;
+  apartmentId: string | null;
+  apartmentNumber?: string | null;
+  housingCompanyId: string;
+  housingCompanyName?: string;
+  canApproveFinance: boolean;
 };
 
 export function UserSwitcher() {
@@ -87,27 +94,31 @@ export function UserSwitcher() {
                 <button
                   key={u.id}
                   onClick={() => {
-                    // 1. Update Client Store
-                    setCurrentUser({
+                    // 1. Clear store to prevent flicker of old data
+                    setCurrentUser(null);
+
+                    // 2. Prepare user object for store (updated to match MockUser)
+                    const newUser: MockUser = {
                       id: u.id,
-                      name: u.name || u.id,
-                      email: u.email,
+                      name: u.name || (u.email ? u.email.split("@")[0] : u.id),
+                      email: u.email || "",
                       role: u.role as UserRole,
                       apartmentId: u.apartmentId,
                       apartmentNumber: u.apartmentNumber,
                       housingCompanyId: u.housingCompanyId,
-                      shareCount: u.shareCount,
+                      housingCompanyName: u.housingCompanyName,
                       canApproveFinance: u.canApproveFinance,
-                    });
+                    };
 
-                    // 2. Redirect to correct dashboard with user context
+                    // 3. Determine redirect path
                     const dashboardPath =
                       u.role === "BOARD_MEMBER" || u.role === "ADMIN"
                         ? "/"
                         : "/resident";
 
-                    // Use email as identifier for demo routing
-                    window.location.href = `${dashboardPath}?user=${encodeURIComponent(u.email || "")}`;
+                    // 4. Update store and redirect (full reload ensures server context)
+                    setCurrentUser(newUser);
+                    window.location.href = `${dashboardPath}?user=${encodeURIComponent(u.email || u.id)}`;
                     setIsOpen(false);
                   }}
                   className={`w-full text-left p-3 rounded-xl text-[10px] transition-all group ${
@@ -130,9 +141,12 @@ export function UserSwitcher() {
                       {u.role}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 mt-1 opacity-60 text-[9px]">
+                  <div className="flex items-center gap-2 mt-1 opacity-60 text-[9px] flex-wrap">
                     <UserIcon size={10} />
-                    <span>{u.apartmentId || "Keskushallinto"}</span>
+                    <span>{u.apartmentNumber || u.apartmentId || "Keskushallinto"}</span>
+                    <span className="text-brand-emerald font-bold">
+                      • {u.housingCompanyName}
+                    </span>
                   </div>
                 </button>
               ))}

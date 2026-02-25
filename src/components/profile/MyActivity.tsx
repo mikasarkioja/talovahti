@@ -38,7 +38,7 @@ export function MyActivity() {
   useEffect(() => {
     if (currentUser?.id) {
       startTransition(async () => {
-        const res = await getUserActivity(currentUser.id);
+        const res = await getUserActivity(currentUser.id, currentUser.id);
         if (res.success) {
           setActivity(res.data as unknown as ActivityData);
         }
