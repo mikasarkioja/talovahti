@@ -1,7 +1,7 @@
 "use client";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Text, Billboard, Html } from "@react-three/drei";
-import { useStore } from "@/lib/store";
+import { useStore, MockBuildingComponent } from "@/lib/store";
 import { useTemporalStore } from "@/lib/useTemporalStore";
 import { useGovernanceStore } from "@/lib/useGovernanceStore";
 import { useMemo, Suspense, useRef, useState } from "react";
@@ -19,7 +19,11 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBuildingXray } from "@/hooks/useBuildingXray";
-import { BuildingGenerator, POI } from "@/lib/three/BuildingGenerator";
+import {
+  BuildingGenerator,
+  POI,
+  ApartmentLayout,
+} from "@/lib/three/BuildingGenerator";
 import { HudCard } from "@/components/ui/hud-card";
 import { InstancedApartments } from "./three/InstancedApartments";
 import { InfrastructureMesh } from "./three/InfrastructureMesh";
@@ -48,7 +52,7 @@ function Roof({
             : "#cbd5e1";
   }
   return (
-    <mesh position={[0, dimensions[1] / 2 + 0.2, 0]}>
+    <mesh name="Roof_01" position={[0, dimensions[1] / 2 + 0.2, 0]}>
       <boxGeometry args={[dimensions[0] + 0.5, 0.4, dimensions[2] + 0.5]} />
       <meshStandardMaterial
         color={finalColor}
@@ -59,8 +63,14 @@ function Roof({
   );
 }
 
-function XrayEffect({ enabled }: { enabled: boolean }) {
-  useBuildingXray(enabled);
+function XrayEffect({
+  enabled,
+  components,
+}: {
+  enabled: boolean;
+  components?: MockBuildingComponent[];
+}) {
+  useBuildingXray(enabled, components);
   return null;
 }
 
@@ -136,12 +146,27 @@ function TemporalHUD({ hoveredTask }: { hoveredTask: any }) {
   );
 }
 
+function Infrastructure({ apartments }: { apartments: ApartmentLayout[] }) {
+  return (
+    <group name="Infra_Group">
+      <InfrastructureMesh apartments={apartments} />
+      {/* Main Vertical Pipes - Company Responsibility */}
+      <mesh name="Pipes_01" position={[0, 6, 0]}>
+        <cylinderGeometry args={[0.3, 0.3, 15, 8]} />
+        <meshStandardMaterial color="#94a3b8" />
+      </mesh>
+    </group>
+  );
+}
+
 export function BuildingModel({
   onApartmentClick,
   highlightId,
+  buildingComponents,
 }: {
   onApartmentClick?: (id: string) => void;
   highlightId?: string;
+  buildingComponents?: MockBuildingComponent[];
 }) {
   const tickets = useStore((state) => state.tickets);
   const initiatives = useStore((state) => state.initiatives);
@@ -161,7 +186,10 @@ export function BuildingModel({
 
   // Generate Layout
   const { apartments, pois, buildingDimensions } = useMemo(
-    () => BuildingGenerator.generateLayout(housingCompany?.buildingConfig),
+    () =>
+      BuildingGenerator.generateLayout(
+        housingCompany?.buildingConfig || undefined,
+      ),
     [housingCompany?.buildingConfig],
   );
 
@@ -384,7 +412,7 @@ export function BuildingModel({
           onClick={() => setXrayEnabled(!xrayEnabled)}
         >
           <Layers size={14} className="mr-2" />
-          {xrayEnabled ? "Läpivalaisu PÄÄLLÄ" : "Läpivalaisu"}
+          {xrayEnabled ? "Vastuunjako PÄÄLLÄ" : "Vastuunjako"}
         </Button>
         <Button
           size="sm"
@@ -413,7 +441,7 @@ export function BuildingModel({
           />
           <hemisphereLight intensity={0.4} groundColor="#f8fafc" />
 
-          <XrayEffect enabled={xrayEnabled} />
+          <XrayEffect enabled={xrayEnabled} components={buildingComponents} />
           <OrbitControls
             ref={controlsRef}
             enablePan={true}
@@ -426,7 +454,7 @@ export function BuildingModel({
           />
 
           <group position={[0, -2, 0]}>
-            <InfrastructureMesh apartments={apartments} />
+            <Infrastructure apartments={apartments} />
 
             {(viewMode === "LIFESPAN" || viewMode === "VALUE_HEATMAP") && (
               <Roof

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { BuildingConfig } from "@/lib/three/BuildingGenerator";
 // ValuationData is now fetched client-side via getBuildingValueMetrics
 // import { ValuationData } from "@/app/actions/valuation";
 import {
@@ -16,7 +17,6 @@ import {
   TenderType,
   TenderStatus,
   ChangeOrderStatus,
-  DocumentType,
   OrderStatus,
   SubscriptionPlan,
   SubscriptionStatus,
@@ -302,12 +302,20 @@ export type MockSystemAdminStats = {
   certificatesSold: number;
 };
 
+export type MockBuildingComponent = {
+  id: string;
+  meshId: string;
+  name: string;
+  type: string;
+  responsibility: string;
+};
+
 interface AppState {
   currentUser: MockUser | null;
   housingCompany: {
     id: string;
     name?: string;
-    buildingConfig?: any; // New parametric config
+    buildingConfig?: BuildingConfig | null; // New parametric config
     healthScore?: number;
     healthScoreTechnical?: number;
     healthScoreFinancial?: number;
@@ -329,6 +337,7 @@ interface AppState {
   budgetLines: MockBudgetLine[];
   vendorRules: MockVendorRule[];
   servicePartners: MockServicePartner[];
+  buildingComponents: MockBuildingComponent[];
 
   // New State
   annualTasks: AnnualTask[];
@@ -592,6 +601,7 @@ export const useStore = create<AppState>((set) => ({
       phone: "040-9998877",
     },
   ],
+  buildingComponents: [],
 
   // New Data
   annualTasks: [],

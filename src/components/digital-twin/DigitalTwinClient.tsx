@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 
 export function DigitalTwinClient({ initialData }: { initialData: unknown }) {
   const currentUser = useStore((state) => state.currentUser);
+  const buildingComponents = useStore((state) => state.buildingComponents);
   const hydrate = useStore((state) => state.hydrate);
   const [tourStep, setTourStep] = useState(0);
 
@@ -79,7 +80,7 @@ export function DigitalTwinClient({ initialData }: { initialData: unknown }) {
 
       <div className="grid grid-cols-1 gap-8">
         <div className="bg-white p-1 rounded-3xl border border-slate-200 shadow-xl overflow-hidden relative group">
-          <BuildingModel />
+          <BuildingModel buildingComponents={buildingComponents} />
 
           <div className="absolute top-6 right-20 z-10 hidden md:block">
             <div className="bg-white/90 backdrop-blur-sm border border-slate-200 p-3 rounded-2xl shadow-lg max-w-[250px]">

@@ -93,6 +93,15 @@ export default async function DigitalTwinPage({
           createdAt: true,
         },
       },
+      buildingComponents: {
+        select: {
+          id: true,
+          meshId: true,
+          name: true,
+          type: true,
+          responsibility: true,
+        },
+      },
     },
   });
 
@@ -169,6 +178,7 @@ export default async function DigitalTwinPage({
     })),
     renovations: company.renovations,
     observations: company.observations,
+    buildingComponents: company.buildingComponents,
   };
 
   return (

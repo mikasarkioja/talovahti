@@ -1,8 +1,15 @@
 import { useThree } from "@react-three/fiber";
 import { useEffect, useRef, useMemo } from "react";
 import * as THREE from "three";
+import { ResponsibilityType } from "@prisma/client";
 
-export function useBuildingXray(enabled: boolean) {
+export function useBuildingXray(
+  enabled: boolean,
+  components?: {
+    meshId: string;
+    responsibility: ResponsibilityType | string;
+  }[],
+) {
   const { scene } = useThree();
   // Store original materials mapped by Object UUID
   const originalMaterials = useRef<
@@ -13,9 +20,9 @@ export function useBuildingXray(enabled: boolean) {
   const companyMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: "#3b82f6", // Brand Blue
+        color: "#002f6c", // Dark Blue
         transparent: true,
-        opacity: 0.6,
+        opacity: 0.7,
         roughness: 0.2,
         metalness: 0.8,
         side: THREE.DoubleSide,
@@ -25,11 +32,24 @@ export function useBuildingXray(enabled: boolean) {
 
   const shareholderMaterial = useMemo(
     () =>
-      new THREE.MeshBasicMaterial({
-        color: "#22c55e", // Brand Emerald
-        wireframe: true,
+      new THREE.MeshStandardMaterial({
+        color: "#10b981", // Emerald
         transparent: true,
-        opacity: 0.4,
+        opacity: 0.5,
+        roughness: 0.5,
+        metalness: 0.1,
+      }),
+    [],
+  );
+
+  const hybridMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#f59e0b", // Amber
+        transparent: true,
+        opacity: 0.6,
+        roughness: 0.3,
+        metalness: 0.5,
       }),
     [],
   );
@@ -59,23 +79,47 @@ export function useBuildingXray(enabled: boolean) {
           originalMaterials.current.set(obj.uuid, obj.material);
         }
 
-        // Determine Responsibility Type (Mock Logic for MVP)
-        let type: "COMPANY" | "SHAREHOLDER" = "SHAREHOLDER";
+        // Determine Responsibility Type
+        let type: string = "COMPANY"; // Default
 
-        if (
-          obj.name.includes("Infra") ||
-          obj.name.includes("Roof") ||
-          obj.name.includes("Foundation")
-        ) {
-          type = "COMPANY";
+        // Check if mesh name matches any known component
+        const comp = components?.find((c) => c.meshId === obj.name);
+        if (comp) {
+          type = comp.responsibility;
+        } else {
+          // Fallback logic
+          if (
+            obj.name.includes("Infra") ||
+            obj.name.includes("Roof") ||
+            obj.name.includes("Pipes") ||
+            obj.name.includes("Facade") ||
+            obj.name.includes("Window")
+          ) {
+            type = "COMPANY";
+          } else if (
+            obj.name.includes("Interior") ||
+            obj.name.includes("Floor") ||
+            obj.name.includes("Surface")
+          ) {
+            type = "SHAREHOLDER";
+          }
         }
 
         if (type === "COMPANY") {
           obj.material = companyMaterial;
-        } else {
+        } else if (type === "SHAREHOLDER") {
           obj.material = shareholderMaterial;
+        } else {
+          obj.material = hybridMaterial;
         }
       }
     });
-  }, [enabled, scene, companyMaterial, shareholderMaterial]);
+  }, [
+    enabled,
+    scene,
+    companyMaterial,
+    shareholderMaterial,
+    hybridMaterial,
+    components,
+  ]);
 }

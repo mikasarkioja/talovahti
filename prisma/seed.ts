@@ -12,6 +12,7 @@ import {
   TaskCategory,
   GovernanceStatus,
   VoteChoice,
+  ResponsibilityType,
 } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -604,72 +605,82 @@ async function main() {
     });
   }
 
-  // 11. Building Components (Value Intelligence)
+  // 11. Building Components (Value Intelligence & Responsibility)
   console.log("🏗️ Creating Building Components...");
-  await prisma.buildingComponent.create({
-    data: {
-      housingCompanyId: company.id,
+  const components = [
+    {
       meshId: "Roof_01",
-      name: "Vesikatto (Huopa)",
+      name: "Vesikatto",
       type: "ROOF",
-      responsibility: "COMPANY",
+      responsibility: ResponsibilityType.COMPANY,
       lastRenovatedYear: 2010,
-      expectedLifespan: 25, // Ends 2035 (10 years left -> WARNING)
+      expectedLifespan: 25,
       estimatedCostSqm: 60,
     },
-  });
-
-  await prisma.buildingComponent.create({
-    data: {
-      housingCompanyId: company.id,
+    {
       meshId: "Facade_01",
-      name: "Julkisivu (Betonielementti)",
+      name: "Julkisivu",
       type: "FACADE",
-      responsibility: "COMPANY",
+      responsibility: ResponsibilityType.COMPANY,
       lastRenovatedYear: 1985,
-      expectedLifespan: 45, // Ends 2030 (4 years left -> CRITICAL)
+      expectedLifespan: 45,
       estimatedCostSqm: 150,
     },
-  });
-
-  await prisma.buildingComponent.create({
-    data: {
-      housingCompanyId: company.id,
-      meshId: "Plumbing_01",
-      name: "Putkisto (LVIS)",
-      type: "PLUMBING",
-      responsibility: "COMPANY",
-      lastRenovatedYear: 1985,
-      expectedLifespan: 50, // RT-kortisto standard
-      estimatedCostSqm: 200,
-    },
-  });
-
-  await prisma.buildingComponent.create({
-    data: {
-      housingCompanyId: company.id,
+    {
       meshId: "Windows_01",
-      name: "Ikkunat (Alumiini)",
+      name: "Ikkunat",
       type: "WINDOWS",
-      responsibility: "COMPANY",
+      responsibility: ResponsibilityType.COMPANY,
       lastRenovatedYear: 2005,
       expectedLifespan: 25,
       estimatedCostSqm: 300,
     },
-  });
-
-  await prisma.buildingComponent.create({
-    data: {
-      housingCompanyId: company.id,
-      meshId: "HVAC_01",
-      name: "LVI-järjestelmä",
-      type: "HVAC",
-      responsibility: "COMPANY",
-      lastRenovatedYear: 2015,
-      expectedLifespan: 20,
-      estimatedCostSqm: 120,
+    {
+      meshId: "Pipes_01",
+      name: "Pystyviemärit",
+      type: "PLUMBING",
+      responsibility: ResponsibilityType.COMPANY,
+      lastRenovatedYear: 1985,
+      expectedLifespan: 50,
+      estimatedCostSqm: 200,
     },
-  });
+    {
+      meshId: "Bathroom_01",
+      name: "Kylpyhuoneen pinnat",
+      type: "INTERIOR",
+      responsibility: ResponsibilityType.SHAREHOLDER,
+      lastRenovatedYear: 2020,
+      expectedLifespan: 20,
+      estimatedCostSqm: 500,
+    },
+    {
+      meshId: "Kitchen_01",
+      name: "Keittiökaapistot",
+      type: "INTERIOR",
+      responsibility: ResponsibilityType.SHAREHOLDER,
+      lastRenovatedYear: 2015,
+      expectedLifespan: 15,
+      estimatedCostSqm: 400,
+    },
+    {
+      meshId: "Floor_01",
+      name: "Lattiamateriaalit",
+      type: "INTERIOR",
+      responsibility: ResponsibilityType.SHAREHOLDER,
+      lastRenovatedYear: 2018,
+      expectedLifespan: 20,
+      estimatedCostSqm: 80,
+    },
+  ];
+
+  for (const c of components) {
+    await prisma.buildingComponent.create({
+      data: {
+        housingCompanyId: company.id,
+        ...c,
+      },
+    });
+  }
 
   // 12. Active Project with Milestones
   console.log("🏗️ Creating Active Project with Milestones...");
