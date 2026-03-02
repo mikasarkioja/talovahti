@@ -75,6 +75,13 @@ export function Sidebar() {
     { href: "/maintenance/tickets", label: "Vikailmoitukset", icon: PenTool },
   ];
 
+  // Helper to append user param
+  const getHrefWithUser = (href: string) => {
+    if (!currentUser?.email) return href;
+    const connector = href.includes("?") ? "&" : "?";
+    return `${href}${connector}user=${encodeURIComponent(currentUser.email)}`;
+  };
+
   const secondaryGroups: MenuGroup[] = [
     ...(isBoard
       ? [
@@ -236,14 +243,17 @@ export function Sidebar() {
           <nav className="space-y-1 mb-6">
             {primaryItems.map((link) => {
               const NavIcon = link.icon;
+              const hrefWithUser = getHrefWithUser(link.href);
               const isActive =
                 pathname === link.href ||
-                (link.href !== "/" && pathname.startsWith(link.href));
+                (link.href !== "/" &&
+                  link.href !== "/resident" &&
+                  pathname.startsWith(link.href));
 
               return (
                 <Link
                   key={link.href}
-                  href={link.href}
+                  href={hrefWithUser}
                   className={clsx(
                     "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group text-sm font-medium",
                     isActive
@@ -299,7 +309,7 @@ export function Sidebar() {
                         return (
                           <Link
                             key={link.href}
-                            href={isLocked ? "#" : link.href}
+                            href={isLocked ? "#" : getHrefWithUser(link.href)}
                             title={link.description}
                             className={clsx(
                               "flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 group text-sm",
