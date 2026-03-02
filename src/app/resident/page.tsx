@@ -42,7 +42,7 @@ export default async function ResidentDashboardPage(props: {
   if (!company)
     return <div className="p-10 text-center">Taloyhtiötä ei löytynyt.</div>;
 
-  let user: any = userByEmail;
+  let user: unknown = userByEmail;
   if (!user && userQuery) {
     // Retry with company filter if not found by email alone
     user = await prisma.user.findFirst({
@@ -55,7 +55,7 @@ export default async function ResidentDashboardPage(props: {
   } else if (user) {
     // Include apartment for the user we already found
     user = await prisma.user.findUnique({
-      where: { id: user.id },
+      where: { id: (user as { id: string }).id },
       include: { apartment: true },
     });
   }
@@ -74,22 +74,51 @@ export default async function ResidentDashboardPage(props: {
     return <div className="p-10 text-center">Käyttäjää ei löytynyt.</div>;
   }
 
+  interface UserTyped {
+    id: string;
+    role: UserRole;
+    name: string | null;
+    apartmentId: string | null;
+    apartmentNumber?: string;
+    apartment?: { apartmentNumber: string } | null;
+  }
+  const typedUser = user as UserTyped;
+
   // Ensure isolation: Resident can only see their own data
   // 2. Fetch User Data
-  const isBoard = user.role === UserRole.BOARD_MEMBER || user.role === UserRole.ADMIN;
+  const isBoard =
+    typedUser.role === UserRole.BOARD_MEMBER ||
+    typedUser.role === UserRole.ADMIN;
 
   const [tickets, renovations, volunteerTasks, announcements] =
     await Promise.all([
       prisma.ticket.findMany({
-        where: isBoard ? { housingCompanyId: company.id } : { createdById: user.id },
-        include: { createdBy: true },
+        where: isBoard
+          ? { housingCompanyId: company.id }
+          : { createdById: typedUser.id },
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          createdAt: true,
+          unitIdentifier: true,
+          createdBy: { select: { name: true } },
+        },
         orderBy: { createdAt: "desc" },
         take: 10,
       }),
       prisma.renovation.findMany({
         where: isBoard
           ? { housingCompanyId: company.id }
-          : { userId: user.id },
+          : { userId: typedUser.id },
+        select: {
+          id: true,
+          component: true,
+          triageStatus: true,
+          aiAssessment: true,
+          createdAt: true,
+          category: true,
+        },
         orderBy: { createdAt: "desc" },
         take: 5,
       }),
@@ -97,7 +126,7 @@ export default async function ResidentDashboardPage(props: {
       prisma.volunteerTask.findMany({
         where: isBoard
           ? { housingCompanyId: company.id, status: ResidentTaskStatus.OPEN }
-          : { userId: user.id, status: ResidentTaskStatus.OPEN },
+          : { userId: typedUser.id, status: ResidentTaskStatus.OPEN },
         orderBy: { createdAt: "desc" },
         take: 5,
       }),
@@ -107,6 +136,13 @@ export default async function ResidentDashboardPage(props: {
           housingCompanyId: company.id,
           status: { in: ["OPEN_FOR_SUPPORT", "QUALIFIED", "APPROVED"] },
         },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          status: true,
+          createdAt: true,
+        },
         orderBy: { createdAt: "desc" },
         take: 3,
       }),
@@ -115,11 +151,11 @@ export default async function ResidentDashboardPage(props: {
   // Fetch fees if user is a shareholder/board member
   let financialInfo = null;
   if (
-    user.role === UserRole.BOARD_MEMBER ||
-    user.role === UserRole.SHAREHOLDER
+    typedUser.role === UserRole.BOARD_MEMBER ||
+    typedUser.role === UserRole.SHAREHOLDER
   ) {
     const apartment = await prisma.apartment.findUnique({
-      where: { id: user.apartmentId || undefined },
+      where: { id: typedUser.apartmentId || undefined },
     });
     if (apartment) {
       const maintenanceFee =
@@ -144,14 +180,14 @@ export default async function ResidentDashboardPage(props: {
             variant="outline"
             className="text-[10px] font-black uppercase tracking-widest text-emerald-600 border-emerald-200 bg-emerald-50"
           >
-            {user.role === UserRole.BOARD_MEMBER
+            {typedUser.role === UserRole.BOARD_MEMBER
               ? "Hallituksen jäsen"
-              : user.role === UserRole.SHAREHOLDER
+              : typedUser.role === UserRole.SHAREHOLDER
                 ? "Osakasportaali"
                 : "Asukasportaali"}
           </Badge>
           <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tight">
-            Hei, {user.name?.split(" ")[0]}!
+            Hei, {typedUser.name?.split(" ")[0]}!
           </h1>
           <p className="text-slate-500 font-medium">
             Tervetuloa kotisi digitaaliseen hallintapaneeliin.
@@ -181,7 +217,9 @@ export default async function ResidentDashboardPage(props: {
                 Oma asunto
               </p>
               <p className="text-sm font-bold text-slate-900">
-                {user.apartmentNumber || (user as any).apartment?.apartmentNumber || "Ei määritetty"}
+                {typedUser.apartmentNumber ||
+                  (typedUser as UserTyped).apartment?.apartmentNumber ||
+                  "Ei määritetty"}
               </p>
             </div>
             <div className="w-12 h-12 bg-white rounded-2xl border border-slate-200 flex items-center justify-center shadow-sm">
@@ -245,7 +283,8 @@ export default async function ResidentDashboardPage(props: {
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                <PenTool size={14} /> {isBoard ? "Kaikki vikailmoitukset" : "Omat vikailmoitukset"}
+                <PenTool size={14} />{" "}
+                {isBoard ? "Kaikki vikailmoitukset" : "Omat vikailmoitukset"}
               </h2>
               <Link href="/resident/tickets/new">
                 <Button
@@ -269,10 +308,14 @@ export default async function ResidentDashboardPage(props: {
                     />
                     <div>
                       <p className="font-bold text-slate-900 text-sm">
-                        {t.title} {isBoard && t.unitIdentifier && `- ${t.unitIdentifier}`}
+                        {t.title}{" "}
+                        {isBoard && t.unitIdentifier && `- ${t.unitIdentifier}`}
                       </p>
                       <p className="text-[10px] text-slate-500 uppercase font-medium">
-                        Päivitetty {format(t.createdAt, "d.M.yyyy")} {isBoard && t.createdBy?.name && `• ${t.createdBy.name}`}
+                        Päivitetty {format(t.createdAt, "d.M.yyyy")}{" "}
+                        {isBoard &&
+                          t.createdBy?.name &&
+                          `• ${t.createdBy.name}`}
                       </p>
                     </div>
                   </div>
@@ -288,7 +331,7 @@ export default async function ResidentDashboardPage(props: {
           </section>
 
           {/* Renovations - Hide for RESIDENT */}
-          {user.role !== UserRole.RESIDENT && (
+          {typedUser.role !== UserRole.RESIDENT && (
             <section className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
@@ -306,7 +349,9 @@ export default async function ResidentDashboardPage(props: {
                         <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
                           <Hammer size={16} />
                         </div>
-                        <p className="font-bold text-slate-900">{r.component}</p>
+                        <p className="font-bold text-slate-900">
+                          {r.component}
+                        </p>
                       </div>
                       <Badge
                         className={`text-[9px] font-bold ${
@@ -419,7 +464,7 @@ export default async function ResidentDashboardPage(props: {
               <Link href="/resident/renovations/new">
                 <Button
                   variant="outline"
-                  disabled={user.role === UserRole.RESIDENT}
+                  disabled={typedUser.role === UserRole.RESIDENT}
                   className="w-full justify-start gap-3 h-14 rounded-xl border-slate-200 hover:bg-slate-50"
                 >
                   <Hammer size={20} className="text-slate-600" />
@@ -428,7 +473,7 @@ export default async function ResidentDashboardPage(props: {
                       Muutostyöilmoitus
                     </p>
                     <p className="text-[10px] text-slate-500 font-medium">
-                      {user.role === UserRole.RESIDENT
+                      {typedUser.role === UserRole.RESIDENT
                         ? "Vain osakkaille"
                         : "Tee ilmoitus remontista"}
                     </p>

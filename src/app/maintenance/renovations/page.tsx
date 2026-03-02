@@ -6,7 +6,8 @@ import { Hammer, Check } from "lucide-react";
 import { clsx } from "clsx";
 
 export default function RenovationPage() {
-  const { addTicket, currentUser } = useStore();
+  const addTicket = useStore((state) => state.addTicket);
+  const currentUser = useStore((state) => state.currentUser);
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [category, setCategory] = useState("");

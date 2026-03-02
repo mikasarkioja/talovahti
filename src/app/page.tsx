@@ -58,23 +58,148 @@ export default async function Home(props: {
 
     const company = await prisma.housingCompany.findFirst({
       where: userByEmail ? { id: userByEmail.housingCompanyId } : {},
-      include: {
+      select: {
+        id: true,
+        name: true,
+        businessId: true,
+        address: true,
+        maintenanceFeePerShare: true,
+        financeFeePerShare: true,
+        healthScore: true,
+        healthScoreTechnical: true,
+        healthScoreFinancial: true,
+        unpaidInvoicesCount: true,
+        realTimeCash: true,
+        buildingConfig: true,
         tickets: {
-          include: { observation: true, apartment: true },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            status: true,
+            category: true,
+            triageLevel: true,
+            priority: true,
+            type: true,
+            createdAt: true,
+            createdById: true,
+            observationId: true,
+            apartment: { select: { apartmentNumber: true } },
+          },
         },
         initiatives: {
-          include: { votes: { include: { apartment: true } } },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            status: true,
+            userId: true,
+            createdAt: true,
+            votes: {
+              select: {
+                userId: true,
+                choice: true,
+                shares: true,
+                apartmentId: true,
+                apartment: { select: { apartmentNumber: true } },
+              },
+            },
+          },
         },
-        budgetLines: true,
-        invoices: true,
+        budgetLines: {
+          select: {
+            id: true,
+            category: true,
+            budgetedAmount: true,
+            actualSpent: true,
+            year: true,
+          },
+        },
+        invoices: {
+          select: {
+            id: true,
+            amount: true,
+            vendorName: true,
+            category: true,
+            status: true,
+            dueDate: true,
+            description: true,
+            externalId: true,
+            yTunnus: true,
+            projectId: true,
+            approvedById: true,
+            imageUrl: true,
+            createdAt: true,
+          },
+        },
         fiscalConfig: true,
         strategicGoals: true,
-        renovations: true,
+        renovations: {
+          select: {
+            id: true,
+            component: true,
+            yearDone: true,
+            plannedYear: true,
+            cost: true,
+            expectedLifeSpan: true,
+            description: true,
+            status: true,
+          },
+        },
         observations: {
-          include: { project: { include: { milestones: true } } },
+          select: {
+            id: true,
+            component: true,
+            description: true,
+            status: true,
+            severityGrade: true,
+            technicalVerdict: true,
+            boardSummary: true,
+            projectId: true,
+            createdAt: true,
+          },
         },
         projects: {
-          include: { milestones: true, siteReports: true, changeOrders: true },
+          select: {
+            id: true,
+            title: true,
+            type: true,
+            status: true,
+            description: true,
+            createdAt: true,
+            warrantyEndDate: true,
+            estimatedCost: true,
+            milestones: {
+              select: {
+                id: true,
+                projectId: true,
+                title: true,
+                amount: true,
+                dueDate: true,
+                status: true,
+              },
+            },
+            siteReports: {
+              select: {
+                id: true,
+                projectId: true,
+                authorId: true,
+                content: true,
+                timestamp: true,
+                imageUrl: true,
+              },
+            },
+            changeOrders: {
+              select: {
+                id: true,
+                projectId: true,
+                title: true,
+                costImpact: true,
+                status: true,
+                createdAt: true,
+              },
+            },
+          },
         },
         boardProfile: true,
       },
@@ -83,7 +208,7 @@ export default async function Home(props: {
     const companyId = company?.id || "default-company-id";
 
     // 2. Fetch User (Dynamic Switcher)
-    let user: any = userByEmail;
+    let user: unknown = userByEmail;
     if (!user && userQuery) {
       user = await prisma.user.findFirst({
         where: {
@@ -95,7 +220,7 @@ export default async function Home(props: {
     } else if (user) {
       // Include apartment for the user we already found
       user = await prisma.user.findUnique({
-        where: { id: user.id },
+        where: { id: (user as { id: string }).id },
         include: { apartment: true },
       });
     }
@@ -108,28 +233,43 @@ export default async function Home(props: {
       });
     }
 
-    if (user?.role === UserRole.RESIDENT) {
+    interface UserTyped {
+      id: string;
+      role: UserRole;
+      name: string | null;
+      email: string;
+      apartment: {
+        apartmentNumber: string;
+        shareCount: number;
+      } | null;
+      canApproveFinance: boolean;
+      housingCompanyId: string;
+    }
+    const typedUser = user as UserTyped;
+
+    if (typedUser?.role === UserRole.RESIDENT) {
       const url = userQuery ? `/resident?user=${userQuery}` : "/resident";
       redirect(url);
     }
 
-    const clockResult = await getAnnualClockData(companyId, currentYear);
-    const financeAggregates = await getFinanceAggregates(
-      companyId,
-      currentYear,
-    );
-    const healthResult = await getHealthStatusAction(companyId);
-    const invoicesResult = await fetchInvoicesAction();
+    const [clockResult, financeAggregates, healthResult, invoicesResult] =
+      await Promise.all([
+        getAnnualClockData(companyId, currentYear),
+        getFinanceAggregates(companyId, currentYear),
+        getHealthStatusAction(companyId),
+        fetchInvoicesAction(),
+      ]);
 
     // 2.5 Audit Log for Board Dashboard View
     if (
-      user &&
-      (user.role === UserRole.BOARD_MEMBER || user.role === UserRole.ADMIN)
+      typedUser &&
+      (typedUser.role === UserRole.BOARD_MEMBER ||
+        typedUser.role === UserRole.ADMIN)
     ) {
       const headerList = await headers();
       const ip = headerList.get("x-forwarded-for") || "127.0.0.1";
       await RBAC.auditAccess(
-        user.id,
+        typedUser.id,
         "READ",
         `HousingCompany:${companyId}`,
         "Hallituksen päätöksenteko (Dashboard näkymä)",
@@ -166,20 +306,27 @@ export default async function Home(props: {
 
     // 3. Prepare Initial Data for Store
     const initialData =
-      company && user
+      company && typedUser
         ? {
             currentUser: {
-              id: user.id,
-              name: user.name || "Unknown",
-              role: user.role,
-              apartmentId: user.apartment?.apartmentNumber || null,
+              id: typedUser.id,
+              name: typedUser.name || "Unknown",
+              role: typedUser.role,
+              email: typedUser.email || "",
+              apartmentId: typedUser.apartment?.apartmentNumber || null,
               housingCompanyId: company.id,
-              shareCount: user.apartment?.shareCount || 0,
-              canApproveFinance: user.canApproveFinance,
+              shareCount: typedUser.apartment?.shareCount || 0,
+              canApproveFinance: typedUser.canApproveFinance,
               personalBalanceStatus: "OK",
               personalDebtShare: 0,
             },
-            housingCompany: company,
+            housingCompany: {
+              ...company,
+              healthScore: company.healthScore ?? undefined,
+              healthScoreTechnical: company.healthScoreTechnical ?? undefined,
+              healthScoreFinancial: company.healthScoreFinancial ?? undefined,
+              unpaidInvoicesCount: company.unpaidInvoicesCount ?? undefined,
+            },
             tickets: company.tickets.map((t) => ({
               id: t.id,
               title: t.title,
@@ -252,8 +399,8 @@ export default async function Home(props: {
             finance: financeData,
             health: healthResult.success ? healthResult.data : null,
             boardProfile:
-              user.role === UserRole.BOARD_MEMBER ||
-              user.role === UserRole.ADMIN
+              typedUser.role === UserRole.BOARD_MEMBER ||
+              typedUser.role === UserRole.ADMIN
                 ? company.boardProfile
                 : null,
             // Ensure MockStore required fields are present (empty arrays if not fetched)

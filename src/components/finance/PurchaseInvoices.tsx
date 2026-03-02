@@ -36,7 +36,8 @@ interface Invoice {
 }
 
 export function PurchaseInvoices() {
-  const { currentUser, housingCompany } = useStore();
+  const currentUser = useStore((state) => state.currentUser);
+  const housingCompany = useStore((state) => state.housingCompany);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();

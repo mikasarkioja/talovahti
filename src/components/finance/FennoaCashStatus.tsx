@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RefreshCw, Receipt, PieChart, TrendingUp } from "lucide-react";
 
 export function FennoaCashStatus() {
-  const { finance } = useStore();
+  const finance = useStore((state) => state.finance);
   const cash = finance.realTimeCash || 0;
   const unpaidCount = finance.unpaidInvoicesCount || 0;
   const budgetLeft = finance.budgetRemaining || 0;

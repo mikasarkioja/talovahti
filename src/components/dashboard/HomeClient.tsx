@@ -1,16 +1,25 @@
 // talovahti/src/components/dashboard/HomeClient.tsx
 "use client";
 
-import { useStore, MockInvoice, MockObservation } from "@/lib/store";
-import Link from "next/link";
 import {
-  AlertCircle,
-  PenTool,
-  Home,
-  Activity,
-  Box,
-} from "lucide-react";
-import { DecisionQueue, DecisionItem } from "@/components/dashboard/DecisionQueue";
+  useStore,
+  MockInvoice,
+  MockObservation,
+  MockTicket,
+  MockInitiative,
+  MockBudgetLine,
+  MockRenovation,
+  MockProject,
+  MockFinance,
+  MockUser,
+} from "@/lib/store";
+import Link from "next/link";
+import { FiscalConfiguration, StrategicGoal } from "@prisma/client";
+import { AlertCircle, PenTool, Home, Activity, Box } from "lucide-react";
+import {
+  DecisionQueue,
+  DecisionItem,
+} from "@/components/dashboard/DecisionQueue";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { PulseHero } from "@/components/dashboard/PulseHero";
 import { TicketTimeline } from "@/components/mobile/TicketTimeline";
@@ -49,18 +58,27 @@ interface HomeInitialData {
     level: number;
     achievements: Achievement[];
   };
-  currentUser?: any;
-  housingCompany?: any;
-  tickets?: any[];
-  initiatives?: any[];
-  invoices?: any[];
-  budgetLines?: any[];
-  fiscalConfig?: any;
-  strategicGoals?: any[];
-  finance?: any;
-  renovations?: any[];
-  observations?: any[];
-  [key: string]: any;
+  currentUser?: MockUser;
+  housingCompany?: {
+    id: string;
+    name: string;
+    businessId: string;
+    healthScore?: number;
+    healthScoreTechnical?: number;
+    healthScoreFinancial?: number;
+    unpaidInvoicesCount?: number;
+  };
+  tickets?: MockTicket[];
+  initiatives?: MockInitiative[];
+  invoices?: MockInvoice[];
+  budgetLines?: MockBudgetLine[];
+  fiscalConfig?: FiscalConfiguration | null;
+  strategicGoals?: StrategicGoal[];
+  finance?: MockFinance;
+  renovations?: MockRenovation[];
+  observations?: MockObservation[];
+  projects?: MockProject[];
+  [key: string]: unknown;
 }
 
 interface HomeClientProps {
@@ -69,8 +87,13 @@ interface HomeClientProps {
 }
 
 export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
-  const { currentUser, tickets, observations, hydrate, housingCompany, invoices } =
-    useStore();
+  const currentUser = useStore((state) => state.currentUser);
+  const tickets = useStore((state) => state.tickets);
+  const observations = useStore((state) => state.observations);
+  const hydrate = useStore((state) => state.hydrate);
+  const housingCompany = useStore((state) => state.housingCompany);
+  const invoices = useStore((state) => state.invoices);
+
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -91,15 +114,13 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
   }, [searchParams, router]);
 
   const isBoard =
-    currentUser?.role === "BOARD_MEMBER" ||
-    currentUser?.role === "ADMIN";
+    currentUser?.role === "BOARD_MEMBER" || currentUser?.role === "ADMIN";
 
   useEffect(() => {
     if (!currentUser) return;
 
     const shouldRedirectToResident =
-      currentUser.role === "RESIDENT" ||
-      currentUser.role === "SHAREHOLDER";
+      currentUser.role === "RESIDENT" || currentUser.role === "SHAREHOLDER";
 
     if (shouldRedirectToResident && window.location.pathname === "/") {
       router.replace(
@@ -108,13 +129,14 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
     }
   }, [currentUser, isBoard, router]);
 
-  const urgentObservations = (observations as MockObservation[] || []).filter(
+  const urgentObservations = ((observations as MockObservation[]) || []).filter(
     (o) =>
       o.status === "OPEN" && (o.severityGrade === 1 || o.severityGrade === 2),
   );
 
-  const pendingInvoices = (invoices as MockInvoice[] || [])
-    .filter((inv) => inv.status === "PENDING" && inv.isExternal);
+  const pendingInvoices = ((invoices as MockInvoice[]) || []).filter(
+    (inv) => inv.status === "PENDING" && inv.isExternal,
+  );
 
   const latestOpenTicket = (tickets || [])
     .filter((t) => t.createdById === currentUser?.id && t.status !== "CLOSED")
@@ -125,13 +147,13 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
     })[0];
 
   const decisionItems: DecisionItem[] = [
-    ...urgentObservations.map(o => ({
+    ...urgentObservations.map((o) => ({
       id: o.id,
       type: "TRIAGE" as const,
       title: o.component,
       vendor: "Asiantuntija-arvio tarvitaan",
       amount: 450,
-      xpReward: 150
+      xpReward: 150,
     })),
     ...pendingInvoices.map((inv) => ({
       id: inv.id,
@@ -139,13 +161,18 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
       title: `Ostolasku #${inv.invoiceNumber || inv.id}`,
       vendor: inv.vendorName,
       amount: inv.amount,
-      dueDate: inv.dueDate ? new Date(inv.dueDate).toISOString().split('T')[0] : "",
+      dueDate: inv.dueDate
+        ? new Date(inv.dueDate).toISOString().split("T")[0]
+        : "",
       invoiceNumber: inv.invoiceNumber,
-      xpReward: 50
-    }))
+      xpReward: 50,
+    })),
   ];
 
-  if (!isBoard && (currentUser?.role === "RESIDENT" || currentUser?.role === "SHAREHOLDER")) {
+  if (
+    !isBoard &&
+    (currentUser?.role === "RESIDENT" || currentUser?.role === "SHAREHOLDER")
+  ) {
     return (
       <div className="p-4 max-w-lg mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500">
         <header className="text-center pt-8">
@@ -254,8 +281,12 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
                   <Box size={24} className="text-brand-emerald" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold uppercase tracking-tight">Digitaalinen Kaksonen</h2>
-                  <p className="text-sm text-blue-100 opacity-80">Siirry tarkastelemaan yhtiön reaaliaikaista 3D-tilannekuvaa.</p>
+                  <h2 className="text-xl font-bold uppercase tracking-tight">
+                    Digitaalinen Kaksonen
+                  </h2>
+                  <p className="text-sm text-blue-100 opacity-80">
+                    Siirry tarkastelemaan yhtiön reaaliaikaista 3D-tilannekuvaa.
+                  </p>
                 </div>
               </div>
               <Link href="/digital-twin">
@@ -280,13 +311,31 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
           {isBoard && (
             <div className="space-y-4">
               <HealthScoreDashboard
-                totalScore={housingCompany?.healthScore || initialData?.health?.totalScore || 78}
-                technicalScore={housingCompany?.healthScoreTechnical || initialData?.health?.technicalScore || 85}
-                financialScore={housingCompany?.healthScoreFinancial || initialData?.health?.financialScore || 72}
-                unpaidCount={housingCompany?.unpaidInvoicesCount || initialData?.health?.unpaidCount || 3}
-                maintenanceBacklog={initialData?.health?.maintenanceBacklog || 12000}
+                totalScore={
+                  housingCompany?.healthScore ||
+                  initialData?.health?.totalScore ||
+                  78
+                }
+                technicalScore={
+                  housingCompany?.healthScoreTechnical ||
+                  initialData?.health?.technicalScore ||
+                  85
+                }
+                financialScore={
+                  housingCompany?.healthScoreFinancial ||
+                  initialData?.health?.financialScore ||
+                  72
+                }
+                unpaidCount={
+                  housingCompany?.unpaidInvoicesCount ||
+                  initialData?.health?.unpaidCount ||
+                  3
+                }
+                maintenanceBacklog={
+                  initialData?.health?.maintenanceBacklog || 12000
+                }
               />
-              
+
               {(housingCompany?.healthScoreTechnical || 100) < 85 && (
                 <div className="p-4 bg-red-50 border border-red-100 rounded-xl space-y-3 animate-pulse">
                   <div className="flex items-center gap-2 text-red-700 font-bold text-sm">
@@ -294,11 +343,15 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
                     Kuntoindeksi laskenut
                   </div>
                   <p className="text-xs text-red-600 leading-relaxed">
-                    Tekninen arvosana on laskenut avoimien havaintojen vuoksi. 
-                    Suosittelemme asiantuntijan kutsumista tilanteen arvioimiseksi.
+                    Tekninen arvosana on laskenut avoimien havaintojen vuoksi.
+                    Suosittelemme asiantuntijan kutsumista tilanteen
+                    arvioimiseksi.
                   </p>
                   <Link href="/board/marketplace">
-                    <Button size="sm" className="w-full bg-red-600 hover:bg-red-700 text-white font-bold text-xs mt-2">
+                    <Button
+                      size="sm"
+                      className="w-full bg-red-600 hover:bg-red-700 text-white font-bold text-xs mt-2"
+                    >
                       Palkkaa asiantuntija tästä (+150 XP)
                     </Button>
                   </Link>
@@ -320,7 +373,7 @@ export function HomeClient({ annualClockData, initialData }: HomeClientProps) {
             isBoard={isBoard}
             housingCompanyId={currentUser?.housingCompanyId}
           />
-          
+
           {isBoard && <DynastyPanel />}
         </div>
       </div>

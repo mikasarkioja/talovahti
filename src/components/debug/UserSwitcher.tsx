@@ -24,7 +24,8 @@ type SwitcheableUser = {
 };
 
 export function UserSwitcher() {
-  const { currentUser, setCurrentUser } = useStore();
+  const currentUser = useStore((state) => state.currentUser);
+  const setCurrentUser = useStore((state) => state.setCurrentUser);
   const [users, setUsers] = useState<SwitcheableUser[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -41,7 +42,9 @@ export function UserSwitcher() {
       console.log("UserSwitcher: Fetching test users...");
       getTestUsers().then((res) => {
         if (res.success && res.users) {
-          console.log(`UserSwitcher: Successfully fetched ${res.users.length} users`);
+          console.log(
+            `UserSwitcher: Successfully fetched ${res.users.length} users`,
+          );
           setUsers(res.users);
         } else {
           console.error("UserSwitcher: Failed to fetch test users", res.error);
@@ -143,7 +146,9 @@ export function UserSwitcher() {
                   </div>
                   <div className="flex items-center gap-2 mt-1 opacity-60 text-[9px] flex-wrap">
                     <UserIcon size={10} />
-                    <span>{u.apartmentNumber || u.apartmentId || "Keskushallinto"}</span>
+                    <span>
+                      {u.apartmentNumber || u.apartmentId || "Keskushallinto"}
+                    </span>
                     <span className="text-brand-emerald font-bold">
                       • {u.housingCompanyName}
                     </span>

@@ -10,7 +10,8 @@ import { useStore } from "@/lib/store";
 import { clsx } from "clsx";
 
 export function EconomicOverview() {
-  const { finance, currentUser } = useStore();
+  const finance = useStore((state) => state.finance);
+  const currentUser = useStore((state) => state.currentUser);
 
   const isBoard =
     currentUser?.role === "BOARD_MEMBER" || currentUser?.role === "ADMIN";

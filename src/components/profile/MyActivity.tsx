@@ -31,7 +31,7 @@ interface ActivityData {
 }
 
 export function MyActivity() {
-  const { currentUser } = useStore();
+  const currentUser = useStore((state) => state.currentUser);
   const [activity, setActivity] = useState<ActivityData | null>(null);
   const [isPending, startTransition] = useTransition();
 

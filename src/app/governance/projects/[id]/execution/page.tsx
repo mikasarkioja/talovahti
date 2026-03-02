@@ -40,15 +40,18 @@ import { toast } from "sonner";
 
 export default function ExecutionPage() {
   const params = useParams();
-  const {
-    projects,
-    addSiteReport,
-    updateChangeOrder,
-    updateMilestoneStatus,
-    completeProjectInStore,
-    currentUser,
-    housingCompany,
-  } = useStore();
+  const projects = useStore((state) => state.projects);
+  const addSiteReport = useStore((state) => state.addSiteReport);
+  const updateChangeOrder = useStore((state) => state.updateChangeOrder);
+  const updateMilestoneStatus = useStore(
+    (state) => state.updateMilestoneStatus,
+  );
+  const completeProjectInStore = useStore(
+    (state) => state.completeProjectInStore,
+  );
+  const currentUser = useStore((state) => state.currentUser);
+  const housingCompany = useStore((state) => state.housingCompany);
+
   const [isPending, startTransition] = useTransition();
   const [isCompleting, setIsCompleting] = useState(false);
 

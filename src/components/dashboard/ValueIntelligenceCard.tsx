@@ -32,7 +32,7 @@ interface BuildingValueMetrics {
 }
 
 export function ValueIntelligenceCard() {
-  const { currentUser } = useStore();
+  const currentUser = useStore((state) => state.currentUser);
   const [metrics, setMetrics] = useState<BuildingValueMetrics | null>(null);
   const [loading, setLoading] = useState(true);
 

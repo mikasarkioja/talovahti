@@ -22,8 +22,11 @@ export function HistoryView({
 }: {
   initialRenovations: MockRenovation[];
 }) {
-  const { renovations, finance, currentUser, observations, hydrate } =
-    useStore();
+  const renovations = useStore((state) => state.renovations);
+  const finance = useStore((state) => state.finance);
+  const currentUser = useStore((state) => state.currentUser);
+  const observations = useStore((state) => state.observations);
+  const hydrate = useStore((state) => state.hydrate);
 
   // Hydrate store on mount if initial data provided
   useEffect(() => {
@@ -39,13 +42,18 @@ export function HistoryView({
           <div className="w-20 h-20 bg-white rounded-3xl shadow-sm flex items-center justify-center mx-auto mb-6">
             <AlertTriangle size={40} className="text-slate-300" />
           </div>
-          <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Pääsy rajoitettu</h1>
+          <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight">
+            Pääsy rajoitettu
+          </h1>
           <p className="text-slate-500 font-medium mt-4 leading-relaxed">
-            Kunnossapitosuunnitelma (PTS) ja yhtiön tekninen historia on lakisääteisesti vain osakkaiden ja hallituksen saatavilla.
+            Kunnossapitosuunnitelma (PTS) ja yhtiön tekninen historia on
+            lakisääteisesti vain osakkaiden ja hallituksen saatavilla.
           </p>
           <div className="pt-8">
             <Link href="/resident">
-              <Button className="bg-brand-navy text-white rounded-xl px-8">Palaa hallintapaneeliin</Button>
+              <Button className="bg-brand-navy text-white rounded-xl px-8">
+                Palaa hallintapaneeliin
+              </Button>
             </Link>
           </div>
         </div>

@@ -11,7 +11,10 @@ import { useState } from "react";
 import { clsx } from "clsx";
 
 export default function MMLSyncPage() {
-  const { mmlSyncLogs, renovations, addMMLSyncLog, currentUser } = useStore();
+  const mmlSyncLogs = useStore((state) => state.mmlSyncLogs);
+  const renovations = useStore((state) => state.renovations);
+  const addMMLSyncLog = useStore((state) => state.addMMLSyncLog);
+  const currentUser = useStore((state) => state.currentUser);
   const [isSyncing, setIsSyncing] = useState(false);
 
   const isBoard =

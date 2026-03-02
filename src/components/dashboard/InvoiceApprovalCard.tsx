@@ -5,7 +5,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Guardrail } from "@/components/finance/Guardrail";
-import { CreditCard, TrendingUp, Calendar, User, ArrowRight } from "lucide-react";
+import {
+  CreditCard,
+  TrendingUp,
+  Calendar,
+  User,
+  ArrowRight,
+} from "lucide-react";
 import { approveInvoiceAction } from "@/app/actions/invoice-actions";
 import { toast } from "sonner";
 import { useStore } from "@/lib/store";
@@ -31,7 +37,8 @@ export function InvoiceApprovalCard({
   onSuccess,
 }: InvoiceApprovalCardProps) {
   const [isPending, startTransition] = useTransition();
-  const { currentUser, housingCompany } = useStore();
+  const currentUser = useStore((state) => state.currentUser);
+  const housingCompany = useStore((state) => state.housingCompany);
 
   const handleApprove = () => {
     if (!currentUser || !housingCompany) {
@@ -44,7 +51,7 @@ export function InvoiceApprovalCard({
         id,
         amount,
         housingCompany.id,
-        currentUser.id
+        currentUser.id,
       );
 
       if (result.success) {
@@ -61,10 +68,12 @@ export function InvoiceApprovalCard({
   };
 
   return (
-    <Card className={cn(
-      "group transition-all duration-300 hover:shadow-md border-slate-100 bg-slate-50/50 hover:bg-white",
-      isPending && "opacity-50 grayscale pointer-events-none"
-    )}>
+    <Card
+      className={cn(
+        "group transition-all duration-300 hover:shadow-md border-slate-100 bg-slate-50/50 hover:bg-white",
+        isPending && "opacity-50 grayscale pointer-events-none",
+      )}
+    >
       <CardContent className="p-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           {/* Info Section */}
@@ -74,8 +83,13 @@ export function InvoiceApprovalCard({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h4 className="font-bold text-brand-navy leading-tight">{vendorName}</h4>
-                <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider py-0 px-1.5 h-4 bg-white">
+                <h4 className="font-bold text-brand-navy leading-tight">
+                  {vendorName}
+                </h4>
+                <Badge
+                  variant="outline"
+                  className="text-[9px] font-bold uppercase tracking-wider py-0 px-1.5 h-4 bg-white"
+                >
                   LASKU
                 </Badge>
               </div>
@@ -100,19 +114,27 @@ export function InvoiceApprovalCard({
                 {amount.toLocaleString("fi-FI")} €
               </p>
               <div className="flex items-center justify-end gap-1 mt-1 text-emerald-600 font-bold text-[10px]">
-                <TrendingUp size={10} />
-                +{xpReward} XP
+                <TrendingUp size={10} />+{xpReward} XP
               </div>
             </div>
 
-            <Guardrail amount={amount} title={`${vendorName} (${invoiceNumber})`} onApprove={handleApprove}>
+            <Guardrail
+              amount={amount}
+              title={`${vendorName} (${invoiceNumber})`}
+              onApprove={handleApprove}
+            >
               <Button
                 size="sm"
                 disabled={isPending}
                 className="bg-brand-navy hover:bg-slate-800 text-white font-bold px-4 rounded-lg shadow-sm h-10 min-w-[160px]"
               >
                 {isPending ? "Käsitellään..." : "Hyväksy maksuunpano"}
-                {!isPending && <ArrowRight size={14} className="ml-2 opacity-50 group-hover:translate-x-1 transition-transform" />}
+                {!isPending && (
+                  <ArrowRight
+                    size={14}
+                    className="ml-2 opacity-50 group-hover:translate-x-1 transition-transform"
+                  />
+                )}
               </Button>
             </Guardrail>
           </div>

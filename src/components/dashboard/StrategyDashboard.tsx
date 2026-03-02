@@ -27,14 +27,12 @@ import {
 import { Target, Activity, Euro, Zap } from "lucide-react";
 
 export function StrategyDashboard() {
-  const {
-    finance,
-    observations,
-    renovations,
-    tickets,
-    strategicGoals,
-    apartmentCount,
-  } = useStore();
+  const finance = useStore((state) => state.finance);
+  const observations = useStore((state) => state.observations);
+  const renovations = useStore((state) => state.renovations);
+  const tickets = useStore((state) => state.tickets);
+  const strategicGoals = useStore((state) => state.strategicGoals);
+  const apartmentCount = useStore((state) => state.apartmentCount);
 
   // 1. Calculate Metrics via Engine
   const metrics = useMemo(() => {

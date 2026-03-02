@@ -43,7 +43,14 @@ export function ApartmentMesh({
       data.dimensions[1],
     );
     return result || { shape: new THREE.Shape(), extrudeSettings: {} };
-  }, [data]);
+  }, [data.polygonPoints, data.floor, data.dimensions]);
+
+  const geometry = useMemo(
+    () => new THREE.ExtrudeGeometry(shape, extrudeSettings),
+    [shape, extrudeSettings],
+  );
+
+  const edges = useMemo(() => new THREE.EdgesGeometry(geometry), [geometry]);
 
   useFrame((state) => {
     if (mesh.current && !Array.isArray(mesh.current.material)) {
@@ -84,8 +91,8 @@ export function ApartmentMesh({
         ref={mesh}
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, verticalOffset, 0]}
+        geometry={geometry}
       >
-        <extrudeGeometry args={[shape, extrudeSettings]} />
         <meshStandardMaterial
           color={isHovered || hovered ? "#fbbf24" : color}
           roughness={0.8} // Nordic Concrete
@@ -98,10 +105,8 @@ export function ApartmentMesh({
       <lineSegments
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, verticalOffset, 0]}
+        geometry={edges}
       >
-        <edgesGeometry
-          args={[new THREE.ExtrudeGeometry(shape, extrudeSettings)]}
-        />
         <lineBasicMaterial
           color="#94a3b8"
           transparent

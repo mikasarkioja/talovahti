@@ -2,15 +2,27 @@
 
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { FileText, CreditCard, Loader2, CheckCircle, Download } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import {
+  FileText,
+  CreditCard,
+  Loader2,
+  CheckCircle,
+  Download,
+} from "lucide-react";
 import { createCertificateCheckoutAction } from "@/app/actions/certificate-actions";
 import { toast } from "sonner";
 import { useStore } from "@/lib/store";
 import Link from "next/link";
 
 export function OrderCertificate() {
-  const { currentUser } = useStore();
+  const currentUser = useStore((state) => state.currentUser);
   const [isPending, startTransition] = useTransition();
   const [isOrdered, setIsOrdered] = useState(false);
 
@@ -18,7 +30,10 @@ export function OrderCertificate() {
     if (!currentUser) return;
 
     startTransition(async () => {
-      const res = await createCertificateCheckoutAction(currentUser.id, currentUser.housingCompanyId);
+      const res = await createCertificateCheckoutAction(
+        currentUser.id,
+        currentUser.housingCompanyId,
+      );
       if (res.success && res.url) {
         window.location.href = res.url;
       } else {
@@ -47,7 +62,9 @@ export function OrderCertificate() {
           </div>
           <div className="text-right">
             <span className="text-lg font-black text-brand-navy">45,00 €</span>
-            <p className="text-[8px] text-slate-400 uppercase font-bold">Sis. ALV 25,5%</p>
+            <p className="text-[8px] text-slate-400 uppercase font-bold">
+              Sis. ALV 25,5%
+            </p>
           </div>
         </div>
       </CardHeader>
@@ -70,7 +87,7 @@ export function OrderCertificate() {
             </ul>
           </div>
 
-          <Button 
+          <Button
             onClick={handleOrder}
             disabled={isPending}
             className="w-full bg-blue-900 hover:bg-blue-950 text-white font-black py-6 rounded-xl transition-all shadow-lg hover:shadow-blue-900/20"
@@ -82,9 +99,10 @@ export function OrderCertificate() {
             )}
             Tilaa ja maksa (45€)
           </Button>
-          
+
           <p className="text-[9px] text-center text-slate-400 italic">
-            Maksun jälkeen todistus on heti ladattavissa ja se tallentuu omaan arkistoosi.
+            Maksun jälkeen todistus on heti ladattavissa ja se tallentuu omaan
+            arkistoosi.
           </p>
         </div>
       </CardContent>

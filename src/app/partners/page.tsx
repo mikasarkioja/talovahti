@@ -19,7 +19,7 @@ import { redirect } from "next/navigation";
 export default function PartnersPage() {
   if (!FEATURES.SERVICE_MARKETPLACE) redirect("/dashboard");
 
-  const { servicePartners } = useStore();
+  const servicePartners = useStore((state) => state.servicePartners);
   const [searchTerm, setSearchTerm] = useState("");
 
   const handleRequestQuote = (partnerName: string) => {

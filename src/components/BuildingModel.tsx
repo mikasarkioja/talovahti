@@ -21,7 +21,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useBuildingXray } from "@/hooks/useBuildingXray";
 import { BuildingGenerator, POI } from "@/lib/three/BuildingGenerator";
 import { HudCard } from "@/components/ui/hud-card";
-import { ApartmentMesh } from "./three/ApartmentMesh";
+import { InstancedApartments } from "./three/InstancedApartments";
 import { InfrastructureMesh } from "./three/InfrastructureMesh";
 import Link from "next/link";
 
@@ -143,7 +143,11 @@ export function BuildingModel({
   onApartmentClick?: (id: string) => void;
   highlightId?: string;
 }) {
-  const { tickets, initiatives, currentUser, housingCompany } = useStore();
+  const tickets = useStore((state) => state.tickets);
+  const initiatives = useStore((state) => state.initiatives);
+  const currentUser = useStore((state) => state.currentUser);
+  const housingCompany = useStore((state) => state.housingCompany);
+
   const { currentActiveQuarter, hoveredTask } = useTemporalStore();
   const { participatedApartmentIds } = useGovernanceStore();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -161,13 +165,56 @@ export function BuildingModel({
     [housingCompany?.buildingConfig],
   );
 
+  // Pre-calculate apartment statuses to avoid expensive lookups in the loop
+  const aptStatusMap = useMemo(() => {
+    const isBoard =
+      currentUser?.role === "BOARD_MEMBER" || currentUser?.role === "ADMIN";
+
+    return apartments.reduce(
+      (acc, apt) => {
+        const isOwnApartment =
+          !!currentUser &&
+          (currentUser.apartmentId === apt.id ||
+            currentUser.apartmentNumber === apt.id ||
+            (!!currentUser.apartmentId &&
+              apt.id.includes(currentUser.apartmentId)));
+
+        const hasTicket = tickets.some(
+          (t) =>
+            t.apartmentId === apt.id &&
+            t.status !== "CLOSED" &&
+            (isBoard || isOwnApartment),
+        );
+
+        const activeVote = initiatives.some(
+          (i) => i.status === "VOTING" && (isBoard || isOwnApartment),
+        );
+
+        acc[apt.id] = {
+          isOwnApartment: isOwnApartment ? true : false,
+          hasTicket,
+          activeVote,
+          isBoard,
+        };
+        return acc;
+      },
+      {} as Record<
+        string,
+        {
+          isOwnApartment: boolean | null;
+          hasTicket: boolean;
+          activeVote: boolean;
+          isBoard: boolean;
+        }
+      >,
+    );
+  }, [apartments, tickets, initiatives, currentUser]);
+
   // Get component statuses (Mocked as valuation was removed)
   const roofStatus: string = "EXCELLENT";
-  const facadeStatus: string = "NORMAL";
 
   // Value Heatmap: Get component ages for PKI-based coloring
   const roofAge = 15;
-  const facadeAge = 35;
 
   // Value Heatmap color logic: >40 years = Orange/Red, <10 years = Bright Green
   const getHeatmapColor = (age: number | null) => {
@@ -393,140 +440,46 @@ export function BuildingModel({
               />
             )}
 
-            {/* Apartments */}
+            {/* Instanced Apartments for better performance */}
+            <InstancedApartments
+              apartments={apartments}
+              aptStatusMap={aptStatusMap}
+              selectedAptId={selectedAptId}
+              highlightId={highlightId}
+              viewMode={viewMode}
+              participatedApartmentIds={participatedApartmentIds}
+              onApartmentClick={handleAptClick}
+              selectedFloor={selectedFloor}
+            />
+
+            {/* Labels and floating HUD (Kept as individual for interactivity) */}
             {apartments.map((apt) => {
-              // RBAC: Check if this is user's own apartment
-              const isOwnApartment =
-                currentUser &&
-                (currentUser.apartmentId === apt.id ||
-                  currentUser.apartmentNumber === apt.id ||
-                  (currentUser.apartmentId &&
-                    apt.id.includes(currentUser.apartmentId)));
+              const status = aptStatusMap[apt.id];
+              if (!status) return null;
 
-              const isBoard =
-                currentUser?.role === "BOARD_MEMBER" ||
-                currentUser?.role === "ADMIN";
-
-              // Status Logic
-              const hasTicket = tickets.some(
-                (t) =>
-                  t.apartmentId === apt.id &&
-                  t.status !== "CLOSED" &&
-                  (isBoard || isOwnApartment),
-              );
-              const activeVote = initiatives.some(
-                (i) => i.status === "VOTING" && (isBoard || isOwnApartment),
-              );
-
+              const { isOwnApartment, hasTicket, isBoard } = status;
               const isSelected = selectedAptId === apt.id;
-              const isAnySelected = selectedAptId !== null;
-              const isParticipationMode = participatedApartmentIds.length > 0;
-
-              // Filtering
               const isVisible =
                 selectedFloor === null || selectedFloor === apt.floor;
+
               if (!isVisible) return null;
-
-              // Color Logic
-              let baseColor = "#e2e8f0"; // Nordic Concrete
-              let opacity = 1;
-              let transparent = false;
-
-              // Lifespan Mode
-              if (viewMode === "LIFESPAN") {
-                if (facadeStatus === "CRITICAL") baseColor = "#ef4444";
-                else if (facadeStatus === "WARNING") baseColor = "#eab308";
-                else if (facadeStatus === "EXCELLENT") baseColor = "#10b981";
-                // If no status, keep default or dim
-              }
-
-              // Value Heatmap Mode (PKI-based)
-              if (viewMode === "VALUE_HEATMAP") {
-                baseColor = getHeatmapColor(facadeAge);
-              }
-
-              // X-Ray Mode:
-              if (isAnySelected || isParticipationMode) {
-                if (
-                  isSelected ||
-                  (isParticipationMode &&
-                    participatedApartmentIds.includes(apt.id))
-                ) {
-                  baseColor = isParticipationMode ? "#10b981" : "#002f6c"; // Emerald if voting, Navy if selected
-                  opacity = 1;
-                  transparent = false;
-                } else {
-                  opacity = 0.1;
-                  transparent = true;
-                }
-              }
-
-              let pulseColor = undefined;
-              if (highlightId === apt.id) baseColor = "#fbbf24"; // Highlight
-
-              if (hasTicket)
-                pulseColor = "#ef4444"; // Red Pulse
-              else if (activeVote) pulseColor = "#3b82f6"; // Blue Pulse
-
-              // GOVERNANCE SYNC
-              if (
-                isParticipationMode &&
-                participatedApartmentIds.includes(apt.id)
-              ) {
-                pulseColor = "#10b981"; // Emerald Pulse for participants
-              }
-
-              // TEMPORAL SYNC (Quarterly Phases)
-              if (currentActiveQuarter) {
-                if (currentActiveQuarter === "Q1" && apt.floor === 4) {
-                  pulseColor = "#60a5fa"; // Winter: Roof Focus
-                } else if (currentActiveQuarter === "Q2") {
-                  pulseColor = "#4ade80"; // Spring: Facade (All)
-                } else if (currentActiveQuarter === "Q3" && apt.floor === 1) {
-                  pulseColor = "#facc15"; // Summer: Grounds
-                } else if (currentActiveQuarter === "Q4") {
-                  pulseColor = "#f87171"; // Autumn: Systems (All)
-                }
-              }
-
-              // TASK SYNC (Hovered Task)
-              // If a specific task is hovered in the Annual Clock, we want to highlight relevant components.
-              if (hoveredTask) {
-                // Simple heuristic mapping
-                if (
-                  hoveredTask.title.toLowerCase().includes("katto") &&
-                  apt.floor === 4
-                ) {
-                  pulseColor = "#ef4444"; // Red alert for Roof
-                }
-                if (hoveredTask.title.toLowerCase().includes("julkisivu")) {
-                  pulseColor = "#fbbf24"; // Orange for Facade
-                }
-                if (
-                  hoveredTask.title.toLowerCase().includes("piha") &&
-                  apt.floor === 1
-                ) {
-                  pulseColor = "#10b981"; // Green for Grounds
-                }
-              }
 
               return (
                 <group key={apt.id}>
-                  <ApartmentMesh
-                    data={apt}
-                    color={baseColor}
-                    pulseColor={
-                      viewMode === "VALUE_HEATMAP" ? undefined : pulseColor
-                    } // Disable pulse in heatmap mode
-                    isHovered={false}
-                    onClick={() => handleAptClick(apt.id)}
-                    opacity={opacity}
-                    transparent={transparent}
-                    emissive={
-                      viewMode === "VALUE_HEATMAP" ? baseColor : undefined
-                    }
-                    emissiveIntensity={viewMode === "VALUE_HEATMAP" ? 0.3 : 0}
-                  />
+                  {/* Label */}
+                  <Text
+                    position={[
+                      apt.position[0],
+                      apt.position[1],
+                      apt.position[2] + apt.dimensions[2] / 2 + 0.2,
+                    ]}
+                    fontSize={0.4}
+                    color="#1e293b"
+                    anchorX="center"
+                    anchorY="middle"
+                  >
+                    {apt.id}
+                  </Text>
 
                   {/* Floating HUD anchored to 3D position */}
                   {isSelected && (

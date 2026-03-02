@@ -71,12 +71,14 @@ const EXPERTS: Expert[] = [
 ];
 
 export function ExpertMarketplace() {
-  const { currentUser, projects, updateProjectStatus } = useStore();
+  const currentUser = useStore((state) => state.currentUser);
+  const projects = useStore((state) => state.projects);
+  const updateProjectStatus = useStore((state) => state.updateProjectStatus);
   const [isPending, startTransition] = useTransition();
   const [view, setView] = React.useState<"EXPERT" | "CONTRACTOR">("EXPERT");
 
   // Logic: Show contractors only if a project is in PLANNING phase
-  const activePlanningProject = projects.find(p => p.status === "PLANNING");
+  const activePlanningProject = projects.find((p) => p.status === "PLANNING");
   const canShowContractors = !!activePlanningProject;
 
   const handleOrder = (expert: Expert) => {
@@ -90,23 +92,26 @@ export function ExpertMarketplace() {
         userId: currentUser.id,
         amount: expert.hourlyRate, // Using total for contractors, or 2h deposit for experts
         contractType: expert.type === "EXPERT" ? "KSA_2013" : "YSE_1998",
-        projectId: activePlanningProject?.id
+        projectId: activePlanningProject?.id,
       });
 
       if (result.success) {
         toast.success(
-          expert.type === "EXPERT" 
-            ? `Sopimusluonnos (KSA 2013) luotu: ${expert.name}.` 
+          expert.type === "EXPERT"
+            ? `Sopimusluonnos (KSA 2013) luotu: ${expert.name}.`
             : `Urakkasopimusluonnos (YSE 1998) luotu: ${expert.name}.`,
-          { 
-            description: "Allekirjoituskutsu lähetetty. Vahva tunnistautuminen vaaditaan.",
-            action: result.signingUrl ? {
-              label: "Allekirjoita nyt",
-              onClick: () => window.open(result.signingUrl, "_blank")
-            } : undefined
-          }
+          {
+            description:
+              "Allekirjoituskutsu lähetetty. Vahva tunnistautuminen vaaditaan.",
+            action: result.signingUrl
+              ? {
+                  label: "Allekirjoita nyt",
+                  onClick: () => window.open(result.signingUrl, "_blank"),
+                }
+              : undefined,
+          },
         );
-        
+
         // Move project forward if applicable
         if (activePlanningProject && expert.type === "CONTRACTOR") {
           updateProjectStatus(activePlanningProject.id, "EXECUTION");
@@ -119,7 +124,7 @@ export function ExpertMarketplace() {
     });
   };
 
-  const filteredExperts = EXPERTS.filter(e => e.type === view);
+  const filteredExperts = EXPERTS.filter((e) => e.type === view);
 
   return (
     <div className="space-y-6">
@@ -127,18 +132,20 @@ export function ExpertMarketplace() {
         <div>
           <h2 className="text-xl font-bold text-brand-navy flex items-center gap-2">
             <Briefcase className="text-brand-emerald" />
-            {view === "EXPERT" ? "Asiantuntijoiden markkinapaikka" : "Urakoitsijoiden markkinapaikka"}
+            {view === "EXPERT"
+              ? "Asiantuntijoiden markkinapaikka"
+              : "Urakoitsijoiden markkinapaikka"}
           </h2>
           <p className="text-sm text-slate-500">
-            {view === "EXPERT" 
-              ? "Tilaa riippumattomat valvojat ja asiantuntijat (KSA 2013)." 
+            {view === "EXPERT"
+              ? "Tilaa riippumattomat valvojat ja asiantuntijat (KSA 2013)."
               : "Kilpailuta ja tilaa urakoitsijat (YSE 1998)."}
           </p>
         </div>
         <div className="flex gap-2">
           {canShowContractors && view === "EXPERT" && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="border-brand-emerald text-brand-emerald hover:bg-brand-emerald/10 font-bold"
               onClick={() => setView("CONTRACTOR")}
             >
@@ -146,8 +153,8 @@ export function ExpertMarketplace() {
             </Button>
           )}
           {view === "CONTRACTOR" && (
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className="text-slate-500"
               onClick={() => setView("EXPERT")}
             >
@@ -192,11 +199,14 @@ export function ExpertMarketplace() {
                 <div className="flex justify-between text-xs border-b border-slate-50 pb-2">
                   <span className="text-slate-400">Palkkio</span>
                   <span className="font-bold text-brand-navy">
-                    {expert.hourlyRate.toLocaleString("fi-FI")} € {expert.type === "EXPERT" ? "/ h" : " (yhteensä)"}
+                    {expert.hourlyRate.toLocaleString("fi-FI")} €{" "}
+                    {expert.type === "EXPERT" ? "/ h" : " (yhteensä)"}
                   </span>
                 </div>
                 <div className="flex justify-between text-xs border-b border-slate-50 pb-2">
-                  <span className="text-slate-400">Talovahti-komissio (5 %)</span>
+                  <span className="text-slate-400">
+                    Talovahti-komissio (5 %)
+                  </span>
                   <span className="font-bold text-brand-emerald">
                     {(expert.hourlyRate * 0.05).toLocaleString("fi-FI")} €
                   </span>
@@ -214,19 +224,21 @@ export function ExpertMarketplace() {
               </div>
             </CardContent>
             <CardFooter className="bg-slate-50/50 p-4 pt-4 border-t border-slate-100">
-                <Button
-                  className="w-full bg-brand-navy hover:bg-brand-navy/90 text-white font-bold h-9 text-xs"
-                  onClick={() => handleOrder(expert)}
-                  disabled={isPending}
-                >
-                  {isPending ? (
-                    <Loader2 size={14} className="animate-spin mr-2" />
-                  ) : (
-                    <CreditCard size={14} className="mr-2" />
-                  )}
-                  {expert.type === "EXPERT" ? "Luo ja allekirjoita valvontasopimus" : "Luo ja allekirjoita urakkasopimus"}
-                  <ArrowRight size={14} className="ml-auto" />
-                </Button>
+              <Button
+                className="w-full bg-brand-navy hover:bg-brand-navy/90 text-white font-bold h-9 text-xs"
+                onClick={() => handleOrder(expert)}
+                disabled={isPending}
+              >
+                {isPending ? (
+                  <Loader2 size={14} className="animate-spin mr-2" />
+                ) : (
+                  <CreditCard size={14} className="mr-2" />
+                )}
+                {expert.type === "EXPERT"
+                  ? "Luo ja allekirjoita valvontasopimus"
+                  : "Luo ja allekirjoita urakkasopimus"}
+                <ArrowRight size={14} className="ml-auto" />
+              </Button>
             </CardFooter>
           </Card>
         ))}
@@ -234,8 +246,9 @@ export function ExpertMarketplace() {
 
       <div className="text-center py-4">
         <p className="text-[10px] text-slate-400 font-medium">
-          Kaikki tilaukset noudattavat rakennusalan standardeja (KSA 2013 / YSE 1998). 
-          Sisältää 5 % välityspalkkion. Audit trail tallentaa tilauksen hallituksen virallisena päätöksenä.
+          Kaikki tilaukset noudattavat rakennusalan standardeja (KSA 2013 / YSE
+          1998). Sisältää 5 % välityspalkkion. Audit trail tallentaa tilauksen
+          hallituksen virallisena päätöksenä.
         </p>
       </div>
     </div>

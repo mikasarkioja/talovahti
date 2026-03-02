@@ -19,7 +19,7 @@ export function RoleGate({
   allowed,
   fallback = null,
 }: RoleGateProps) {
-  const { currentUser } = useStore();
+  const currentUser = useStore((state) => state.currentUser);
 
   if (!currentUser) return null;
 

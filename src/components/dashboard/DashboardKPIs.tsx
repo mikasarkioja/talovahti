@@ -83,7 +83,11 @@ function KPICard({
 }
 
 export function DashboardKPIs() {
-  const { observations, finance, tickets, renovations, housingCompany } = useStore();
+  const observations = useStore((state) => state.observations);
+  const finance = useStore((state) => state.finance);
+  const tickets = useStore((state) => state.tickets);
+  const renovations = useStore((state) => state.renovations);
+  const housingCompany = useStore((state) => state.housingCompany);
 
   // Calculate Backlog Score Memoized
   const backlogScore = useMemo(() => {
@@ -106,7 +110,7 @@ export function DashboardKPIs() {
         : financialGrade === "B"
           ? "blue"
           : "amber";
-    
+
     // Kassan riittävyys (ennuste kuukausissa)
     const avgMonthlyExpenses = 12000; // Mock average
     const cashBalance = housingCompany?.realTimeCash || 45000;

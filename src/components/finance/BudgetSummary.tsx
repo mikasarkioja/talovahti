@@ -4,7 +4,7 @@ import { useStore } from "@/lib/store";
 import { clsx } from "clsx";
 
 export function BudgetSummary() {
-  const { finance } = useStore();
+  const finance = useStore((state) => state.finance);
 
   const incomePercent = (finance.monthlyIncome / finance.monthlyTarget) * 100;
 

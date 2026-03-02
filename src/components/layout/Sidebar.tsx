@@ -46,7 +46,8 @@ type MenuGroup = {
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { currentUser, subscription } = useStore();
+  const currentUser = useStore((state) => state.currentUser);
+  const subscription = useStore((state) => state.subscription);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
 
   const isBoard =
@@ -56,7 +57,10 @@ export function Sidebar() {
 
   const primaryItems = [
     {
-      href: currentUser?.role === "RESIDENT" || currentUser?.role === "SHAREHOLDER" ? "/resident" : "/",
+      href:
+        currentUser?.role === "RESIDENT" || currentUser?.role === "SHAREHOLDER"
+          ? "/resident"
+          : "/",
       label: "Hallintapaneeli",
       icon: Home,
     },

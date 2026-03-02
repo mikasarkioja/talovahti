@@ -40,7 +40,8 @@ interface DecisionQueueProps {
 export function DecisionQueue({ items: initialItems }: DecisionQueueProps) {
   const [items, setItems] = useState(initialItems);
   const [isPending, startTransition] = useTransition();
-  const { currentUser, housingCompany } = useStore();
+  const currentUser = useStore((state) => state.currentUser);
+  const housingCompany = useStore((state) => state.housingCompany);
 
   const handleOptimisticRemove = (id: string) => {
     setItems((prev) => prev.filter((item) => item.id !== id));

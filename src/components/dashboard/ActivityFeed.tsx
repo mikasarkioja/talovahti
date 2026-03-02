@@ -30,9 +30,12 @@ interface ActivityFeedProps {
 }
 
 export function ActivityFeed({ limit, compact }: ActivityFeedProps) {
-  const { tickets, initiatives, currentUser } = useStore();
+  const tickets = useStore((state) => state.tickets);
+  const initiatives = useStore((state) => state.initiatives);
+  const currentUser = useStore((state) => state.currentUser);
   const isBoard =
-    currentUser?.role === UserRole.BOARD_MEMBER || currentUser?.role === UserRole.ADMIN;
+    currentUser?.role === UserRole.BOARD_MEMBER ||
+    currentUser?.role === UserRole.ADMIN;
 
   // Normalize Data
   const activities: ActivityItem[] = [
