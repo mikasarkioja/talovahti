@@ -22,7 +22,7 @@ export function useBuildingXray(
       new THREE.MeshStandardMaterial({
         color: "#002f6c", // Dark Blue
         transparent: true,
-        opacity: 0.7,
+        opacity: 0.9, // Increased opacity
         roughness: 0.2,
         metalness: 0.8,
         side: THREE.DoubleSide,
@@ -35,7 +35,7 @@ export function useBuildingXray(
       new THREE.MeshStandardMaterial({
         color: "#10b981", // Emerald
         transparent: true,
-        opacity: 0.5,
+        opacity: 0.8, // Increased opacity
         roughness: 0.5,
         metalness: 0.1,
       }),
@@ -47,7 +47,7 @@ export function useBuildingXray(
       new THREE.MeshStandardMaterial({
         color: "#f59e0b", // Amber
         transparent: true,
-        opacity: 0.6,
+        opacity: 0.8, // Increased opacity
         roughness: 0.3,
         metalness: 0.5,
       }),

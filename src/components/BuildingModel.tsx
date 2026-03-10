@@ -146,7 +146,14 @@ function TemporalHUD({ hoveredTask }: { hoveredTask: any }) {
   );
 }
 
-function Infrastructure({ apartments }: { apartments: ApartmentLayout[] }) {
+function Infrastructure({
+  apartments,
+  hidden,
+}: {
+  apartments: ApartmentLayout[];
+  hidden?: boolean;
+}) {
+  if (hidden) return null;
   return (
     <group name="Infra_Group">
       <InfrastructureMesh apartments={apartments} />
@@ -454,19 +461,23 @@ export function BuildingModel({
           />
 
           <group position={[0, -2, 0]}>
-            <Infrastructure apartments={apartments} />
+            <Infrastructure
+              apartments={apartments}
+              hidden={xrayEnabled && !!selectedAptId}
+            />
 
-            {(viewMode === "LIFESPAN" || viewMode === "VALUE_HEATMAP") && (
-              <Roof
-                dimensions={buildingDimensions}
-                status={viewMode === "LIFESPAN" ? roofStatus : undefined}
-                color={
-                  viewMode === "VALUE_HEATMAP"
-                    ? getHeatmapColor(roofAge)
-                    : undefined
-                }
-              />
-            )}
+            {(viewMode === "LIFESPAN" || viewMode === "VALUE_HEATMAP") &&
+              (!xrayEnabled || !selectedAptId) && (
+                <Roof
+                  dimensions={buildingDimensions}
+                  status={viewMode === "LIFESPAN" ? roofStatus : undefined}
+                  color={
+                    viewMode === "VALUE_HEATMAP"
+                      ? getHeatmapColor(roofAge)
+                      : undefined
+                  }
+                />
+              )}
 
             {/* Instanced Apartments for better performance */}
             <InstancedApartments
@@ -478,6 +489,7 @@ export function BuildingModel({
               participatedApartmentIds={participatedApartmentIds}
               onApartmentClick={handleAptClick}
               selectedFloor={selectedFloor}
+              xrayEnabled={xrayEnabled}
             />
 
             {/* Labels and floating HUD (Kept as individual for interactivity) */}

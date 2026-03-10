@@ -23,6 +23,7 @@ interface InstancedApartmentsProps {
   participatedApartmentIds: string[];
   onApartmentClick: (id: string) => void;
   selectedFloor: number | null;
+  xrayEnabled: boolean;
 }
 
 export function InstancedApartments({
@@ -34,6 +35,7 @@ export function InstancedApartments({
   participatedApartmentIds,
   onApartmentClick,
   selectedFloor,
+  xrayEnabled,
 }: InstancedApartmentsProps) {
   // Grouping by shape
   const groups = useMemo(() => {
@@ -62,6 +64,7 @@ export function InstancedApartments({
           participatedApartmentIds={participatedApartmentIds}
           onApartmentClick={onApartmentClick}
           selectedFloor={selectedFloor}
+          xrayEnabled={xrayEnabled}
         />
       ))}
     </>
@@ -85,6 +88,7 @@ interface ShapeGroupProps {
   participatedApartmentIds: string[];
   onApartmentClick: (id: string) => void;
   selectedFloor: number | null;
+  xrayEnabled: boolean;
 }
 
 function ShapeGroup({
@@ -96,6 +100,7 @@ function ShapeGroup({
   participatedApartmentIds,
   onApartmentClick,
   selectedFloor,
+  xrayEnabled,
 }: ShapeGroupProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const windowsRef = useRef<THREE.InstancedMesh>(null);
@@ -130,7 +135,11 @@ function ShapeGroup({
       const status = aptStatusMap[apt.id];
       if (!status) return;
 
-      const isVisible = selectedFloor === null || selectedFloor === apt.floor;
+      // Focus logic: if Vastuunjako (xrayEnabled) is on and an apartment is selected,
+      // hide everything else. Otherwise, follow floor visibility.
+      const isVisible =
+        (selectedFloor === null || selectedFloor === apt.floor) &&
+        (!xrayEnabled || !selectedAptId || selectedAptId === apt.id);
 
       // Update Matrix for Main Mesh (Facade/Structure)
       if (isVisible) {
@@ -180,43 +189,52 @@ function ShapeGroup({
       surfacesRef.current!.setMatrixAt(i, tempObj.matrix);
 
       // Update Color (Same logic as before for base mesh)
-      let baseColor = "#e2e8f0";
+      let baseColor = xrayEnabled ? "#ffffff" : "#e2e8f0"; // White in X-Ray to allow material color to show
       const isSelected = selectedAptId === apt.id;
       const isAnySelected = selectedAptId !== null;
       const isParticipationMode = participatedApartmentIds.length > 0;
 
-      if (viewMode === "VALUE_HEATMAP") {
-        baseColor = "#eab308";
-      }
-
-      if (isAnySelected || isParticipationMode) {
-        if (
-          isSelected ||
-          (isParticipationMode && participatedApartmentIds.includes(apt.id))
-        ) {
-          baseColor = isParticipationMode ? "#10b981" : "#002f6c";
-        } else {
-          baseColor = "#cbd5e1";
+      if (!xrayEnabled) {
+        if (viewMode === "VALUE_HEATMAP") {
+          baseColor = "#eab308";
         }
-      }
 
-      if (highlightId === apt.id) baseColor = "#fbbf24";
+        if (isAnySelected || isParticipationMode) {
+          if (
+            isSelected ||
+            (isParticipationMode && participatedApartmentIds.includes(apt.id))
+          ) {
+            baseColor = isParticipationMode ? "#10b981" : "#002f6c";
+          } else {
+            baseColor = "#cbd5e1";
+          }
+        }
 
-      // Pulsing logic
-      const { hasTicket, activeVote } = status;
-      let pulseColor = null;
-      if (hasTicket) pulseColor = "#ef4444";
-      else if (activeVote) pulseColor = "#3b82f6";
+        if (highlightId === apt.id) baseColor = "#fbbf24";
 
-      if (pulseColor) {
-        const t = state.clock.getElapsedTime();
-        const lerpFactor = ((Math.sin(t * 5) + 1) / 2) * 0.6 + 0.2;
-        tempColor.set(baseColor).lerp(new THREE.Color(pulseColor), lerpFactor);
+        // Pulsing logic
+        const { hasTicket, activeVote } = status;
+        let pulseColor = null;
+        if (hasTicket) pulseColor = "#ef4444";
+        else if (activeVote) pulseColor = "#3b82f6";
+
+        if (pulseColor) {
+          const t = state.clock.getElapsedTime();
+          const lerpFactor = ((Math.sin(t * 5) + 1) / 2) * 0.6 + 0.2;
+          tempColor
+            .set(baseColor)
+            .lerp(new THREE.Color(pulseColor), lerpFactor);
+        } else {
+          tempColor.set(baseColor);
+        }
       } else {
+        // In X-Ray mode, we just use white to avoid tinting
         tempColor.set(baseColor);
       }
 
       meshRef.current!.setColorAt(i, tempColor);
+      windowsRef.current!.setColorAt(i, tempColor); // Ensure windows/surfaces don't tint the material color
+      surfacesRef.current!.setColorAt(i, tempColor);
     });
 
     meshRef.current.instanceMatrix.needsUpdate = true;
