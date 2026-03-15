@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { InitiativeCard } from "@/components/governance/InitiativeCard";
+import { InitiativeCard } from "@/features/governance/components/InitiativeCard";
 import { VotingClient } from "./VotingClient";
 import { UserRole } from "@prisma/client";
 
@@ -39,7 +39,10 @@ export default async function GovernancePage(props: {
   // Fallback to default Board Member if no query or user not found
   if (!user && !userQuery) {
     user = await prisma.user.findFirst({
-      where: { housingCompanyId: housingCompanyId, role: UserRole.BOARD_MEMBER },
+      where: {
+        housingCompanyId: housingCompanyId,
+        role: UserRole.BOARD_MEMBER,
+      },
     });
   }
 

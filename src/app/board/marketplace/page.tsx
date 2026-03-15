@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { UserRole } from "@prisma/client";
-import { ExpertMarketplace } from "@/components/marketplace/ExpertMarketplace";
+import { ExpertMarketplace } from "@/features/marketplace/components/ExpertMarketplace";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShieldCheck } from "lucide-react";
 

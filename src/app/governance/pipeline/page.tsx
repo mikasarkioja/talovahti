@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { KanbanBoard } from "@/components/governance/KanbanBoard";
+import { KanbanBoard } from "@/features/governance/components/KanbanBoard";
 import { VotingClient } from "../voting/VotingClient";
 import { UserRole } from "@prisma/client";
 

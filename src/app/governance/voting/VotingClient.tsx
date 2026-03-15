@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { createInitiative } from "@/app/actions/governance";
+import { createInitiative } from "@/features/governance/actions/governance";
 import { toast } from "sonner";
 
 interface VotingClientProps {

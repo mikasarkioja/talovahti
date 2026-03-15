@@ -20,7 +20,7 @@ import {
 import {
   fetchInvoicesAction,
   approveInvoiceAction,
-} from "@/app/actions/invoice-actions";
+} from "@/features/finance/actions/invoice-actions";
 import { useStore } from "@/lib/store";
 import { Guardrail } from "./Guardrail";
 import { toast } from "sonner";

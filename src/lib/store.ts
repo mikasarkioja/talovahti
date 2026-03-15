@@ -1,5 +1,16 @@
 import { create } from "zustand";
-import { BuildingConfig } from "@/lib/three/BuildingGenerator";
+import {
+  BuildingConfig,
+  ApartmentLayout,
+  POI,
+} from "@/features/building-model/lib/BuildingGenerator";
+
+export type BuildingLayout = {
+  apartments: ApartmentLayout[];
+  pois: POI[];
+  buildingDimensions: [number, number, number];
+};
+
 // ValuationData is now fetched client-side via getBuildingValueMetrics
 // import { ValuationData } from "@/app/actions/valuation";
 import {
@@ -43,6 +54,8 @@ export type MockUser = {
   housingCompanyName?: string; // For multi-company context
   personalDebtShare?: number;
   personalBalanceStatus?: "OK" | "OVERDUE";
+  omataseScore?: number;
+  boardXP?: number;
   canApproveFinance: boolean;
   shareCount?: number;
   phone?: string | null;
@@ -322,6 +335,7 @@ interface AppState {
     unpaidInvoicesCount?: number;
     realTimeCash?: number;
   } | null;
+  buildingLayout: BuildingLayout | null;
   initiatives: MockInitiative[];
   tickets: MockTicket[];
   feed: MockFeedItem[];
@@ -405,6 +419,7 @@ export const useStore = create<AppState>((set) => ({
     canApproveFinance: true,
   },
   housingCompany: null,
+  buildingLayout: null,
 
   // ... (Existing Data)
   initiatives: [

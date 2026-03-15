@@ -9,11 +9,10 @@ import {
   TicketType,
   TicketCategory,
   TriageLevel,
-  ProjectStatus,
 } from "@prisma/client";
 import { AIComparisonEngine } from "@/lib/engines/ai-comparison";
 import { gamification } from "@/lib/engines/gamification";
-import { ExpertMarketplace } from "@/lib/engines/expert-marketplace";
+import { ExpertMarketplace } from "@/features/marketplace/lib/expert-marketplace";
 
 export type KanbanItem = {
   id: string;
@@ -43,7 +42,9 @@ export async function getOpsBoardItems(userId: string): Promise<KanbanItem[]> {
   // 0. RBAC Check
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user || (user.role !== "BOARD_MEMBER" && user.role !== "ADMIN")) {
-    throw new Error("Pääsy evätty.");
+    throw new Error(
+      "Sinulla ei ole tarvittavia oikeuksia hallinto-ohjaamoon. Ota tarvittaessa yhteys isännöitsijään tai hallitukseen.",
+    );
   }
 
   const items: KanbanItem[] = [];
@@ -402,11 +403,23 @@ export async function createProjectFromObservation(
   return { success: true, projectId: result.id };
 }
 
-export async function completeProject(projectId: string) {
-  await prisma.project.update({
+export async function completeProject(projectId: string, userId?: string) {
+  const project = await prisma.project.update({
     where: { id: projectId },
     data: { status: "COMPLETED" },
   });
+
+  // Log Audit Entry
+  if (userId) {
+    await prisma.auditLog.create({
+      data: {
+        userId,
+        action: `Hallitus päätti urakan ${project.unitIdentifier || project.title}. Taloudellinen loppuselvitys hyväksytty`,
+        impactScore: 250,
+      },
+    });
+  }
+
   revalidatePath("/admin/ops");
   return { success: true };
 }

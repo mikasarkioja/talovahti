@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useStore, MockUser } from "@/lib/store";
 import { getTestUsers } from "@/app/actions/dev-actions";
 import { UserRole } from "@prisma/client";
+import { switchUserAction } from "@/app/actions/auth-actions";
+import { toast } from "sonner";
 import {
   User as UserIcon,
   ShieldAlert,
@@ -29,6 +31,7 @@ export function UserSwitcher() {
   const [users, setUsers] = useState<SwitcheableUser[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -96,39 +99,58 @@ export function UserSwitcher() {
               {users.map((u) => (
                 <button
                   key={u.id}
-                  onClick={() => {
-                    // 1. Clear store to prevent flicker of old data
-                    setCurrentUser(null);
+                  disabled={isSwitching}
+                  onClick={async () => {
+                    if (isSwitching) return;
+                    setIsSwitching(true);
+                    try {
+                      // 1. Clear store to prevent flicker of old data
+                      setCurrentUser(null);
 
-                    // 2. Prepare user object for store (updated to match MockUser)
-                    const newUser: MockUser = {
-                      id: u.id,
-                      name: u.name || (u.email ? u.email.split("@")[0] : u.id),
-                      email: u.email || "",
-                      role: u.role as UserRole,
-                      apartmentId: u.apartmentId,
-                      apartmentNumber: u.apartmentNumber,
-                      housingCompanyId: u.housingCompanyId,
-                      housingCompanyName: u.housingCompanyName,
-                      canApproveFinance: u.canApproveFinance,
-                    };
+                      // 2. Prepare user object for store (updated to match MockUser)
+                      const newUser: MockUser = {
+                        id: u.id,
+                        name:
+                          u.name || (u.email ? u.email.split("@")[0] : u.id),
+                        email: u.email || "",
+                        role: u.role as UserRole,
+                        apartmentId: u.apartmentId,
+                        apartmentNumber: u.apartmentNumber,
+                        housingCompanyId: u.housingCompanyId,
+                        housingCompanyName: u.housingCompanyName,
+                        canApproveFinance: u.canApproveFinance,
+                      };
 
-                    // 3. Determine redirect path
-                    const dashboardPath =
-                      u.role === "BOARD_MEMBER" || u.role === "ADMIN"
-                        ? "/"
-                        : "/resident";
+                      // 3. Determine redirect path
+                      const dashboardPath =
+                        u.role === "BOARD_MEMBER" || u.role === "ADMIN"
+                          ? "/"
+                          : "/resident";
 
-                    // 4. Update store and redirect (full reload ensures server context)
-                    setCurrentUser(newUser);
-                    window.location.href = `${dashboardPath}?user=${encodeURIComponent(u.email || u.id)}`;
-                    setIsOpen(false);
+                      // 4. Update session cookie via server action
+                      const res = await switchUserAction(u.email);
+                      if (res.success) {
+                        // 5. Update store and redirect (full reload ensures server context)
+                        setCurrentUser(newUser);
+                        window.location.href = dashboardPath;
+                        setIsOpen(false);
+                      } else {
+                        toast.error(
+                          res.error || "Käyttäjän vaihto epäonnistui.",
+                        );
+                        setIsSwitching(false);
+                      }
+                    } catch (err) {
+                      console.error("UserSwitcher Error:", err);
+                      toast.error("Kriittinen virhe.");
+                      setIsSwitching(false);
+                    }
                   }}
                   className={`w-full text-left p-3 rounded-xl text-[10px] transition-all group ${
                     currentUser?.id === u.id
                       ? "bg-brand-navy text-white shadow-md ring-2 ring-brand-navy/20"
                       : "bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-100"
-                  }`}
+                  } ${isSwitching ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-black truncate max-w-[140px]">

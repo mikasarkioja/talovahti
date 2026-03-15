@@ -1,0 +1,130 @@
+"use client";
+import { useMemo, useRef, useState } from "react";
+import { useFrame } from "@react-three/fiber";
+import { Text, useCursor } from "@react-three/drei";
+import * as THREE from "three";
+import { ApartmentLayout } from "../lib/BuildingGenerator";
+import { ExtruderEngine } from "../lib/ExtruderEngine";
+
+interface ApartmentMeshProps {
+  data: ApartmentLayout;
+  color: string;
+  pulseColor?: string;
+  isHovered: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onClick: (e: any) => void;
+  opacity?: number;
+  transparent?: boolean;
+  emissive?: string;
+  emissiveIntensity?: number;
+}
+
+export function ApartmentMesh({
+  data,
+  color,
+  pulseColor,
+  isHovered,
+  onClick,
+  opacity = 1,
+  transparent = false,
+  emissive,
+  emissiveIntensity = 0,
+}: ApartmentMeshProps) {
+  const mesh = useRef<THREE.Mesh>(null);
+  const [hovered, setHover] = useState(false);
+  useCursor(hovered);
+
+  // Create Geometry from ExtruderEngine
+  const { shape, extrudeSettings } = useMemo(() => {
+    // Extrude with height=3 (from generator)
+    const result = ExtruderEngine.extrudeApartment(
+      data.polygonPoints,
+      data.floor,
+      data.dimensions[1],
+    );
+    return result || { shape: new THREE.Shape(), extrudeSettings: {} };
+  }, [data.polygonPoints, data.floor, data.dimensions]);
+
+  const geometry = useMemo(
+    () => new THREE.ExtrudeGeometry(shape, extrudeSettings),
+    [shape, extrudeSettings],
+  );
+
+  const edges = useMemo(() => new THREE.EdgesGeometry(geometry), [geometry]);
+
+  useFrame((state) => {
+    if (mesh.current && !Array.isArray(mesh.current.material)) {
+      const material = mesh.current.material as THREE.MeshStandardMaterial;
+      if (emissive) {
+        // Constant emissive for heatmap mode
+        material.emissive.set(emissive);
+        material.emissiveIntensity = emissiveIntensity;
+      } else if (pulseColor) {
+        // Pulsing emissive for alerts/votes
+        const t = state.clock.getElapsedTime();
+        const intensity = ((Math.sin(t * 5) + 1) / 2) * 0.6 + 0.2;
+        material.emissive.set(pulseColor);
+        material.emissiveIntensity = intensity;
+      } else {
+        // Reset emissive
+        material.emissiveIntensity = 0;
+      }
+    }
+  });
+
+  // Center vertical adjustment: Extrusion starts at Z=0. We rotate -90 X -> Y=0.
+  // Group is at Center Y. Mesh goes 0..3. So shift mesh Y by -1.5.
+  const verticalOffset = -data.dimensions[1] / 2;
+
+  return (
+    <group
+      position={data.position}
+      rotation={[0, data.rotation || 0, 0]}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick(e);
+      }}
+      onPointerOver={() => setHover(true)}
+      onPointerOut={() => setHover(false)}
+    >
+      <mesh
+        ref={mesh}
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, verticalOffset, 0]}
+        geometry={geometry}
+      >
+        <meshStandardMaterial
+          color={isHovered || hovered ? "#fbbf24" : color}
+          roughness={0.8} // Nordic Concrete
+          transparent={transparent || opacity < 1}
+          opacity={opacity}
+        />
+      </mesh>
+
+      {/* Wireframe edges for style */}
+      <lineSegments
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, verticalOffset, 0]}
+        geometry={edges}
+      >
+        <lineBasicMaterial
+          color="#94a3b8"
+          transparent
+          opacity={0.3 * opacity}
+        />
+      </lineSegments>
+
+      {/* Label */}
+      <Text
+        position={[0, 0, data.dimensions[2] / 2 + 0.2]}
+        fontSize={0.4}
+        color="#1e293b"
+        anchorX="center"
+        anchorY="middle"
+        fillOpacity={opacity}
+      >
+        {data.id}
+      </Text>
+    </group>
+  );
+}

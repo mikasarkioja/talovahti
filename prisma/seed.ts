@@ -2,28 +2,25 @@ import {
   PrismaClient,
   UserRole,
   BudgetCategory,
-  InvoiceStatus,
   TicketStatus,
   TicketPriority,
   TicketType,
   TicketCategory,
   TriageLevel,
-  FiscalQuarter,
-  TaskCategory,
-  GovernanceStatus,
-  VoteChoice,
-  ResponsibilityType,
+  ObservationStatus,
 } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Starting seed...");
+  console.log("🌱 Starting Golden Path Seed [cite: 2026-03-15]...");
 
   // 1. Cleanup
   console.log("🧹 Cleaning up old data...");
   try {
-    // Delete in order of dependencies (Child-to-Parent)
+    // Delete in order of dependencies
+    await prisma.auditLog.deleteMany();
+    await prisma.gDPRLog.deleteMany();
     await prisma.bidInvitation.deleteMany();
     await prisma.milestone.deleteMany();
     await prisma.legalContract.deleteMany();
@@ -62,7 +59,6 @@ async function main() {
     await prisma.monthlyFee.deleteMany();
     await prisma.financialStatement.deleteMany();
     await prisma.investmentGrade.deleteMany();
-    await prisma.gDPRLog.deleteMany();
 
     await prisma.annualTask.deleteMany();
     await prisma.strategicGoal.deleteMany();
@@ -75,13 +71,12 @@ async function main() {
     await prisma.stripeTransaction.deleteMany();
     await prisma.order.deleteMany();
     await prisma.wallet.deleteMany();
+
+    await prisma.shareGroup.deleteMany();
     await prisma.user.deleteMany();
     await prisma.apartment.deleteMany();
     await prisma.healthHistory.deleteMany();
     await prisma.boardProfile.deleteMany();
-    await prisma.buildingComponent.deleteMany();
-    await prisma.budgetLineItem.deleteMany();
-    await prisma.monthlyFee.deleteMany();
     await prisma.statutoryDocument.deleteMany();
     await prisma.utilityPrice.deleteMany();
     await prisma.servicePartner.deleteMany();
@@ -89,647 +84,207 @@ async function main() {
     await prisma.vendor.deleteMany();
     await prisma.expert.deleteMany();
   } catch (e) {
-    console.warn("Cleanup warning (tables might be empty):", e);
+    console.warn("Cleanup warning:", e);
   }
 
-  // 2. Housing Company
-  console.log("🏢 Creating Housing Companies...");
+  // 2. Housing Company Foundation
+  console.log("🏢 Creating 'As Oy Esimerkki-Espoo'...");
   const company = await prisma.housingCompany.create({
     data: {
-      name: "As Oy Säästötalo",
-      businessId: "1234567-8",
-      address: "Esimerkkikatu 42",
-      city: "Helsinki",
-      postalCode: "00100",
-      constructionYear: 1985,
-      totalSqm: 2500.0,
-      maintenanceFeePerShare: 4.5,
-    },
-  });
-
-  const company2 = await prisma.housingCompany.create({
-    data: {
-      name: "As Oy ModerniTorni",
-      businessId: "8765432-1",
-      address: "Tulevaisuudenkuja 1",
+      name: "As Oy Esimerkki-Espoo",
+      businessId: "9876543-2",
+      address: "Demokuja 12",
       city: "Espoo",
       postalCode: "02100",
-      constructionYear: 2024,
-      totalSqm: 5000.0,
-      maintenanceFeePerShare: 5.2,
+      constructionYear: 1995,
+      totalSqm: 3200.0,
+      maintenanceFeePerShare: 4.8,
+      mmlBuildingId: "100098765B",
+      healthScore: 88,
+      healthScoreTechnical: 82,
+      healthScoreFinancial: 94,
+      healthScoreAdmin: 100,
+      realTimeCash: 45200.5,
+      unpaidInvoicesCount: 0,
     },
   });
 
   // 3. Apartments
   console.log("🏠 Creating Apartments...");
-  const apartmentsData = [];
-
-  // A-stair (Big units)
-  for (let i = 1; i <= 4; i++) {
-    apartmentsData.push({
-      apartmentNumber: `A ${i}`,
-      floor: i,
-      shareCount: 150,
-      area: 85.0,
-    });
-  }
-  // B-stair (Smaller units)
-  for (let i = 1; i <= 6; i++) {
-    apartmentsData.push({
-      apartmentNumber: `B ${i}`,
-      floor: Math.ceil(i / 2),
-      shareCount: 100,
-      area: 55.0,
-    });
-  }
-
   const apartments = [];
-  for (const apt of apartmentsData) {
-    const created = await prisma.apartment.create({
+  // Stair A
+  for (let i = 1; i <= 15; i++) {
+    const apt = await prisma.apartment.create({
       data: {
         housingCompanyId: company.id,
-        apartmentNumber: apt.apartmentNumber,
-        floor: apt.floor,
-        shareCount: apt.shareCount,
-        area: apt.area,
-        sharesStart: 1,
-        sharesEnd: 100,
+        apartmentNumber: `A ${i}`,
+        floor: Math.ceil(i / 3),
+        shareCount: i === 12 ? 180 : 120, // A 12 is a bit bigger
+        area: i === 12 ? 95.5 : 65.0,
+        sharesStart: (i - 1) * 120 + 1,
+        sharesEnd: i * 120,
       },
     });
-    apartments.push(created);
+    apartments.push(apt);
   }
+  const aptA12 = apartments.find((a) => a.apartmentNumber === "A 12")!;
 
-  // Apartments for Company 2
-  const apartments2 = [];
-  for (let i = 1; i <= 5; i++) {
-    const created = await prisma.apartment.create({
-      data: {
-        housingCompanyId: company2.id,
-        apartmentNumber: `C ${i}`,
-        floor: i,
-        shareCount: 200,
-        area: 110.0,
-        sharesStart: 1,
-        sharesEnd: 100,
-      },
-    });
-    apartments2.push(created);
-  }
-
-  // 4. Users (Board, Shareholders & Resident)
-  console.log("👥 Creating Users...");
-  const boardUser = await prisma.user.create({
+  // 4. Users (Golden Path Personas)
+  console.log("👥 Creating Demo Personas...");
+  const liisa = await prisma.user.create({
     data: {
-      email: "pekka.puheenjohtaja@example.com",
-      name: "Pekka Puheenjohtaja",
+      email: "liisa.puheenjohtaja@example.com",
+      name: "Liisa Puheenjohtaja",
       role: UserRole.BOARD_MEMBER,
       housingCompanyId: company.id,
       apartmentId: apartments[0].id, // A 1
+      apartmentNumber: "A 1",
+      xp: 450,
+      canApproveFinance: true,
     },
   });
 
-  const shareholder1 = await prisma.user.create({
+  const pekka = await prisma.user.create({
     data: {
-      email: "osakas1@example.com",
-      name: "Outi Osakas",
-      role: UserRole.SHAREHOLDER,
-      housingCompanyId: company.id,
-      apartmentId: apartments[1].id, // A 2
-    },
-  });
-
-  const shareholder2 = await prisma.user.create({
-    data: {
-      email: "osakas2@example.com",
-      name: "Olli Osakas",
-      role: UserRole.SHAREHOLDER,
-      housingCompanyId: company.id,
-      apartmentId: apartments[2].id, // A 3
-    },
-  });
-
-  const residentUser = await prisma.user.create({
-    data: {
-      email: "matti.meikalainen@example.com",
-      name: "Matti Meikäläinen",
+      email: "pekka.asukas@example.com",
+      name: "Pekka Asukas",
       role: UserRole.RESIDENT,
       housingCompanyId: company.id,
-      apartmentId: apartments[4].id, // B 1
-    },
-  });
-
-  // Users for Company 2
-  await prisma.user.create({
-    data: {
-      email: "eeva.edistyksellinen@example.com",
-      name: "Eeva Edistyksellinen",
-      role: UserRole.BOARD_MEMBER,
-      housingCompanyId: company2.id,
-      apartmentId: apartments2[0].id, // C 1
+      apartmentId: aptA12.id,
+      apartmentNumber: "A 12",
+      xp: 50,
     },
   });
 
   await prisma.user.create({
     data: {
-      email: "teemu.testaaja@example.com",
-      name: "Teemu Testaaja",
-      role: UserRole.RESIDENT,
-      housingCompanyId: company2.id,
-      apartmentId: apartments2[1].id, // C 2
+      email: "matti.urakoitsija@example.com",
+      name: "Matti Urakoitsija",
+      role: UserRole.EXPERT,
+      housingCompanyId: company.id,
     },
   });
 
-  // 5. Financials
-  console.log("💰 Creating Financial Data...");
+  // Board Profile for XP visualization
+  await prisma.boardProfile.create({
+    data: {
+      housingCompanyId: company.id,
+      totalXP: 1250,
+      level: 3,
+      achievements: JSON.stringify([
+        {
+          name: "Nopea Päätöksentekijä",
+          description: "Laskut hyväksytty alle 24 tunnissa.",
+        },
+        {
+          name: "Digitaalinen Edelläkävijä",
+          description: "HJT2-integraatio otettu käyttöön.",
+        },
+      ]),
+    },
+  });
 
-  // Budget
-  const budgetCategories = [
-    { cat: BudgetCategory.HEATING, budget: 45000 },
-    { cat: BudgetCategory.WATER, budget: 12000 }, // Target for breach
-    { cat: BudgetCategory.MAINTENANCE, budget: 15000 },
-    { cat: BudgetCategory.ADMIN, budget: 18000 },
-    { cat: BudgetCategory.CLEANING, budget: 8000 },
+  // 5. Historical Context (Closed Tickets)
+  console.log("📜 Injecting Historical Context...");
+  const historicalTickets = [
+    {
+      title: "Palaneen lampun vaihto",
+      desc: "A-rapun 2. kerroksen käytävävalo pimeänä.",
+      date: new Date("2026-01-10"),
+    },
+    {
+      title: "Pihaportin voitelu",
+      desc: "Portti narisee avattaessa.",
+      date: new Date("2026-02-05"),
+    },
   ];
 
-  for (const b of budgetCategories) {
+  for (const t of historicalTickets) {
+    await prisma.ticket.create({
+      data: {
+        housingCompanyId: company.id,
+        createdById: liisa.id,
+        title: t.title,
+        description: t.desc,
+        status: TicketStatus.CLOSED,
+        priority: TicketPriority.LOW,
+        type: TicketType.MAINTENANCE,
+        createdAt: t.date,
+        updatedAt: t.date,
+      },
+    });
+  }
+
+  // 6. The "Critical Case" (Golden Path)
+  console.log("🚨 Injecting the 'Critical Case' (A 12)...");
+  const criticalObs = await prisma.observation.create({
+    data: {
+      housingCompanyId: company.id,
+      userId: pekka.id,
+      component: "Keittiön lattia ja putkisto",
+      description:
+        "Vettä valuu keittiön kaapiston alta lattialle. Parketti alkaa tummua.",
+      status: ObservationStatus.OPEN,
+      location: JSON.stringify({ x: 5, y: 3, z: 2, aptId: aptA12.id }),
+      severityGrade: 5,
+      technicalVerdict: "Välitön vesivahingon riski.",
+    },
+  });
+
+  await prisma.ticket.create({
+    data: {
+      housingCompanyId: company.id,
+      createdById: pekka.id,
+      apartmentId: aptA12.id,
+      observationId: criticalObs.id,
+      title: "Vesivuoto asunnossa A 12",
+      description: "Vettä valuu keittiön kaapiston alta lattialle.",
+      status: TicketStatus.OPEN,
+      priority: TicketPriority.CRITICAL,
+      triageLevel: TriageLevel.CRITICAL,
+      category: TicketCategory.MAINTENANCE,
+      unitIdentifier: "A 12",
+      huoltoNotes:
+        "Todennäköinen astianpesukoneen liitoksen murtuma. Vaatii välittömän kosteusmittauksen ja putkimiehen.",
+    },
+  });
+
+  // 7. Audit Trail
+  console.log("📑 Logging Audit Trail...");
+  await prisma.auditLog.createMany({
+    data: [
+      {
+        userId: liisa.id,
+        action: "Järjestelmä alustettu demotilaan",
+        impactScore: 0,
+        timestamp: new Date("2026-03-15T08:00:00Z"),
+      },
+      {
+        userId: pekka.id,
+        action: "Asukas Pekka jätti vikailmoituksen A 12",
+        targetId: aptA12.id,
+        impactScore: 50,
+        timestamp: new Date("2026-03-15T09:30:00Z"),
+      },
+    ],
+  });
+
+  // 8. Financial Foundation
+  console.log("💰 Creating Budget Line Items...");
+  const categories = Object.values(BudgetCategory);
+  for (const cat of categories) {
     await prisma.budgetLineItem.create({
       data: {
         housingCompanyId: company.id,
+        category: cat,
         year: 2026,
-        category: b.cat,
-        budgetedAmount: b.budget,
-        actualSpent: 0, // Calculations derived from invoices
+        budgetedAmount: 15000,
+        actualSpent: 2450,
       },
     });
   }
 
-  // Invoices
-  // Water Breach: Budget 12000. Need ~13800.
-  await prisma.invoice.create({
-    data: {
-      housingCompanyId: company.id,
-      category: BudgetCategory.WATER,
-      amount: 13800,
-      dueDate: new Date("2026-02-15"),
-      status: InvoiceStatus.PAID,
-      vendorName: "Helsingin Vesi",
-      description: "Vesilasku Q1 + Tasaus",
-      approvedById: boardUser.id,
-    },
-  });
-
-  // Other Invoices
-  await prisma.invoice.create({
-    data: {
-      housingCompanyId: company.id,
-      category: BudgetCategory.HEATING,
-      amount: 3500,
-      dueDate: new Date("2026-01-15"),
-      status: InvoiceStatus.PAID,
-      vendorName: "Helen Oy",
-      description: "Kaukolämpö Tammikuu",
-    },
-  });
-
-  await prisma.invoice.create({
-    data: {
-      housingCompanyId: company.id,
-      category: BudgetCategory.MAINTENANCE,
-      amount: 450,
-      dueDate: new Date("2026-03-15"),
-      status: InvoiceStatus.PENDING, // Current pending
-      vendorName: "Putki-Pekka Oy",
-      description: "Hanan korjaus B4",
-    },
-  });
-
-  // 6. Annual Clock & Fiscal
-  console.log("📅 Creating Annual Clock...");
-  await prisma.fiscalConfiguration.create({
-    data: {
-      housingCompanyId: company.id,
-      startMonth: 1,
-    },
-  });
-
-  const tasks = [
-    {
-      title: "Tilinpäätös",
-      quarter: FiscalQuarter.Q1,
-      month: 2,
-      cat: TaskCategory.FINANCE,
-    },
-    {
-      title: "Kevättalkoot",
-      quarter: FiscalQuarter.Q1,
-      month: 3,
-      cat: TaskCategory.MAINTENANCE,
-    }, // March is Q1 in cal year
-    {
-      title: "Yhtiökokous",
-      quarter: FiscalQuarter.Q2,
-      month: 5,
-      cat: TaskCategory.GOVERNANCE,
-      isStatutory: true,
-    },
-    {
-      title: "IV-kanavien puhdistus",
-      quarter: FiscalQuarter.Q3,
-      month: 8,
-      cat: TaskCategory.MAINTENANCE,
-    },
-    {
-      title: "Syystalkoot",
-      quarter: FiscalQuarter.Q4,
-      month: 10,
-      cat: TaskCategory.MAINTENANCE,
-    },
-    {
-      title: "Budjetointi",
-      quarter: FiscalQuarter.Q4,
-      month: 11,
-      cat: TaskCategory.FINANCE,
-    },
-  ];
-
-  for (const t of tasks) {
-    await prisma.annualTask.create({
-      data: {
-        housingCompanyId: company.id,
-        title: t.title,
-        category: t.cat,
-        quarter: t.quarter,
-        month: t.month,
-        deadline: new Date(2026, t.month - 1, 28),
-        isStatutory: t.isStatutory || false,
-      },
-    });
-  }
-
-  // 7. Governance
-  console.log("🗳️ Creating Governance Data...");
-  const initiative = await prisma.initiative.create({
-    data: {
-      housingCompanyId: company.id,
-      title: "Sähköautojen latausinfra",
-      description:
-        "Hankitaan kartoitus ja suunnitelma 11kW latausasemille kaikille autopaikoille.",
-      status: GovernanceStatus.VOTING,
-      userId: boardUser.id,
-    },
-  });
-
-  // Votes
-  // Pekka (Board, A1, 150 shares) -> YES
-  await prisma.vote.create({
-    data: {
-      initiativeId: initiative.id,
-      userId: boardUser.id,
-      apartmentId: apartments[0].id,
-      choice: VoteChoice.YES,
-      shares: 150,
-    },
-  });
-  // Matti (Resident, B1, 100 shares) -> NO
-  await prisma.vote.create({
-    data: {
-      initiativeId: initiative.id,
-      userId: residentUser.id,
-      apartmentId: apartments[4].id, // B1
-      choice: VoteChoice.NO,
-      shares: 100,
-    },
-  });
-  // Shareholders (A2: 150, A3: 150) -> YES
-  await prisma.vote.create({
-    data: {
-      initiativeId: initiative.id,
-      userId: shareholder1.id,
-      apartmentId: apartments[1].id,
-      choice: VoteChoice.YES,
-      shares: 150,
-    },
-  });
-  await prisma.vote.create({
-    data: {
-      initiativeId: initiative.id,
-      userId: shareholder2.id,
-      apartmentId: apartments[2].id,
-      choice: VoteChoice.YES,
-      shares: 150,
-    },
-  });
-
-  // 8. Maintenance Tickets (3D Pins)
-  console.log("🔧 Creating Maintenance Tickets...");
-
-  const demoTickets = [
-    {
-      title: "Vesivuoto kellarissa",
-      type: TicketType.MAINTENANCE,
-      status: TicketStatus.OPEN,
-      priority: TicketPriority.CRITICAL,
-      category: TicketCategory.PROJECT,
-      triageLevel: TriageLevel.CRITICAL,
-      loc: { x: 10, y: -2, z: 5 },
-      desc: "Kellarin putkistossa merkittävä vuoto. Vaatii välitöntä huomiota.",
-    },
-    {
-      title: "Ulko-oven lukko jumittaa",
-      type: TicketType.MAINTENANCE,
-      status: TicketStatus.IN_PROGRESS,
-      priority: TicketPriority.HIGH,
-      category: TicketCategory.MAINTENANCE,
-      triageLevel: TriageLevel.ROUTINE,
-      loc: { x: 0, y: 0, z: 15 },
-      desc: "Pääoven lukko vaatii rasvausta tai vaihtoa.",
-    },
-    {
-      title: "Patteri ei lämpene A2",
-      type: TicketType.MAINTENANCE,
-      status: TicketStatus.OPEN,
-      priority: TicketPriority.MEDIUM,
-      category: TicketCategory.MAINTENANCE,
-      triageLevel: TriageLevel.ROUTINE,
-      loc: { x: 8, y: 3, z: 2 },
-      desc: "Makuuhuoneen patteri on kylmä.",
-    },
-    {
-      title: "Julkisivun halkeama",
-      type: TicketType.RENOVATION,
-      status: TicketStatus.OPEN,
-      priority: TicketPriority.HIGH,
-      category: TicketCategory.PROJECT,
-      triageLevel: TriageLevel.ESCALATED,
-      loc: { x: -15, y: 8, z: 0 },
-      desc: "Havaittu pystysuuntainen halkeama C-rapun kulmassa.",
-      huoltoNotes:
-        "Tarkastettu huoltoyhtiön toimesta. Vaatii rakennusinsinöörin arvion.",
-    },
-  ];
-
-  for (const t of demoTickets) {
-    // 1. Create Observation first to hold location and for escalation demo
-    const obs = await prisma.observation.create({
-      data: {
-        housingCompanyId: company.id,
-        userId: residentUser.id,
-        component: t.title,
-        description: t.desc,
-        status: "OPEN",
-        location: JSON.stringify(t.loc),
-      },
-    });
-
-    // 2. Create Ticket linked to Observation
-    await prisma.ticket.create({
-      data: {
-        housingCompanyId: company.id,
-        createdById: residentUser.id,
-        title: t.title,
-        description: t.desc,
-        type: t.type,
-        status: t.status,
-        priority: t.priority,
-        category: t.category,
-        triageLevel: t.triageLevel,
-        observationId: obs.id,
-        huoltoNotes: t.huoltoNotes || null,
-      },
-    });
-  }
-
-  // 9. Renovations (PTS & History)
-  console.log("🏗️ Creating Renovations (PTS & History)...");
-
-  // Completed (History)
-  await prisma.renovation.create({
-    data: {
-      housingCompanyId: company.id,
-      component: "Vesikatto",
-      yearDone: 2010,
-      cost: 45000,
-      expectedLifeSpan: 40,
-      description: "Huopakaton uusiminen ja lisäeristys.",
-      status: "COMPLETED",
-    },
-  });
-
-  await prisma.renovation.create({
-    data: {
-      housingCompanyId: company.id,
-      component: "Lämmönjakokeskus",
-      yearDone: 2018,
-      cost: 15000,
-      expectedLifeSpan: 20,
-      description: "Lämmönsiirtimen uusiminen ja automaation päivitys.",
-      status: "COMPLETED",
-    },
-  });
-
-  // Planned (PTS)
-  await prisma.renovation.create({
-    data: {
-      housingCompanyId: company.id,
-      component: "Julkisivuremontti",
-      plannedYear: 2027,
-      cost: 120000,
-      expectedLifeSpan: 30,
-      description: "Elementtisaumaukset ja maalaus.",
-      status: "PLANNED",
-    },
-  });
-
-  await prisma.renovation.create({
-    data: {
-      housingCompanyId: company.id,
-      component: "Sähköautojen latausinfra",
-      plannedYear: 2026,
-      cost: 25000,
-      expectedLifeSpan: 15,
-      description: "Kartoitus ja vaihe 1 toteutus (4 paikkaa).",
-      status: "PLANNED",
-    },
-  });
-
-  await prisma.renovation.create({
-    data: {
-      housingCompanyId: company.id,
-      component: "Linjasaneeraus (Hankesuunnittelu)",
-      plannedYear: 2030,
-      cost: 15000,
-      expectedLifeSpan: 50,
-      description: "Putkiremontin hankesuunnittelun aloitus.",
-      status: "PLANNED",
-    },
-  });
-
-  // 10. Service Book (Huoltokirja) - Mock History via Tickets
-  console.log("📘 Creating Service Book Entries...");
-  const serviceEntries = [
-    {
-      title: "Ulko-oven säädöt",
-      desc: "Ovisuljin säädetty talviasentoon.",
-      date: new Date("2025-11-15"),
-    },
-    {
-      title: "Hiekanpoisto",
-      desc: "Piha-alueen hiekanpoisto suoritettu.",
-      date: new Date("2025-04-20"),
-    },
-    {
-      title: "Rännien puhdistus",
-      desc: "Syksyn lehdet poistettu ränneistä.",
-      date: new Date("2025-10-10"),
-    },
-    {
-      title: "Suodattimien vaihto",
-      desc: "IV-koneiden suodattimet vaihdettu (kevät).",
-      date: new Date("2025-03-05"),
-    },
-  ];
-
-  for (const entry of serviceEntries) {
-    await prisma.ticket.create({
-      data: {
-        housingCompanyId: company.id,
-        createdById: boardUser.id, // Logged by board/manager
-        title: entry.title,
-        description: entry.desc,
-        type: TicketType.MAINTENANCE,
-        status: TicketStatus.CLOSED, // Closed = History
-        priority: TicketPriority.LOW,
-        createdAt: entry.date,
-        updatedAt: entry.date,
-      },
-    });
-  }
-
-  // 11. Building Components (Value Intelligence & Responsibility)
-  console.log("🏗️ Creating Building Components...");
-  const components = [
-    {
-      meshId: "Roof_01",
-      name: "Vesikatto",
-      type: "ROOF",
-      responsibility: ResponsibilityType.COMPANY,
-      lastRenovatedYear: 2010,
-      expectedLifespan: 25,
-      estimatedCostSqm: 60,
-    },
-    {
-      meshId: "Facade_01",
-      name: "Julkisivu",
-      type: "FACADE",
-      responsibility: ResponsibilityType.COMPANY,
-      lastRenovatedYear: 1985,
-      expectedLifespan: 45,
-      estimatedCostSqm: 150,
-    },
-    {
-      meshId: "Windows_01",
-      name: "Ikkunat",
-      type: "WINDOWS",
-      responsibility: ResponsibilityType.COMPANY,
-      lastRenovatedYear: 2005,
-      expectedLifespan: 25,
-      estimatedCostSqm: 300,
-    },
-    {
-      meshId: "Pipes_01",
-      name: "Pystyviemärit",
-      type: "PLUMBING",
-      responsibility: ResponsibilityType.COMPANY,
-      lastRenovatedYear: 1985,
-      expectedLifespan: 50,
-      estimatedCostSqm: 200,
-    },
-    {
-      meshId: "Bathroom_01",
-      name: "Kylpyhuoneen pinnat",
-      type: "INTERIOR",
-      responsibility: ResponsibilityType.SHAREHOLDER,
-      lastRenovatedYear: 2020,
-      expectedLifespan: 20,
-      estimatedCostSqm: 500,
-    },
-    {
-      meshId: "Kitchen_01",
-      name: "Keittiökaapistot",
-      type: "INTERIOR",
-      responsibility: ResponsibilityType.SHAREHOLDER,
-      lastRenovatedYear: 2015,
-      expectedLifespan: 15,
-      estimatedCostSqm: 400,
-    },
-    {
-      meshId: "Floor_01",
-      name: "Lattiamateriaalit",
-      type: "INTERIOR",
-      responsibility: ResponsibilityType.SHAREHOLDER,
-      lastRenovatedYear: 2018,
-      expectedLifespan: 20,
-      estimatedCostSqm: 80,
-    },
-  ];
-
-  for (const c of components) {
-    await prisma.buildingComponent.create({
-      data: {
-        housingCompanyId: company.id,
-        ...c,
-      },
-    });
-  }
-
-  // 12. Active Project with Milestones
-  console.log("🏗️ Creating Active Project with Milestones...");
-  await prisma.project.create({
-    data: {
-      housingCompanyId: company.id,
-      title: "Julkisivun huoltomaalaus",
-      description:
-        "Elementtisaumojen uusiminen ja julkisivun pesu sekä maalaus.",
-      type: "FACADE",
-      status: "EXECUTION",
-      estimatedCost: 55000,
-      milestones: {
-        create: [
-          {
-            title: "Aloitusmaksu ja materiaalit",
-            amount: 15000,
-            dueDate: new Date("2026-02-01"),
-            status: "PAID",
-            isApproved: true,
-            isPaid: true,
-          },
-          {
-            title: "Pesu ja hiekkapuhallus valmis",
-            amount: 20000,
-            dueDate: new Date("2026-03-15"),
-            status: "PENDING",
-          },
-          {
-            title: "Loppumaksu ja vastaanotto",
-            amount: 20000,
-            dueDate: new Date("2026-05-01"),
-            status: "PENDING",
-          },
-        ],
-      },
-      siteReports: {
-        create: [
-          {
-            authorId: boardUser.id,
-            content: "Telineet pystytetty ja työmaa-alue rajattu.",
-            imageUrl: "https://placehold.co/600x400/png?text=Telineet",
-          },
-        ],
-      },
-    },
-  });
-
-  console.log("✅ Seed completed!");
+  console.log("✅ Golden Path Seed Completed!");
 }
 
 main()

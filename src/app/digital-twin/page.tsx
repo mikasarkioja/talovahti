@@ -3,6 +3,12 @@ import { prisma } from "@/lib/db";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { DigitalTwinClient } from "@/components/digital-twin/DigitalTwinClient";
 import { UserRole } from "@prisma/client";
+import {
+  BuildingGenerator,
+  BuildingConfig,
+} from "@/features/building-model/lib/BuildingGenerator";
+
+import { getSession } from "@/lib/auth/session";
 
 export default async function DigitalTwinPage({
   searchParams,
@@ -11,17 +17,21 @@ export default async function DigitalTwinPage({
 }) {
   const { user: userEmail } = await searchParams;
 
-  // Find user and company
+  // Authentication: Prefer session cookie, fallback to userEmail for backwards compatibility
+  const session = await getSession();
+  const sessionUser = session?.user as { email?: string } | undefined;
+  const targetEmail = sessionUser?.email || userEmail;
+
+  // 1. Fetch Basic Housing Company & User
   let userByEmail = null;
-  if (userEmail) {
+  if (targetEmail) {
     userByEmail = await prisma.user.findFirst({
-      where: { email: { contains: userEmail, mode: "insensitive" } },
+      where: { email: { contains: targetEmail, mode: "insensitive" } },
       include: { apartment: true },
     });
   }
 
-  // Fallback to first company if no user context, otherwise use user's company
-  const company = await prisma.housingCompany.findFirst({
+  const companyBase = await prisma.housingCompany.findFirst({
     where: userByEmail ? { id: userByEmail.housingCompanyId } : {},
     select: {
       id: true,
@@ -33,79 +43,10 @@ export default async function DigitalTwinPage({
       healthScoreTechnical: true,
       healthScoreFinancial: true,
       unpaidInvoicesCount: true,
-      tickets: {
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          status: true,
-          category: true,
-          triageLevel: true,
-          priority: true,
-          type: true,
-          createdAt: true,
-          createdById: true,
-          observationId: true,
-          apartment: { select: { apartmentNumber: true } },
-        },
-      },
-      initiatives: {
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          status: true,
-          userId: true,
-          createdAt: true,
-          votes: {
-            select: {
-              userId: true,
-              choice: true,
-              shares: true,
-              apartmentId: true,
-              apartment: { select: { apartmentNumber: true } },
-            },
-          },
-        },
-      },
-      renovations: {
-        select: {
-          id: true,
-          component: true,
-          yearDone: true,
-          plannedYear: true,
-          cost: true,
-          expectedLifeSpan: true,
-          description: true,
-          status: true,
-        },
-      },
-      observations: {
-        select: {
-          id: true,
-          component: true,
-          description: true,
-          status: true,
-          severityGrade: true,
-          technicalVerdict: true,
-          boardSummary: true,
-          projectId: true,
-          createdAt: true,
-        },
-      },
-      buildingComponents: {
-        select: {
-          id: true,
-          meshId: true,
-          name: true,
-          type: true,
-          responsibility: true,
-        },
-      },
     },
   });
 
-  if (!company) {
+  if (!companyBase) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 p-10">
         <div className="text-center space-y-4">
@@ -120,11 +61,13 @@ export default async function DigitalTwinPage({
     );
   }
 
-  // Fallback user if not provided or not found
+  const companyId = companyBase.id;
+
+  // 2. Fetch User Context
   let user = userByEmail;
   if (!user) {
     user = await prisma.user.findFirst({
-      where: { housingCompanyId: company.id, role: UserRole.BOARD_MEMBER },
+      where: { housingCompanyId: companyId, role: UserRole.BOARD_MEMBER },
       include: { apartment: true },
     });
   }
@@ -144,6 +87,85 @@ export default async function DigitalTwinPage({
     );
   }
 
+  // 3. Fetch Relational Data in Parallel
+  const [tickets, initiatives, renovations, observations, buildingComponents] =
+    await Promise.all([
+      prisma.ticket.findMany({
+        where: { housingCompanyId: companyId },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          status: true,
+          category: true,
+          triageLevel: true,
+          priority: true,
+          type: true,
+          createdAt: true,
+          createdById: true,
+          observationId: true,
+          apartment: { select: { apartmentNumber: true } },
+        },
+      }),
+      prisma.initiative.findMany({
+        where: { housingCompanyId: companyId },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          status: true,
+          userId: true,
+          createdAt: true,
+          votes: {
+            select: {
+              userId: true,
+              choice: true,
+              shares: true,
+              apartmentId: true,
+              apartment: { select: { apartmentNumber: true } },
+            },
+          },
+        },
+      }),
+      prisma.renovation.findMany({
+        where: { housingCompanyId: companyId },
+        select: {
+          id: true,
+          component: true,
+          yearDone: true,
+          plannedYear: true,
+          cost: true,
+          expectedLifeSpan: true,
+          description: true,
+          status: true,
+        },
+      }),
+      prisma.observation.findMany({
+        where: { housingCompanyId: companyId },
+        select: {
+          id: true,
+          component: true,
+          description: true,
+          status: true,
+          severityGrade: true,
+          technicalVerdict: true,
+          boardSummary: true,
+          projectId: true,
+          createdAt: true,
+        },
+      }),
+      prisma.buildingComponent.findMany({
+        where: { housingCompanyId: companyId },
+        select: {
+          id: true,
+          meshId: true,
+          name: true,
+          type: true,
+          responsibility: true,
+        },
+      }),
+    ]);
+
   const initialData = {
     currentUser: {
       id: user.id,
@@ -151,34 +173,37 @@ export default async function DigitalTwinPage({
       role: user.role,
       email: user.email || "",
       apartmentId: user.apartment?.apartmentNumber || null,
-      housingCompanyId: company.id,
+      housingCompanyId: companyId,
       shareCount: user.apartment?.shareCount || 0,
       canApproveFinance: user.canApproveFinance,
       personalBalanceStatus: "OK",
       personalDebtShare: 0,
     },
     housingCompany: {
-      ...company,
-      healthScore: company.healthScore ?? undefined,
-      healthScoreTechnical: company.healthScoreTechnical ?? undefined,
-      healthScoreFinancial: company.healthScoreFinancial ?? undefined,
-      unpaidInvoicesCount: company.unpaidInvoicesCount ?? undefined,
+      ...companyBase,
+      healthScore: companyBase.healthScore ?? undefined,
+      healthScoreTechnical: companyBase.healthScoreTechnical ?? undefined,
+      healthScoreFinancial: companyBase.healthScoreFinancial ?? undefined,
+      unpaidInvoicesCount: companyBase.unpaidInvoicesCount ?? undefined,
     },
-    tickets: company.tickets.map((t) => ({
+    buildingLayout: BuildingGenerator.generateLayout(
+      (companyBase.buildingConfig as unknown as BuildingConfig) || undefined,
+    ),
+    tickets: tickets.map((t) => ({
       ...t,
       date: t.createdAt,
       apartmentId: t.apartment?.apartmentNumber || null,
     })),
-    initiatives: company.initiatives.map((i) => ({
+    initiatives: initiatives.map((i) => ({
       ...i,
       votes: i.votes.map((v) => ({
         ...v,
         apartment: { apartmentNumber: v.apartment.apartmentNumber },
       })),
     })),
-    renovations: company.renovations,
-    observations: company.observations,
-    buildingComponents: company.buildingComponents,
+    renovations,
+    observations,
+    buildingComponents,
   };
 
   return (

@@ -1,7 +1,7 @@
 // src/app/governance/projects/[id]/construction-tender/page.tsx
 import { prisma } from "@/lib/db";
 import { UserRole } from "@prisma/client";
-import { BiddingComparisonUI } from "@/components/governance/BiddingComparisonUI";
+import { BiddingComparisonUI } from "@/features/governance/components/BiddingComparisonUI";
 import { notFound } from "next/navigation";
 
 export default async function ConstructionTenderPage(props: {

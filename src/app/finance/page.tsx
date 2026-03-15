@@ -1,4 +1,4 @@
-import { getFinanceAggregates } from "@/app/actions/finance";
+import { getFinanceAggregates } from "@/features/finance/actions/finance";
 import { FinanceScore } from "@/components/finance/FinanceScore";
 import { BudgetMirror } from "@/components/finance/BudgetMirror";
 import { InvestmentSection } from "@/components/finance/InvestmentSection";

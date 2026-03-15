@@ -4,8 +4,10 @@ import "./globals.css";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { Toaster } from "sonner";
 
-const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
-const publicSans = Public_Sans({ subsets: ["latin"], variable: '--font-data' });
+import { ScenarioSwitcher } from "@/components/debug/ScenarioSwitcher";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const publicSans = Public_Sans({ subsets: ["latin"], variable: "--font-data" });
 
 export const metadata: Metadata = {
   title: "Talovahti",
@@ -17,7 +19,7 @@ export const viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  userScalable: false
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -27,10 +29,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fi">
-      <body className={`${inter.variable} ${publicSans.variable} font-sans bg-surface-lichen text-text-obsidian antialiased`}>
-        <MobileShell>
-          {children}
-        </MobileShell>
+      <body
+        className={`${inter.variable} ${publicSans.variable} font-sans bg-surface-lichen text-text-obsidian antialiased`}
+      >
+        {process.env.NODE_ENV === "development" && <ScenarioSwitcher />}
+        <MobileShell>{children}</MobileShell>
         <Toaster position="top-center" richColors />
       </body>
     </html>

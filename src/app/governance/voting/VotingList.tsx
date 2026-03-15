@@ -1,10 +1,10 @@
 "use client";
 
 import { calculateWeightedResult } from "@/lib/voting-logic";
-import { VoteResults } from "@/components/governance/VoteResults";
+import { VoteResults } from "@/features/governance/components/VoteResults";
 import { VoteChoice, Initiative, Vote, GovernanceStatus } from "@prisma/client";
 import { Scale } from "lucide-react";
-import { castVote } from "@/app/actions/governance";
+import { castVote } from "@/features/governance/actions/governance";
 import { toast } from "sonner";
 
 type ExtendedInitiative = Initiative & {

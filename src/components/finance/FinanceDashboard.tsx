@@ -1,4 +1,4 @@
-import { getFinanceAggregates } from "@/app/actions/finance";
+import { getFinanceAggregates } from "@/features/finance/actions/finance";
 import { ExpensesPieChart, ExpensesBarChart } from "./FinanceCharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {

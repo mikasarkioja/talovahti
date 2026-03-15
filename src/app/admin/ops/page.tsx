@@ -1,5 +1,5 @@
 import { getOpsBoardItems } from "@/app/actions/ops-actions";
-import { OpsKanbanBoard } from "@/components/ops/OpsKanbanBoard";
+import { OpsKanbanBoard } from "@/features/maintenance/components/OpsKanbanBoard";
 import { prisma } from "@/lib/db";
 import { UserRole } from "@prisma/client";
 

@@ -10,7 +10,7 @@ import {
 } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { RBAC } from "@/lib/auth/rbac";
-import { mml } from "@/lib/services/mml";
+import { MMLService } from "@/lib/services/mml";
 
 export async function createRenovationNotificationAction(params: {
   userId: string;
@@ -218,7 +218,7 @@ export async function syncRenovationToHTJ(
     contractor: renovation.contractorInfo,
   };
 
-  return await mml.sendChangeNotification(
+  return await MMLService.sendChangeNotification(
     renovation.housingCompanyId,
     actorId,
     "RENOVATION_NOTICE",

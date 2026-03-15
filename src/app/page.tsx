@@ -1,13 +1,18 @@
 import { prisma } from "@/lib/db";
-import { HomeClient } from "@/components/dashboard/HomeClient";
-import { getAnnualClockData } from "@/app/actions/governance";
-import { getFinanceAggregates } from "@/app/actions/finance";
-import { getHealthStatusAction } from "@/app/actions/health-actions";
-import { fetchInvoicesAction } from "@/app/actions/invoice-actions";
+import { HomeClient } from "@/features/dashboard/components/HomeClient";
+import { getAnnualClockData } from "@/features/governance/actions/governance";
+import { getFinanceAggregates } from "@/features/finance/actions/finance";
+import { getHealthStatusAction } from "@/features/dashboard/actions/health-actions";
+import { fetchInvoicesAction } from "@/features/finance/actions/invoice-actions";
 import { RBAC } from "@/lib/auth/rbac";
 import { headers } from "next/headers";
+import { getSession } from "@/lib/auth/session";
 import { UserRole } from "@prisma/client";
 import { redirect } from "next/navigation";
+import {
+  BuildingGenerator,
+  BuildingConfig,
+} from "@/features/building-model/lib/BuildingGenerator";
 
 /**
  * UI/Feature Audit Report - Talovahti MVP
@@ -30,6 +35,13 @@ export default async function Home(props: {
   const userQuery =
     typeof searchParams.user === "string" ? searchParams.user : undefined;
 
+  // Authentication: Prefer session cookie, fallback to userQuery for backwards compatibility (temporary)
+  const session = await getSession();
+  const sessionUser = session?.user as
+    | { email?: string; id?: string }
+    | undefined;
+  const targetEmail = sessionUser?.email || userQuery;
+
   try {
     if (process.env.NODE_ENV === "development") {
       const dbUrl = process.env.DATABASE_URL;
@@ -41,22 +53,22 @@ export default async function Home(props: {
       console.log("---------------------------------------------------");
       console.log("🔍 Next.js Database Connection Debug:");
       console.log("   URL Host:", maskedUrl);
+      console.log("   Authenticated as:", targetEmail || "Guest");
       console.log("---------------------------------------------------");
     }
 
     const currentYear = new Date().getFullYear();
 
-    // 1. Fetch Housing Company
-    // If userQuery is an email, first find the user to get their companyId
+    // 1. Fetch Basic Housing Company & User
     let userByEmail = null;
-    if (userQuery) {
+    if (targetEmail) {
       userByEmail = await prisma.user.findFirst({
-        where: { email: { contains: userQuery, mode: "insensitive" } },
-        include: { apartment: true, housingCompany: true },
+        where: { email: { contains: targetEmail, mode: "insensitive" } },
+        include: { apartment: true },
       });
     }
 
-    const company = await prisma.housingCompany.findFirst({
+    const companyBase = await prisma.housingCompany.findFirst({
       where: userByEmail ? { id: userByEmail.housingCompanyId } : {},
       select: {
         id: true,
@@ -71,167 +83,40 @@ export default async function Home(props: {
         unpaidInvoicesCount: true,
         realTimeCash: true,
         buildingConfig: true,
-        tickets: {
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            status: true,
-            category: true,
-            triageLevel: true,
-            priority: true,
-            type: true,
-            createdAt: true,
-            createdById: true,
-            observationId: true,
-            apartment: { select: { apartmentNumber: true } },
-          },
-        },
-        initiatives: {
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            status: true,
-            userId: true,
-            createdAt: true,
-            votes: {
-              select: {
-                userId: true,
-                choice: true,
-                shares: true,
-                apartmentId: true,
-                apartment: { select: { apartmentNumber: true } },
-              },
-            },
-          },
-        },
-        budgetLines: {
-          select: {
-            id: true,
-            category: true,
-            budgetedAmount: true,
-            actualSpent: true,
-            year: true,
-          },
-        },
-        invoices: {
-          select: {
-            id: true,
-            amount: true,
-            vendorName: true,
-            category: true,
-            status: true,
-            dueDate: true,
-            description: true,
-            externalId: true,
-            yTunnus: true,
-            projectId: true,
-            approvedById: true,
-            imageUrl: true,
-            createdAt: true,
-          },
-        },
-        fiscalConfig: true,
-        strategicGoals: true,
-        renovations: {
-          select: {
-            id: true,
-            component: true,
-            yearDone: true,
-            plannedYear: true,
-            cost: true,
-            expectedLifeSpan: true,
-            description: true,
-            status: true,
-          },
-        },
-        observations: {
-          select: {
-            id: true,
-            component: true,
-            description: true,
-            status: true,
-            severityGrade: true,
-            technicalVerdict: true,
-            boardSummary: true,
-            projectId: true,
-            createdAt: true,
-          },
-        },
-        projects: {
-          select: {
-            id: true,
-            title: true,
-            type: true,
-            status: true,
-            description: true,
-            createdAt: true,
-            warrantyEndDate: true,
-            estimatedCost: true,
-            milestones: {
-              select: {
-                id: true,
-                projectId: true,
-                title: true,
-                amount: true,
-                dueDate: true,
-                status: true,
-              },
-            },
-            siteReports: {
-              select: {
-                id: true,
-                projectId: true,
-                authorId: true,
-                content: true,
-                timestamp: true,
-                imageUrl: true,
-              },
-            },
-            changeOrders: {
-              select: {
-                id: true,
-                projectId: true,
-                title: true,
-                costImpact: true,
-                status: true,
-                createdAt: true,
-              },
-            },
-          },
-        },
-        boardProfile: true,
       },
     });
 
-    const companyId = company?.id || "default-company-id";
-
-    // 2. Fetch User (Dynamic Switcher)
-    let user: unknown = userByEmail;
-    if (!user && userQuery) {
-      user = await prisma.user.findFirst({
-        where: {
-          housingCompanyId: companyId,
-          email: { contains: userQuery, mode: "insensitive" },
-        },
-        include: { apartment: true },
-      });
-    } else if (user) {
-      // Include apartment for the user we already found
-      user = await prisma.user.findUnique({
-        where: { id: (user as { id: string }).id },
-        include: { apartment: true },
-      });
+    if (!companyBase) {
+      throw new Error(
+        "Taloyhtiön tietoja ei voitu noutaa. Ole hyvä ja varmista, että olet valinnut voimassa olevan käyttäjäprofiilin testityökalusta.",
+      );
     }
 
-    // Fallback to default Board Member if no query or user not found
-    if (!user) {
-      user = await prisma.user.findFirst({
+    const companyId = companyBase.id;
+
+    // 2. Fetch User Context (Dynamic Switcher)
+    const user =
+      !userByEmail && userQuery
+        ? await prisma.user.findFirst({
+            where: {
+              housingCompanyId: companyId,
+              email: { contains: userQuery, mode: "insensitive" },
+            },
+            include: { apartment: true },
+          })
+        : userByEmail
+          ? await prisma.user.findUnique({
+              where: { id: userByEmail.id },
+              include: { apartment: true },
+            })
+          : null;
+
+    const finalUser =
+      user ||
+      (await prisma.user.findFirst({
         where: { housingCompanyId: companyId, role: UserRole.BOARD_MEMBER },
         include: { apartment: true },
-      });
-    }
+      }));
 
     interface UserTyped {
       id: string;
@@ -245,22 +130,173 @@ export default async function Home(props: {
       canApproveFinance: boolean;
       housingCompanyId: string;
     }
-    const typedUser = user as UserTyped;
+    const typedUser = finalUser as unknown as UserTyped;
 
-    if (typedUser?.role === UserRole.RESIDENT) {
+    if (typedUser && typedUser.role === UserRole.RESIDENT) {
       const url = userQuery ? `/resident?user=${userQuery}` : "/resident";
       redirect(url);
     }
 
-    const [clockResult, financeAggregates, healthResult, invoicesResult] =
-      await Promise.all([
-        getAnnualClockData(companyId, currentYear),
-        getFinanceAggregates(companyId, currentYear),
-        getHealthStatusAction(companyId),
-        fetchInvoicesAction(),
-      ]);
+    // 3. Fetch Relational Data in Parallel
+    const [
+      tickets,
+      initiatives,
+      budgetLines,
+      invoices,
+      renovations,
+      observations,
+      projects,
+      boardProfile,
+      clockResult,
+      financeAggregates,
+      healthResult,
+      invoicesResult,
+    ] = await Promise.all([
+      prisma.ticket.findMany({
+        where: { housingCompanyId: companyId },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          status: true,
+          category: true,
+          triageLevel: true,
+          priority: true,
+          type: true,
+          createdAt: true,
+          createdById: true,
+          observationId: true,
+          apartment: { select: { apartmentNumber: true } },
+        },
+      }),
+      prisma.initiative.findMany({
+        where: { housingCompanyId: companyId },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          status: true,
+          userId: true,
+          createdAt: true,
+          votes: {
+            select: {
+              userId: true,
+              choice: true,
+              shares: true,
+              apartmentId: true,
+              apartment: { select: { apartmentNumber: true } },
+            },
+          },
+        },
+      }),
+      prisma.budgetLineItem.findMany({
+        where: { housingCompanyId: companyId, year: currentYear },
+        select: {
+          id: true,
+          category: true,
+          budgetedAmount: true,
+          actualSpent: true,
+          year: true,
+        },
+      }),
+      prisma.invoice.findMany({
+        where: { housingCompanyId: companyId },
+        select: {
+          id: true,
+          amount: true,
+          vendorName: true,
+          category: true,
+          status: true,
+          dueDate: true,
+          description: true,
+          externalId: true,
+          yTunnus: true,
+          projectId: true,
+          approvedById: true,
+          imageUrl: true,
+          createdAt: true,
+        },
+      }),
+      prisma.renovation.findMany({
+        where: { housingCompanyId: companyId },
+        select: {
+          id: true,
+          component: true,
+          yearDone: true,
+          plannedYear: true,
+          cost: true,
+          expectedLifeSpan: true,
+          description: true,
+          status: true,
+        },
+      }),
+      prisma.observation.findMany({
+        where: { housingCompanyId: companyId },
+        select: {
+          id: true,
+          component: true,
+          description: true,
+          status: true,
+          severityGrade: true,
+          technicalVerdict: true,
+          boardSummary: true,
+          projectId: true,
+          createdAt: true,
+        },
+      }),
+      prisma.project.findMany({
+        where: { housingCompanyId: companyId },
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          status: true,
+          description: true,
+          createdAt: true,
+          warrantyEndDate: true,
+          estimatedCost: true,
+          milestones: {
+            select: {
+              id: true,
+              projectId: true,
+              title: true,
+              amount: true,
+              dueDate: true,
+              status: true,
+            },
+          },
+          siteReports: {
+            select: {
+              id: true,
+              projectId: true,
+              authorId: true,
+              content: true,
+              timestamp: true,
+              imageUrl: true,
+            },
+          },
+          changeOrders: {
+            select: {
+              id: true,
+              projectId: true,
+              title: true,
+              costImpact: true,
+              status: true,
+              createdAt: true,
+            },
+          },
+        },
+      }),
+      prisma.boardProfile.findUnique({
+        where: { housingCompanyId: companyId },
+      }),
+      getAnnualClockData(companyId, currentYear),
+      getFinanceAggregates(companyId, currentYear),
+      getHealthStatusAction(companyId),
+      fetchInvoicesAction(),
+    ]);
 
-    // 2.5 Audit Log for Board Dashboard View
+    // 4. Audit Log for Board Dashboard View
     if (
       typedUser &&
       (typedUser.role === UserRole.BOARD_MEMBER ||
@@ -304,9 +340,9 @@ export default async function Home(props: {
             energySavingsPct: 12.5,
           };
 
-    // 3. Prepare Initial Data for Store
+    // 5. Prepare Initial Data for Store
     const initialData =
-      company && typedUser
+      companyBase && typedUser
         ? {
             currentUser: {
               id: typedUser.id,
@@ -314,20 +350,26 @@ export default async function Home(props: {
               role: typedUser.role,
               email: typedUser.email || "",
               apartmentId: typedUser.apartment?.apartmentNumber || null,
-              housingCompanyId: company.id,
+              housingCompanyId: companyBase.id,
               shareCount: typedUser.apartment?.shareCount || 0,
               canApproveFinance: typedUser.canApproveFinance,
               personalBalanceStatus: "OK",
               personalDebtShare: 0,
             },
             housingCompany: {
-              ...company,
-              healthScore: company.healthScore ?? undefined,
-              healthScoreTechnical: company.healthScoreTechnical ?? undefined,
-              healthScoreFinancial: company.healthScoreFinancial ?? undefined,
-              unpaidInvoicesCount: company.unpaidInvoicesCount ?? undefined,
+              ...companyBase,
+              healthScore: companyBase.healthScore ?? undefined,
+              healthScoreTechnical:
+                companyBase.healthScoreTechnical ?? undefined,
+              healthScoreFinancial:
+                companyBase.healthScoreFinancial ?? undefined,
+              unpaidInvoicesCount: companyBase.unpaidInvoicesCount ?? undefined,
             },
-            tickets: company.tickets.map((t) => ({
+            buildingLayout: BuildingGenerator.generateLayout(
+              (companyBase.buildingConfig as unknown as BuildingConfig) ||
+                undefined,
+            ),
+            tickets: tickets.map((t) => ({
               id: t.id,
               title: t.title,
               description: t.description,
@@ -342,7 +384,7 @@ export default async function Home(props: {
               createdById: t.createdById,
               observationId: t.observationId,
             })),
-            initiatives: company.initiatives.map((i) => ({
+            initiatives: initiatives.map((i) => ({
               id: i.id,
               title: i.title,
               description: i.description,
@@ -358,7 +400,7 @@ export default async function Home(props: {
               createdAt: i.createdAt,
             })),
             invoices: [
-              ...company.invoices.map((inv) => ({
+              ...invoices.map((inv) => ({
                 id: inv.id,
                 amount: Number(inv.amount),
                 vendorName: inv.vendorName,
@@ -385,26 +427,23 @@ export default async function Home(props: {
                   }))
                 : []),
             ],
-            budgetLines: company.budgetLines.map((bl) => ({
+            budgetLines: budgetLines.map((bl) => ({
               id: bl.id,
               category: bl.category,
               budgetedAmount: Number(bl.budgetedAmount),
               actualSpent: Number(bl.actualSpent),
               year: bl.year,
             })),
-            fiscalConfig: company.fiscalConfig
-              ? { ...company.fiscalConfig }
-              : null,
-            strategicGoals: company.strategicGoals,
+            fiscalConfig: null, // Fetched separately if needed, or join companyBase
+            strategicGoals: [], // Fetched separately if needed
             finance: financeData,
             health: healthResult.success ? healthResult.data : null,
             boardProfile:
               typedUser.role === UserRole.BOARD_MEMBER ||
               typedUser.role === UserRole.ADMIN
-                ? company.boardProfile
+                ? boardProfile
                 : null,
-            // Ensure MockStore required fields are present (empty arrays if not fetched)
-            renovations: company.renovations.map((r) => ({
+            renovations: renovations.map((r) => ({
               id: r.id,
               component: r.component,
               yearDone: r.yearDone || undefined,
@@ -414,7 +453,7 @@ export default async function Home(props: {
               description: r.description,
               status: r.status,
             })),
-            observations: company.observations.map((o) => ({
+            observations: observations.map((o) => ({
               id: o.id,
               component: o.component,
               description: o.description,
@@ -425,7 +464,7 @@ export default async function Home(props: {
               projectId: o.projectId,
               createdAt: o.createdAt,
             })),
-            projects: company.projects.map((p) => ({
+            projects: projects.map((p) => ({
               id: p.id,
               title: p.title,
               type: p.type,
@@ -459,7 +498,7 @@ export default async function Home(props: {
               })),
               tenders: [],
             })),
-            valuation: null, // Will be fetched client-side by ValueIntelligenceCard
+            valuation: null,
             feed: [],
           }
         : null;

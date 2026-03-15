@@ -1,5 +1,27 @@
 # Changelog
 
+## [2026-03-15] - Customer Demo "Golden Path" & Gamification
+
+### 🎭 Demo Experience
+- **Scenario Switcher**: Created `ScenarioSwitcher.tsx` for instant role switching (Resident, Board, Contractor) in dev mode.
+- **Golden Path Seed**: Updated `prisma/seed.ts` with a realistic scenario (A 12 water leak) and demo personas (Liisa, Pekka, Matti).
+- **Contractor Demo Page**: Added a dedicated `/admin/ops/contractor` page with Magic Link simulation for expert personas.
+
+### 🎮 Gamification & Rewards
+- **Case Resolution View**: Implemented an animated summary view (`CaseResolutionView.tsx`) using `framer-motion` for project completion.
+- **Omatase XP**: Integrated XP rewards (+250 XP) and level-up visualizations for correct governance actions (YSE 1998 compliance).
+- **XP Visualization**: Rebranded board activity as "Omatase-XP" and added score percentages to the UI.
+
+### 📋 Operations & Maintenance
+- **AI Triage UI**: Updated Kanban cards to show technical AI-analysis summaries and apartment numbers for critical cases.
+- **Digital Compliance**: Added "Digital Compliance 100%" verification and automated inspection protocol (PDF link) to project completion.
+- **HTJ Simulation**: Added a simulation button for MML HTJ-sync with realistic loading and confirmation states.
+
+### 🏗️ Architecture & Branding
+- **Feature Modularization**: Migrated maintenance components to a dedicated `src/features/maintenance` domain structure.
+- **Nordic Branding**: Refined terminology (Päätösjono, Urakkakilpailutus) and Tailwind v4 color application for a professional "property manager" look.
+- **Audit Integration**: Automated audit logging for project completion and financial settlements.
+
 ## [2026-01-16] - Temporal Engine & Strategic Intelligence
 
 ### ⏳ The Temporal Engine

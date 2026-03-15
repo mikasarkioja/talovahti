@@ -1,6 +1,6 @@
 "use client";
 
-import { BuildingModel } from "@/components/BuildingModel";
+import { BuildingModel } from "@/features/building-model/components/BuildingModel";
 import { Badge } from "@/components/ui/badge";
 import { Info, Box, PlayCircle } from "lucide-react";
 import { useState, useEffect } from "react";

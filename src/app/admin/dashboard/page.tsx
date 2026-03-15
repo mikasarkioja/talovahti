@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/db";
-import { DecisionQueueServer } from "@/components/dashboard/DecisionQueueServer";
-import { HealthScoreDashboard } from "@/components/dashboard/HealthScoreDashboard";
-import { BuildingModel } from "@/components/BuildingModel";
-import { DashboardKPIs } from "@/components/dashboard/DashboardKPIs";
-import { GamificationDashboard } from "@/components/dashboard/GamificationDashboard";
-import { LegalHealthWidget } from "@/components/dashboard/LegalHealthWidget";
+import { DecisionQueueServer } from "@/features/dashboard/components/DecisionQueueServer";
+import { HealthScoreDashboard } from "@/features/dashboard/components/HealthScoreDashboard";
+import { BuildingModel } from "@/features/building-model/components/BuildingModel";
+import { DashboardKPIs } from "@/features/dashboard/components/DashboardKPIs";
+import { GamificationDashboard } from "@/features/dashboard/components/GamificationDashboard";
+import { LegalHealthWidget } from "@/features/dashboard/components/LegalHealthWidget";
 import { RoleGate } from "@/components/auth/RoleGate";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";

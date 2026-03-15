@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useStore } from "@/lib/store";
-import { BuildingModel } from "@/components/BuildingModel";
-import { BuildingConfig } from "@/lib/three/BuildingGenerator";
+import { BuildingModel } from "@/features/building-model/components/BuildingModel";
+import { BuildingConfig } from "@/features/building-model/lib/BuildingGenerator";
 import {
   Card,
   CardHeader,
