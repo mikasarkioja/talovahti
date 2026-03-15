@@ -407,17 +407,7 @@ interface AppState {
 }
 
 export const useStore = create<AppState>((set) => ({
-  currentUser: {
-    id: "user-board-1",
-    name: "Pekka Puheenjohtaja",
-    email: "pekka@talovahti.fi",
-    role: "BOARD_MEMBER",
-    apartmentId: "B 10",
-    housingCompanyId: "company-1",
-    personalDebtShare: 0,
-    personalBalanceStatus: "OK",
-    canApproveFinance: true,
-  },
+  currentUser: null,
   housingCompany: null,
   buildingLayout: null,
 

@@ -60,7 +60,9 @@ export function Sidebar() {
       href:
         currentUser?.role === "RESIDENT" || currentUser?.role === "SHAREHOLDER"
           ? "/resident"
-          : "/",
+          : currentUser?.role === "EXPERT"
+            ? "/admin/ops/contractor"
+            : "/",
       label: "Hallintapaneeli",
       icon: Home,
     },
@@ -199,10 +201,12 @@ export function Sidebar() {
 
   const roleLabels: Record<string, string> = {
     RESIDENT: "Asukas",
-    BOARD: "Hallitus",
+    BOARD_MEMBER: "Hallitus",
     MANAGER: "Isännöitsijä",
     ADMIN: "Ylläpitäjä",
+    EXPERT: "Urakoitsija",
     SUPERVISOR: "Valvoja",
+    SHAREHOLDER: "Osakas",
   };
 
   return (

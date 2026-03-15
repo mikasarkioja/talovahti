@@ -41,8 +41,8 @@ export const BuildingGenerator = {
 
     // Defaults
     const shape = config?.shape || "I";
-    const staircases = config?.staircases || ["A", "B", "C"];
-    const floors = config?.floors || 4;
+    const staircases = config?.staircases || ["A", "B", "C", "D", "E"];
+    const floors = config?.floors || 2;
     const unitsPerFloor = config?.unitsPerFloor || 3;
     const floorHeight = config?.floorHeight || 3.0;
     const aptDepth = config?.aptDepth || 10.0;

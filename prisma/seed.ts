@@ -110,24 +110,38 @@ async function main() {
   });
 
   // 3. Apartments
-  console.log("🏠 Creating Apartments...");
+  console.log("🏠 Creating Apartments (2 floors, 5 staircases)...");
   const apartments = [];
-  // Stair A
-  for (let i = 1; i <= 15; i++) {
-    const apt = await prisma.apartment.create({
-      data: {
-        housingCompanyId: company.id,
-        apartmentNumber: `A ${i}`,
-        floor: Math.ceil(i / 3),
-        shareCount: i === 12 ? 180 : 120, // A 12 is a bit bigger
-        area: i === 12 ? 95.5 : 65.0,
-        sharesStart: (i - 1) * 120 + 1,
-        sharesEnd: i * 120,
-      },
-    });
-    apartments.push(apt);
+  const staircases = ["A", "B", "C", "D", "E"];
+  const floors = 2;
+  const unitsPerFloor = 3;
+
+  let aptCounter = 0;
+  for (const stair of staircases) {
+    for (let f = 1; f <= floors; f++) {
+      for (let u = 1; u <= unitsPerFloor; u++) {
+        const aptNum = (f - 1) * unitsPerFloor + u;
+        const apt = await prisma.apartment.create({
+          data: {
+            housingCompanyId: company.id,
+            apartmentNumber: `${stair} ${aptNum}`,
+            floor: f,
+            shareCount: stair === "A" && aptNum === 12 ? 180 : 120, // Keep A 12 special if it exists
+            area: stair === "A" && aptNum === 12 ? 95.5 : 65.0,
+            sharesStart: aptCounter * 120 + 1,
+            sharesEnd: (aptCounter + 1) * 120,
+          },
+        });
+        apartments.push(apt);
+        aptCounter++;
+      }
+    }
   }
-  const aptA12 = apartments.find((a) => a.apartmentNumber === "A 12")!;
+  const aptA12 = apartments.find((a) => a.apartmentNumber === "A 12");
+  // If A 12 doesn't exist in 2-story layout, use A 6
+  const demoApt =
+    aptA12 || apartments.find((a) => a.apartmentNumber === "A 6")!;
+  const demoAptNum = demoApt.apartmentNumber;
 
   // 4. Users (Golden Path Personas)
   console.log("👥 Creating Demo Personas...");
@@ -138,7 +152,7 @@ async function main() {
       role: UserRole.BOARD_MEMBER,
       housingCompanyId: company.id,
       apartmentId: apartments[0].id, // A 1
-      apartmentNumber: "A 1",
+      apartmentNumber: apartments[0].apartmentNumber,
       xp: 450,
       canApproveFinance: true,
     },
@@ -150,8 +164,8 @@ async function main() {
       name: "Pekka Asukas",
       role: UserRole.RESIDENT,
       housingCompanyId: company.id,
-      apartmentId: aptA12.id,
-      apartmentNumber: "A 12",
+      apartmentId: demoApt.id,
+      apartmentNumber: demoAptNum,
       xp: 50,
     },
   });
@@ -171,7 +185,7 @@ async function main() {
       housingCompanyId: company.id,
       totalXP: 1250,
       level: 3,
-      achievements: JSON.stringify([
+      achievements: [
         {
           name: "Nopea Päätöksentekijä",
           description: "Laskut hyväksytty alle 24 tunnissa.",
@@ -180,7 +194,7 @@ async function main() {
           name: "Digitaalinen Edelläkävijä",
           description: "HJT2-integraatio otettu käyttöön.",
         },
-      ]),
+      ],
     },
   });
 
@@ -216,7 +230,7 @@ async function main() {
   }
 
   // 6. The "Critical Case" (Golden Path)
-  console.log("🚨 Injecting the 'Critical Case' (A 12)...");
+  console.log(`🚨 Injecting the 'Critical Case' (${demoAptNum})...`);
   const criticalObs = await prisma.observation.create({
     data: {
       housingCompanyId: company.id,
@@ -225,7 +239,7 @@ async function main() {
       description:
         "Vettä valuu keittiön kaapiston alta lattialle. Parketti alkaa tummua.",
       status: ObservationStatus.OPEN,
-      location: JSON.stringify({ x: 5, y: 3, z: 2, aptId: aptA12.id }),
+      location: JSON.stringify({ x: 5, y: 3, z: 2, aptId: demoApt.id }),
       severityGrade: 5,
       technicalVerdict: "Välitön vesivahingon riski.",
     },
@@ -235,15 +249,15 @@ async function main() {
     data: {
       housingCompanyId: company.id,
       createdById: pekka.id,
-      apartmentId: aptA12.id,
+      apartmentId: demoApt.id,
       observationId: criticalObs.id,
-      title: "Vesivuoto asunnossa A 12",
+      title: `Vesivuoto asunnossa ${demoAptNum}`,
       description: "Vettä valuu keittiön kaapiston alta lattialle.",
       status: TicketStatus.OPEN,
       priority: TicketPriority.CRITICAL,
       triageLevel: TriageLevel.CRITICAL,
       category: TicketCategory.MAINTENANCE,
-      unitIdentifier: "A 12",
+      unitIdentifier: demoAptNum,
       huoltoNotes:
         "Todennäköinen astianpesukoneen liitoksen murtuma. Vaatii välittömän kosteusmittauksen ja putkimiehen.",
     },
@@ -261,8 +275,8 @@ async function main() {
       },
       {
         userId: pekka.id,
-        action: "Asukas Pekka jätti vikailmoituksen A 12",
-        targetId: aptA12.id,
+        action: `Asukas Pekka jätti vikailmoituksen ${demoAptNum}`,
+        targetId: demoApt.id,
         impactScore: 50,
         timestamp: new Date("2026-03-15T09:30:00Z"),
       },

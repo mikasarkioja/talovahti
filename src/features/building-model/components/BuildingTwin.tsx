@@ -118,7 +118,7 @@ export function BuildingTwin({ health = 100, onClickPoint }: BuildingProps) {
         onClickPoint?.(e.point);
       }}
     >
-      <boxGeometry args={[3, 5, 3]} />
+      <boxGeometry args={[6, 3, 4]} />
       <energyShaderMaterial ref={ref} transparent />
     </mesh>
   );

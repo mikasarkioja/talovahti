@@ -158,8 +158,26 @@ function Infrastructure({
     <group name="Infra_Group">
       <InfrastructureMesh apartments={apartments} />
       {/* Main Vertical Pipes - Company Responsibility */}
-      <mesh name="Pipes_01" position={[0, 6, 0]}>
-        <cylinderGeometry args={[0.3, 0.3, 15, 8]} />
+      <mesh
+        name="Pipes_01"
+        position={[
+          0,
+          (apartments.length > 0
+            ? Math.max(...apartments.map((a) => a.floor)) * 3
+            : 6) / 2,
+          0,
+        ]}
+      >
+        <cylinderGeometry
+          args={[
+            0.3,
+            0.3,
+            apartments.length > 0
+              ? Math.max(...apartments.map((a) => a.floor)) * 3 + 2
+              : 15,
+            8,
+          ]}
+        />
         <meshStandardMaterial color="#94a3b8" />
       </mesh>
     </group>
@@ -356,17 +374,22 @@ export function BuildingModel({
           >
             KAIKKI
           </Button>
-          {[4, 3, 2, 1].map((f) => (
-            <Button
-              key={f}
-              size="sm"
-              variant={selectedFloor === f ? "primary" : "ghost"}
-              className="h-11 w-11 p-0 text-sm font-bold"
-              onClick={() => setSelectedFloor(f)}
-            >
-              {f}
-            </Button>
-          ))}
+          {Array.from(
+            { length: Math.max(...apartments.map((a) => a.floor)) },
+            (_, i) => i + 1,
+          )
+            .reverse()
+            .map((f) => (
+              <Button
+                key={f}
+                size="sm"
+                variant={selectedFloor === f ? "primary" : "ghost"}
+                className="h-11 w-11 p-0 text-sm font-bold"
+                onClick={() => setSelectedFloor(f)}
+              >
+                {f}
+              </Button>
+            ))}
         </div>
       </div>
 
@@ -436,7 +459,7 @@ export function BuildingModel({
 
       <Canvas
         frameloop="demand"
-        camera={{ position: [20, 15, 20], fov: 35 }}
+        camera={{ position: [25, 15, 25], fov: 35 }}
         className="touch-none"
         shadows
       >

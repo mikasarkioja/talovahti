@@ -81,7 +81,7 @@ export async function orderExpertAction({
             : "Uurakkasopimus.pdf",
         signers: [
           {
-            name: user?.name || "Pekka Puheenjohtaja",
+            name: user?.name || "Esimerkki Käyttäjä",
             email: user?.email || "pekka@taloyhtio.fi",
           },
         ],

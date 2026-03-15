@@ -137,6 +137,10 @@ export default async function Home(props: {
       redirect(url);
     }
 
+    if (typedUser && typedUser.role === UserRole.EXPERT) {
+      redirect("/admin/ops/contractor");
+    }
+
     // 3. Fetch Relational Data in Parallel
     const [
       tickets,

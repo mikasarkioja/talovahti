@@ -125,7 +125,9 @@ export function UserSwitcher() {
                       const dashboardPath =
                         u.role === "BOARD_MEMBER" || u.role === "ADMIN"
                           ? "/"
-                          : "/resident";
+                          : u.role === "EXPERT"
+                            ? "/admin/ops/contractor"
+                            : "/resident";
 
                       // 4. Update session cookie via server action
                       const res = await switchUserAction(u.email);

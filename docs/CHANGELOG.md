@@ -22,6 +22,18 @@
 - **Nordic Branding**: Refined terminology (Päätösjono, Urakkakilpailutus) and Tailwind v4 color application for a professional "property manager" look.
 - **Audit Integration**: Automated audit logging for project completion and financial settlements.
 
+### 🛠️ Demo Day Fixes & Refinements
+- **Client-Side Stability**: Fixed a crash in `GamificationDashboard` caused by incorrect JSON data format; added `Array.isArray` safeguards.
+- **User Switching Fixes**: 
+  - Corrected `EXPERT` role redirection to the Contractor Admin page.
+  - Fixed sidebar role labels (Urakoitsija, Hallitus, Osakas).
+  - Reset default user to prevent "Pekka Puheenjohtaja" UI lock during hydration.
+- **Digital Twin Scaling**: 
+  - Redesigned the demo building to be lower (2 floors) and wider (5 staircases) for better visibility.
+  - Added dynamic floor controls and scaled internal infrastructure (pipes) to match building height.
+  - Adjusted 3D camera to fit the new building dimensions.
+- **Data Integrity**: Updated `prisma/seed.ts` to support the new 2-story building layout and ensured JSON arrays are stored correctly.
+
 ## [2026-01-16] - Temporal Engine & Strategic Intelligence
 
 ### ⏳ The Temporal Engine

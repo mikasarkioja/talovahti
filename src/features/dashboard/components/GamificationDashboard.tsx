@@ -75,7 +75,7 @@ export function GamificationDashboard({
             Viimeisimmät saavutukset
           </p>
           <div className="grid grid-cols-1 gap-2">
-            {achievements.length > 0 ? (
+            {Array.isArray(achievements) && achievements.length > 0 ? (
               achievements.slice(0, 2).map((a, i) => (
                 <div
                   key={i}
